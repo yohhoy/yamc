@@ -16,7 +16,7 @@ namespace yamc {
 namespace spin_ttas {
 
 class mutex {
-  std::atomic<int> state_;
+  std::atomic<int> state_{0};
 
 public:
   mutex() = default;
