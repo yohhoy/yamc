@@ -26,11 +26,12 @@ public:
   mutex& operator=(const mutex&) = delete;
 
   void lock() {
+    int state;
     do {
       while (state_.load(std::memory_order_relaxed) != 0) {
         std::this_thread::yield();
       }
-      int state = 0;
+      state = 0;
     } while (!state_.compare_exchange_weak(state, 1, std::memory_order_acquire));
   }
 
