@@ -2,6 +2,7 @@
 #include "naive_spin_mutex.hpp"
 #include "ttas_spin_mutex.hpp"
 #include "checked_mutex.hpp"
+#include "fair_mutex.hpp"
 
 
 template <typename Mutex>
@@ -27,5 +28,6 @@ int main()
   test_requirements<yamc::spin_ttas::mutex>();
   test_requirements<yamc::checked::mutex>();
   test_requirements<yamc::checked::recursive_mutex>();
+  test_requirements<yamc::fair::mutex>();
   return 0;
 }
