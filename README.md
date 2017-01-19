@@ -19,6 +19,7 @@ Note: [`std::mutex`'s default constructor][mutex_ctor] is constexpr, but `yamc::
 - `yamc::checked::mutex`: requirements debugging, non-recursive
 - `yamc::checked::recursive_mutex`: requirements debugging, recursive
 - `yamc::fair::mutex`: fairness, non-recursive
+- `yamc::fair::recursive_mutex`: fairness, recursive
 
 C++11/14/17 Standard Library define variable mutex types:
 
