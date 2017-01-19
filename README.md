@@ -1,8 +1,10 @@
 # yamc
-C++ mutexes (mutual exclusion primitives for multi-threading) collections.
-This is header-only C++ library and its implementation depends only C++11 Standard Library.
+[![Build Status](https://travis-ci.org/yohhoy/yamc.svg?branch=master)](https://travis-ci.org/yohhoy/yamc)
 
-"yamc" is acronym Yet Another (or Yohhoy's Adhoc) Mutex Collections ;)
+C++ mutexes (mutual exclusion primitives for multi-threading) collections.
+This is header-only, cross-platform, no external dependency C++ library.
+
+"yamc" is an acronym for Yet Another (or Yohhoy's Ad-hoc) Mutex Collections ;)
 
 
 # Mutex characteristics
