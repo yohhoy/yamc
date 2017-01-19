@@ -29,5 +29,6 @@ int main()
   test_requirements<yamc::checked::mutex>();
   test_requirements<yamc::checked::recursive_mutex>();
   test_requirements<yamc::fair::mutex>();
+  test_requirements<yamc::fair::recursive_mutex>();
   return 0;
 }

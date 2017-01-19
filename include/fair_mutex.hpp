@@ -76,6 +76,72 @@ public:
   }
 };
 
+
+class recursive_mutex {
+  std::size_t next_ = 0;
+  std::size_t curr_ = 0;
+  std::size_t ncount_ = 0;
+  std::thread::id owner_;
+  std::condition_variable cv_;
+  std::mutex mtx_;
+
+public:
+  recursive_mutex() = default;
+  ~recursive_mutex() = default;
+
+  recursive_mutex(const recursive_mutex&) = delete;
+  recursive_mutex& operator=(const recursive_mutex&) = delete;
+
+  void lock()
+  {
+    const auto tid = std::this_thread::get_id();
+    std::unique_lock<decltype(mtx_)> lk(mtx_);
+    if (owner_ == tid) {
+      assert(0 < ncount_);
+      ++next_;
+      ++ncount_;
+      return;
+    }
+    const std::size_t request = next_++;
+    while (request != curr_) {
+      cv_.wait(lk);
+    }
+    assert(ncount_ == 0 && owner_ == std::thread::id());
+    ncount_ = 1;
+    owner_ = tid;
+  }
+
+  bool try_lock()
+  {
+    const auto tid = std::this_thread::get_id();
+    std::lock_guard<decltype(mtx_)> lk(mtx_);
+    if (owner_ == tid) {
+      assert(0 < ncount_);
+      ++ncount_;
+      return true;
+    }
+    if (next_ != curr_)
+      return false;
+    ++next_;
+    assert(ncount_ == 0 && owner_ == std::thread::id());
+    ncount_ = 1;
+    owner_ = tid;
+    return true;
+  }
+
+  void unlock()
+  {
+    std::lock_guard<decltype(mtx_)> lk(mtx_);
+    assert(0 < ncount_);
+    if (--ncount_ == 0) {
+      ++curr_;
+      assert(owner_ == std::this_thread::get_id());
+      owner_ = std::thread::id();
+      cv_.notify_all();
+    }
+  }
+};
+
 } // namespace fair
 } // namespace yamc
 
