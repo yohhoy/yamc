@@ -1,8 +1,8 @@
 /*
  * ttas_spin_mutex.hpp
  */
-#ifndef YAMC_TTAS_SIPN_MUTEX_HPP_
-#define YAMC_TTAS_SIPN_MUTEX_HPP_
+#ifndef YAMC_TTAS_SPIN_MUTEX_HPP_
+#define YAMC_TTAS_SPIN_MUTEX_HPP_
 
 #include <atomic>
 #include <thread>

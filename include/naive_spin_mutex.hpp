@@ -1,8 +1,8 @@
 /*
  * naive_spin_mutex.hpp
  */
-#ifndef YAMC_NAIVE_SIPN_MUTEX_HPP_
-#define YAMC_NAIVE_SIPN_MUTEX_HPP_
+#ifndef YAMC_NAIVE_SPIN_MUTEX_HPP_
+#define YAMC_NAIVE_SPIN_MUTEX_HPP_
 
 #include <atomic>
 #include <thread>
@@ -11,7 +11,7 @@
 namespace yamc {
 
 /*
- * naive Test-And-Sawp(TAS) spinlock implementation (with memory_order_seq_cst)
+ * naive Test-And-Swap(TAS) spinlock implementation (with memory_order_seq_cst)
  */
 namespace spin {
 
@@ -47,7 +47,7 @@ public:
 
 
 /*
- * naive Test-And-Sawp(TAS) spinlock implementation for weak hardware memory model
+ * naive Test-And-Swap(TAS) spinlock implementation for weak hardware memory model
  */
 namespace spin_weak {
 
