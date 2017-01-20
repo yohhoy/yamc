@@ -7,8 +7,8 @@
 #include "ttas_spin_mutex.hpp"
 #include "checked_mutex.hpp"
 #include "fair_mutex.hpp"
-#include "yamc_test.hpp"
 #include "alternate_mutex.hpp"
+#include "yamc_testutil.hpp"
 
 
 #define TEST_THREADS   8

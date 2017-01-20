@@ -2,7 +2,7 @@
 #include <thread>
 #include "gtest/gtest.h"
 #include "checked_mutex.hpp"
-#include "yamc_test.hpp"
+#include "yamc_testutil.hpp"
 
 
 // abondon mutex
