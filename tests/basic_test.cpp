@@ -1,0 +1,48 @@
+/*
+ * basic_test.cpp
+ */
+#include <mutex>
+#include "gtest/gtest.h"
+#include "naive_spin_mutex.hpp"
+#include "ttas_spin_mutex.hpp"
+#include "checked_mutex.hpp"
+#include "fair_mutex.hpp"
+#include "yamc_test.hpp"
+
+
+#define TEST_THREADS   8
+#define TEST_ITERATION 100000u
+
+
+using NormalMutexTypes = ::testing::Types<
+  yamc::spin::mutex,
+  yamc::spin_weak::mutex,
+  yamc::spin_ttas::mutex,
+  yamc::checked::mutex,
+  yamc::checked::recursive_mutex,
+  yamc::fair::mutex,
+  yamc::fair::recursive_mutex
+>;
+
+template <typename Mutex>
+struct NormalMutexTest : ::testing::Test {};
+
+TYPED_TEST_CASE(NormalMutexTest, NormalMutexTypes);
+
+
+// normal mutex usecase
+TYPED_TEST(NormalMutexTest, BasicLock)
+{
+  TypeParam mtx;
+  std::size_t counter = 0;
+  yamc::test::task_runner(
+    TEST_THREADS,
+    [&](std::size_t /*id*/) {
+      for (std::size_t n = 0; n < TEST_ITERATION; ++n) {
+        std::lock_guard<decltype(mtx)> lk(mtx);
+        counter = counter + 1;
+      }
+    });
+  ASSERT_EQ(TEST_ITERATION * TEST_THREADS, counter);
+}
+

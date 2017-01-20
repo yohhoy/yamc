@@ -16,23 +16,22 @@ TEST(CheckedMutexTest, AbondonMutex) {
 
 // abondon mutex by other thread
 TEST(CheckedMutexTest, AbondonMutexSide) {
-  yamc::test::barrier b(2);
+  yamc::test::barrier step(2);
   auto pmtx = yamc::cxx::make_unique<yamc::checked::mutex>();
   // owner-thread
-  std::thread thd([&]{
+  yamc::test::join_thread thd([&]{
     ASSERT_NO_THROW(pmtx->lock());
-    b.await();  // b1
-    b.await();  // b2
+    step.await();  // b1
+    step.await();  // b2
   });
   // other-thread
   {
-    b.await();  // b1
+    step.await();  // b1
     ASSERT_THROW({
       delete pmtx.release();
     }, std::system_error);
-    b.await();  // b2
+    step.await();  // b2
   }
-  thd.join();
 }
 
 // recurse lock() on non-recursive mutex
@@ -70,7 +69,7 @@ TEST(CheckedMutexTest, NonOwnerUnlock) {
   yamc::test::barrier step(2);
   yamc::checked::mutex mtx;
   // owner-thread
-  std::thread thd([&]{
+  yamc::test::join_thread thd([&]{
     ASSERT_NO_THROW(mtx.lock());
     step.await();  // b1
     step.await();  // b2
@@ -82,7 +81,6 @@ TEST(CheckedMutexTest, NonOwnerUnlock) {
     ASSERT_THROW(mtx.unlock(), std::system_error);
     step.await();  // b2
   }
-  thd.join();
 }
 
 // abondon recursive_mutex
@@ -96,23 +94,22 @@ TEST(CheckedRecursiveMutexTest, AbondonMutex) {
 
 // abondon mutex by other thread
 TEST(CheckedRecursiveMutexTest, AbondonMutexSide) {
-  yamc::test::barrier b(2);
+  yamc::test::barrier step(2);
   auto pmtx = yamc::cxx::make_unique<yamc::checked::recursive_mutex>();
   // owner-thread
-  std::thread thd([&]{
+  yamc::test::join_thread thd([&]{
     ASSERT_NO_THROW(pmtx->lock());
-    b.await();  // b1
-    b.await();  // b2
+    step.await();  // b1
+    step.await();  // b2
   });
   // other-thread
   {
-    b.await();  // b1
+    step.await();  // b1
     ASSERT_THROW({
       delete pmtx.release();
     }, std::system_error);
-    b.await();  // b2
+    step.await();  // b2
   }
-  thd.join();
 }
 
 // invalid unlock()
@@ -144,7 +141,7 @@ TEST(CheckedRecursiveMutexTest, NonOwnerUnlock) {
   yamc::test::barrier step(2);
   yamc::checked::recursive_mutex mtx;
   // owner-thread
-  std::thread thd([&]{
+  yamc::test::join_thread thd([&]{
     ASSERT_NO_THROW(mtx.lock());
     step.await();  // b1
     step.await();  // b2
@@ -156,5 +153,4 @@ TEST(CheckedRecursiveMutexTest, NonOwnerUnlock) {
     ASSERT_THROW(mtx.unlock(), std::system_error);
     step.await();  // b2
   }
-  thd.join();
 }
