@@ -5,6 +5,7 @@
 #include "ttas_spin_mutex.hpp"
 #include "checked_mutex.hpp"
 #include "fair_mutex.hpp"
+#include "alternate_mutex.hpp"
 
 
 #define DUMP(T) std::printf("%s %zu\n", #T, sizeof(T))
@@ -29,5 +30,6 @@ int main()
   DUMP(yamc::checked::recursive_mutex);
   DUMP(yamc::fair::mutex);
   DUMP(yamc::fair::recursive_mutex);
+  DUMP(yamc::alternate::recursive_mutex);
   return 0;
 }

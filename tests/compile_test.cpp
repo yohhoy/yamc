@@ -1,8 +1,9 @@
-#include <mutex>  // lock_guard, unique_lock
+#include <mutex>
 #include "naive_spin_mutex.hpp"
 #include "ttas_spin_mutex.hpp"
 #include "checked_mutex.hpp"
 #include "fair_mutex.hpp"
+#include "alternate_mutex.hpp"
 
 
 template <typename Mutex>
@@ -30,5 +31,6 @@ int main()
   test_requirements<yamc::checked::recursive_mutex>();
   test_requirements<yamc::fair::mutex>();
   test_requirements<yamc::fair::recursive_mutex>();
+  test_requirements<yamc::alternate::recursive_mutex>();
   return 0;
 }

@@ -8,6 +8,7 @@
 #include "checked_mutex.hpp"
 #include "fair_mutex.hpp"
 #include "yamc_test.hpp"
+#include "alternate_mutex.hpp"
 
 
 #define TEST_THREADS   8
@@ -21,7 +22,8 @@ using NormalMutexTypes = ::testing::Types<
   yamc::checked::mutex,
   yamc::checked::recursive_mutex,
   yamc::fair::mutex,
-  yamc::fair::recursive_mutex
+  yamc::fair::recursive_mutex,
+  yamc::alternate::recursive_mutex
 >;
 
 template <typename Mutex>
@@ -48,7 +50,8 @@ TYPED_TEST(NormalMutexTest, BasicLock)
 
 using RecursiveMutexTypes = ::testing::Types<
   yamc::checked::recursive_mutex,
-  yamc::fair::recursive_mutex
+  yamc::fair::recursive_mutex,
+  yamc::alternate::recursive_mutex
 >;
 
 template <typename Mutex>
