@@ -5,13 +5,34 @@
 #include "yamc_test.hpp"
 
 
-// abondoned mutex
-TEST(CheckedMutexTest, AbondonedLock) {
+// abondon mutex
+TEST(CheckedMutexTest, AbondonMutex) {
   ASSERT_THROW({
     yamc::checked::mutex mtx;
     mtx.lock();
     // no unlock()
   }, std::system_error);
+}
+
+// abondon mutex by other thread
+TEST(CheckedMutexTest, AbondonMutexSide) {
+  yamc::test::barrier b(2);
+  auto pmtx = yamc::cxx::make_unique<yamc::checked::mutex>();
+  // owner-thread
+  std::thread thd([&]{
+    ASSERT_NO_THROW(pmtx->lock());
+    b.await();  // b1
+    b.await();  // b2
+  });
+  // other-thread
+  {
+    b.await();  // b1
+    ASSERT_THROW({
+      delete pmtx.release();
+    }, std::system_error);
+    b.await();  // b2
+  }
+  thd.join();
 }
 
 // recurse lock() on non-recursive mutex
@@ -64,13 +85,34 @@ TEST(CheckedMutexTest, NonOwnerUnlock) {
   thd.join();
 }
 
-// abondoned recursive_mutex
-TEST(CheckedRecursiveMutexTest, AbondonedLock) {
+// abondon recursive_mutex
+TEST(CheckedRecursiveMutexTest, AbondonMutex) {
   ASSERT_THROW({
     yamc::checked::recursive_mutex mtx;
     mtx.lock();
     // no unlock()
   }, std::system_error);
+}
+
+// abondon mutex by other thread
+TEST(CheckedRecursiveMutexTest, AbondonMutexSide) {
+  yamc::test::barrier b(2);
+  auto pmtx = yamc::cxx::make_unique<yamc::checked::recursive_mutex>();
+  // owner-thread
+  std::thread thd([&]{
+    ASSERT_NO_THROW(pmtx->lock());
+    b.await();  // b1
+    b.await();  // b2
+  });
+  // other-thread
+  {
+    b.await();  // b1
+    ASSERT_THROW({
+      delete pmtx.release();
+    }, std::system_error);
+    b.await();  // b2
+  }
+  thd.join();
 }
 
 // invalid unlock()

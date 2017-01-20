@@ -5,12 +5,15 @@
 #define YAMC_TEST_HPP_
 
 #include <condition_variable>
+#include <memory>
 #include <mutex>
 
 
 namespace yamc {
 namespace test {
 
+
+/// randzvous point primitive
 class barrier {
   std::size_t nthread_;
   std::size_t count_;
@@ -43,6 +46,20 @@ public:
 };
 
 } // namespace test
+
+
+namespace cxx {
+
+/// C++14 std::make_unique()
+template<typename T, typename... Args>
+inline
+std::unique_ptr<T> make_unique(Args... args)
+{
+  return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
+}
+
+} // namespace cxx
+
 } // namespace yamc
 
 #endif
