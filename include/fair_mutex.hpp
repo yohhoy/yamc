@@ -98,7 +98,6 @@ public:
     std::unique_lock<decltype(mtx_)> lk(mtx_);
     if (owner_ == tid) {
       assert(0 < ncount_);
-      ++next_;
       ++ncount_;
       return;
     }
