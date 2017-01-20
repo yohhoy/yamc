@@ -43,7 +43,7 @@ class join_thread {
 
 public:
   template<typename F>
-  explicit join_thread(F f)
+  explicit join_thread(F&& f)
     : thd_(std::forward<F>(f)) {}
 
   ~join_thread() noexcept(false)
@@ -117,7 +117,7 @@ namespace cxx {
 /// C++14 std::make_unique()
 template<typename T, typename... Args>
 inline
-std::unique_ptr<T> make_unique(Args... args)
+std::unique_ptr<T> make_unique(Args&&... args)
 {
   return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
 }
