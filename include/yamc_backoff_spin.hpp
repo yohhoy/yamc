@@ -61,7 +61,7 @@ struct exponential {
     if (s.counter == 0) {
       // yield thread at exponential decreasing interval
       std::this_thread::yield();
-      s.initcount = (s.initcount >> 1) + 1;
+      s.initcount = (s.initcount >> 1) | 1;
       s.counter = s.initcount;
     }
     --s.counter;

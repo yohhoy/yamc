@@ -231,3 +231,25 @@ TYPED_TEST(TimedMutexTest, TryLockUntilTimeout)
     step.await();  // b2
   }
 }
+
+
+// backoff::exponential
+TEST(BackoffTest, Exponential1)
+{
+  using BackoffPolicy = yamc::backoff::exponential<100>;
+  BackoffPolicy::state state;
+  ASSERT_EQ(100u, state.initcount);
+  ASSERT_EQ(100u, state.counter);
+  for (int i = 0; i < 100; ++i) {
+    BackoffPolicy::wait(state);  // wait 100
+  }
+  ASSERT_EQ(0u, state.counter);
+  for (int i = 0; i < 2000; ++i) {
+    BackoffPolicy::wait(state);
+  }
+  ASSERT_EQ(1u, state.initcount);
+  ASSERT_EQ(0u, state.counter);
+  BackoffPolicy::wait(state);
+  ASSERT_EQ(1u, state.initcount);
+  ASSERT_EQ(0u, state.counter);
+}
