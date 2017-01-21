@@ -126,7 +126,8 @@ public:
 
   Duration elapsed()
   {
-    return ClockType::now() - start_;
+    auto end = ClockType::now();
+    return std::chrono::duration_cast<Duration>(end - start_);
   }
 };
 
