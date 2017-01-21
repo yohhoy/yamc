@@ -27,7 +27,7 @@
 #define YAMC_TTAS_SPIN_MUTEX_HPP_
 
 #include <atomic>
-#include <thread>
+#include "yamc_backoff_spin.hpp"
 
 
 namespace yamc {
@@ -37,35 +37,42 @@ namespace yamc {
  */
 namespace spin_ttas {
 
-class mutex {
+template <typename BackoffPolicy>
+class basic_mutex {
   std::atomic<int> state_{0};
 
 public:
-  mutex() = default;
-  ~mutex() = default;
+  basic_mutex() = default;
+  ~basic_mutex() = default;
 
-  mutex(const mutex&) = delete;
-  mutex& operator=(const mutex&) = delete;
+  basic_mutex(const basic_mutex&) = delete;
+  basic_mutex& operator=(const basic_mutex&) = delete;
 
-  void lock() {
-    int state;
+  void lock()
+  {
+    typename BackoffPolicy::state state;
+    int expected;
     do {
       while (state_.load(std::memory_order_relaxed) != 0) {
-        std::this_thread::yield();
+        BackoffPolicy::wait(state);
       }
-      state = 0;
-    } while (!state_.compare_exchange_weak(state, 1, std::memory_order_acquire));
+      expected = 0;
+    } while (!state_.compare_exchange_weak(expected, 1, std::memory_order_acquire));
   }
 
-  bool try_lock() {
-    int state = 0;
-    return state_.compare_exchange_weak(state, 1, std::memory_order_acquire);
+  bool try_lock()
+  {
+    int expected = 0;
+    return state_.compare_exchange_weak(expected, 1, std::memory_order_acquire);
   }
 
-  void unlock() {
+  void unlock()
+  {
     state_.store(0, std::memory_order_release);
   }
 };
+
+using mutex = basic_mutex<YAMC_BACKOFF_SPIN_DEFAULT>;
 
 } // namespace spin_ttas
 } // namespace yamc

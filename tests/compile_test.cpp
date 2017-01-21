@@ -59,9 +59,21 @@ void test_requirements_timed()
 int main()
 {
   test_requirements<std::mutex>();
+
   test_requirements<yamc::spin::mutex>();
   test_requirements<yamc::spin_weak::mutex>();
   test_requirements<yamc::spin_ttas::mutex>();
+  // spinlock mutex with yamc::backoff::* policy
+  test_requirements<yamc::spin::basic_mutex<yamc::backoff::exponential<1000>>>();
+  test_requirements<yamc::spin_weak::basic_mutex<yamc::backoff::exponential<1000>>>();
+  test_requirements<yamc::spin_ttas::basic_mutex<yamc::backoff::exponential<1000>>>();
+  test_requirements<yamc::spin::basic_mutex<yamc::backoff::yield>>();
+  test_requirements<yamc::spin_weak::basic_mutex<yamc::backoff::yield>>();
+  test_requirements<yamc::spin_ttas::basic_mutex<yamc::backoff::yield>>();
+  test_requirements<yamc::spin::basic_mutex<yamc::backoff::busy>>();
+  test_requirements<yamc::spin_weak::basic_mutex<yamc::backoff::busy>>();
+  test_requirements<yamc::spin_ttas::basic_mutex<yamc::backoff::busy>>();
+
   test_requirements<yamc::checked::mutex>();
   test_requirements<yamc::checked::recursive_mutex>();
   test_requirements_timed<yamc::checked::timed_mutex>();

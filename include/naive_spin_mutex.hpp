@@ -27,7 +27,7 @@
 #define YAMC_NAIVE_SPIN_MUTEX_HPP_
 
 #include <atomic>
-#include <thread>
+#include "yamc_backoff_spin.hpp"
 
 
 namespace yamc {
@@ -37,33 +37,40 @@ namespace yamc {
  */
 namespace spin {
 
-class mutex {
+template <typename BackoffPolicy>
+class basic_mutex {
   std::atomic<int> state_{0};
 
 public:
-  mutex() = default;
-  ~mutex() = default;
+  basic_mutex() = default;
+  ~basic_mutex() = default;
 
-  mutex(const mutex&) = delete;
-  mutex& operator=(const mutex&) = delete;
+  basic_mutex(const basic_mutex&) = delete;
+  basic_mutex& operator=(const basic_mutex&) = delete;
 
-  void lock() {
+  void lock()
+  {
+    typename BackoffPolicy::state state;
     int expected = 0;
     while (!state_.compare_exchange_weak(expected, 1)) {
-      std::this_thread::yield();
+      BackoffPolicy::wait(state);
       expected = 0;
     }
   }
 
-  bool try_lock() {
+  bool try_lock()
+  {
     int expected = 0;
     return state_.compare_exchange_weak(expected, 1);
   }
 
-  void unlock() {
+  void unlock()
+  {
     state_.store(0);
   }
 };
+
+using mutex = basic_mutex<YAMC_BACKOFF_SPIN_DEFAULT>;
 
 } // namespace spin
 
@@ -73,33 +80,40 @@ public:
  */
 namespace spin_weak {
 
-class mutex {
+template <typename BackoffPolicy>
+class basic_mutex {
   std::atomic<int> state_{0};
 
 public:
-  mutex() = default;
-  ~mutex() = default;
+  basic_mutex() = default;
+  ~basic_mutex() = default;
 
-  mutex(const mutex&) = delete;
-  mutex& operator=(const mutex&) = delete;
+  basic_mutex(const basic_mutex&) = delete;
+  basic_mutex& operator=(const basic_mutex&) = delete;
 
-  void lock() {
+  void lock()
+  {
+    typename BackoffPolicy::state state;
     int expected = 0;
     while (!state_.compare_exchange_weak(expected, 1, std::memory_order_acquire, std::memory_order_relaxed)) {
-      std::this_thread::yield();
+      BackoffPolicy::wait(state);
       expected = 0;
     }
   }
 
-  bool try_lock() {
+  bool try_lock()
+  {
     int expected = 0;
     return state_.compare_exchange_weak(expected, 1, std::memory_order_acquire, std::memory_order_relaxed);
   }
 
-  void unlock() {
+  void unlock()
+  {
     state_.store(0, std::memory_order_release);
   }
 };
+
+using mutex = basic_mutex<YAMC_BACKOFF_SPIN_DEFAULT>;
 
 } // namespace spin_weak
 
