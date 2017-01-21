@@ -1,6 +1,7 @@
 /*
  * basic_test.cpp
  */
+#include <chrono>
 #include <mutex>
 #include "gtest/gtest.h"
 #include "naive_spin_mutex.hpp"
@@ -13,6 +14,7 @@
 
 #define TEST_THREADS   8
 #define TEST_ITERATION 10000u
+#define TEST_TIMEOUT   std::chrono::milliseconds(500)
 
 
 using NormalMutexTypes = ::testing::Types<
@@ -171,5 +173,61 @@ TYPED_TEST(RecursiveMutexTest, TryLockFail)
     step.await();  // b5
     ASSERT_EQ(false, mtx.try_lock());  // lockcnt = 3
     step.await();  // b6
+  }
+}
+
+
+using TimedMutexTypes = ::testing::Types<
+  yamc::checked::timed_mutex,
+  yamc::checked::recursive_timed_mutex
+>;
+
+template <typename Mutex>
+struct TimedMutexTest : ::testing::Test {};
+
+TYPED_TEST_CASE(TimedMutexTest, TimedMutexTypes);
+
+// (recursive_)timed_mutex::try_lock_for() timeout
+TYPED_TEST(TimedMutexTest, TryLockForTimeout)
+{
+  yamc::test::barrier step(2);
+  TypeParam mtx;
+  yamc::test::join_thread thd([&]{
+    ASSERT_NO_THROW(mtx.lock());
+    step.await();  // b1
+    step.await();  // b2
+    ASSERT_NO_THROW(mtx.unlock());
+  });
+  {
+    step.await();  // b1
+    yamc::test::stopwatch<> sw;
+    bool result = mtx.try_lock_for(TEST_TIMEOUT);
+    auto elapsed = sw.elapsed();
+    ASSERT_EQ(false, result);
+    EXPECT_LE(TEST_TIMEOUT, elapsed);
+    step.await();  // b2
+  }
+}
+
+// (recursive_)timed_mutex::try_lock_until() timeout
+TYPED_TEST(TimedMutexTest, TryLockUntilTimeout)
+{
+  yamc::test::barrier step(2);
+  TypeParam mtx;
+  yamc::test::join_thread thd([&]{
+    ASSERT_NO_THROW(mtx.lock());
+    step.await();  // b1
+    step.await();  // b2
+    ASSERT_NO_THROW(mtx.unlock());
+  });
+  {
+    step.await();  // b1
+    const auto tp = std::chrono::system_clock::now() + TEST_TIMEOUT;
+    yamc::test::stopwatch<> sw;
+    bool result = mtx.try_lock_until(tp);
+    auto elapsed = sw.elapsed();
+    ASSERT_EQ(false, result);
+    EXPECT_LE(TEST_TIMEOUT, elapsed);
+    step.await();  // b2
   }
 }

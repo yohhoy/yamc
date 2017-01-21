@@ -26,6 +26,7 @@
 #ifndef YAMC_TESTUTIL_HPP_
 #define YAMC_TESTUTIL_HPP_
 
+#include <chrono>
 #include <condition_variable>
 #include <memory>
 #include <mutex>
@@ -108,6 +109,26 @@ void task_runner(std::size_t nthread, F f)
     t.join();
   }
 }
+
+
+/// stopwatch
+template <typename Duration = std::chrono::microseconds>
+class stopwatch {
+  using ClockType = std::chrono::system_clock;
+  ClockType::time_point start_;
+
+public:
+  stopwatch()
+    : start_(ClockType::now()) {}
+
+  stopwatch(const stopwatch&) = delete;
+  stopwatch& operator=(const stopwatch&) = delete;
+
+  Duration elapsed()
+  {
+    return ClockType::now() - start_;
+  }
+};
 
 } // namespace test
 
