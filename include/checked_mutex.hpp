@@ -27,6 +27,7 @@
 #define YAMC_CHECKED_MUTEX_HPP_
 
 #include <cassert>
+#include <chrono>
 #include <condition_variable>
 #include <mutex>
 #include <system_error>
@@ -40,23 +41,21 @@ namespace yamc {
  */
 namespace checked {
 
-class mutex {
+namespace detail {
+
+class mutex_base {
+protected:
   std::thread::id owner_;
   std::condition_variable cv_;
   std::mutex mtx_;
 
-public:
-  mutex() = default;
-  ~mutex() noexcept(false)
+  void dtor_precondition(const char* emsg)
   {
     if (owner_ != std::thread::id()) {
       // object liveness
-      throw std::system_error(std::make_error_code(std::errc::resource_deadlock_would_occur), "abandoned mutex");
+      throw std::system_error(std::make_error_code(std::errc::resource_deadlock_would_occur), emsg);
     }
   }
-
-  mutex(const mutex&) = delete;
-  mutex& operator=(const mutex&) = delete;
 
   void lock()
   {
@@ -100,40 +99,35 @@ public:
 };
 
 
-class recursive_mutex {
+class recursive_mutex_base {
+protected:
   std::size_t ncount_ = 0;
   std::thread::id owner_;
   std::condition_variable cv_;
   std::mutex mtx_;
 
-public:
-  recursive_mutex() = default;
-  ~recursive_mutex() noexcept(false)
+  void dtor_precondition(const char* emsg)
   {
     if (ncount_ != 0 || owner_ != std::thread::id()) {
       // object liveness
-      throw std::system_error(std::make_error_code(std::errc::resource_deadlock_would_occur), "abandoned recursive_mutex");
+      throw std::system_error(std::make_error_code(std::errc::resource_deadlock_would_occur), emsg);
     }
   }
-
-  recursive_mutex(const recursive_mutex&) = delete;
-  recursive_mutex& operator=(const recursive_mutex&) = delete;
 
   void lock()
   {
     const auto tid = std::this_thread::get_id();
     std::unique_lock<std::mutex> lk(mtx_);
-    while (owner_ != std::thread::id() && owner_ != tid) {
+    if (owner_ == tid) {
+      ++ncount_;
+      return;
+    }
+    while (ncount_ != 0) {
       cv_.wait(lk);
     }
-    if (ncount_ == 0) {
-      assert(owner_ == std::thread::id());
-      ncount_ = 1;
-      owner_ = tid;
-    } else {
-      assert(owner_ == tid);
-      ++ncount_;
-    }
+    assert(owner_ == std::thread::id());
+    ncount_ = 1;
+    owner_ = tid;
   }
 
   bool try_lock()
@@ -144,12 +138,13 @@ public:
       ++ncount_;
       return true;
     }
-    else if (owner_ != std::thread::id()) {
-      return false;
+    if (ncount_ == 0) {
+      assert(owner_ == std::thread::id());
+      ncount_ = 1;
+      owner_ = tid;
+      return true;
     }
-    ncount_ = 1;
-    owner_ = tid;
-    return true;
+    return false;
   }
 
   void unlock()
@@ -164,6 +159,152 @@ public:
       owner_ = std::thread::id();
       cv_.notify_all();
     }
+  }
+};
+
+} // namespace detail
+
+
+class mutex : private detail::mutex_base {
+  using base = detail::mutex_base;
+
+public:
+  mutex() = default;
+  ~mutex() noexcept(false)
+  {
+    dtor_precondition("abandoned mutex");
+  }
+
+  mutex(const mutex&) = delete;
+  mutex& operator=(const mutex&) = delete;
+
+  using base::lock;
+  using base::try_lock;
+  using base::unlock;
+};
+
+
+class timed_mutex : private detail::mutex_base {
+  using base = detail::mutex_base;
+
+  template<typename Clock, typename Duration>
+  bool do_try_lockwait(const std::chrono::time_point<Clock, Duration>& tp, const char* emsg)
+  {
+    const auto tid = std::this_thread::get_id();
+    std::unique_lock<std::mutex> lk(mtx_);
+    if (owner_ == tid) {
+      // non-recursive semantics
+      throw std::system_error(std::make_error_code(std::errc::resource_deadlock_would_occur), emsg);
+    }
+    while (owner_ != std::thread::id()) {
+      if (cv_.wait_until(lk, tp) == std::cv_status::timeout) {
+        if (owner_ == std::thread::id())  // re-check predicate
+          break;
+        return false;
+      }
+    }
+    owner_ = tid;
+    return true;
+  }
+
+public:
+  timed_mutex() = default;
+  ~timed_mutex() noexcept(false)
+  {
+    dtor_precondition("abandoned timed_mutex");
+  }
+
+  timed_mutex(const timed_mutex&) = delete;
+  timed_mutex& operator=(const timed_mutex&) = delete;
+
+  using base::lock;
+  using base::try_lock;
+  using base::unlock;
+
+  template<typename Rep, typename Period>
+  bool try_lock_for(const std::chrono::duration<Rep, Period>& duration)
+  {
+    const auto tp = std::chrono::system_clock::now() + duration;
+    return do_try_lockwait(tp, "recursive try_lock_for");
+  }
+
+  template<typename Clock, typename Duration>
+  bool try_lock_until(const std::chrono::time_point<Clock, Duration>& tp)
+  {
+    return do_try_lockwait(tp, "recursive try_lock_until");
+  }
+};
+
+
+class recursive_mutex : private detail::recursive_mutex_base {
+  using base = detail::recursive_mutex_base;
+
+public:
+  recursive_mutex() = default;
+  ~recursive_mutex() noexcept(false)
+  {
+    dtor_precondition("abandoned recursive_mutex");
+  }
+
+  recursive_mutex(const recursive_mutex&) = delete;
+  recursive_mutex& operator=(const recursive_mutex&) = delete;
+
+  using base::lock;
+  using base::try_lock;
+  using base::unlock;
+};
+
+
+class recursive_timed_mutex : private detail::recursive_mutex_base {
+  using base = detail::recursive_mutex_base;
+
+  template<typename Clock, typename Duration>
+  bool do_try_lockwait(const std::chrono::time_point<Clock, Duration>& tp)
+  {
+    const auto tid = std::this_thread::get_id();
+    std::unique_lock<std::mutex> lk(mtx_);
+    if (owner_ == tid) {
+      ++ncount_;
+      return true;
+    }
+    while (ncount_ != 0) {
+      if (cv_.wait_until(lk, tp) == std::cv_status::timeout) {
+        if (ncount_ == 0)  // re-check predicate
+          break;
+        return false;
+      }
+    }
+    assert(owner_ == std::thread::id());
+    ncount_ = 1;
+    owner_ = tid;
+    return true;
+  }
+
+public:
+  recursive_timed_mutex() = default;
+  ~recursive_timed_mutex() noexcept(false)
+  {
+    dtor_precondition("abandoned recursive_timed_mutex");
+  }
+
+  recursive_timed_mutex(const recursive_timed_mutex&) = delete;
+  recursive_timed_mutex& operator=(const recursive_timed_mutex&) = delete;
+
+  using base::lock;
+  using base::try_lock;
+  using base::unlock;
+
+  template<typename Rep, typename Period>
+  bool try_lock_for(const std::chrono::duration<Rep, Period>& duration)
+  {
+    const auto tp = std::chrono::system_clock::now() + duration;
+    return do_try_lockwait(tp);
+  }
+
+  template<typename Clock, typename Duration>
+  bool try_lock_until(const std::chrono::time_point<Clock, Duration>& tp)
+  {
+    return do_try_lockwait(tp);
   }
 };
 

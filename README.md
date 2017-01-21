@@ -10,14 +10,16 @@ This is header-only, cross-platform, no external dependency C++ library.
 # Mutex characteristics
 This library provide the following mutex types.
 All mutex types fulfil normal mutex or recursive mutex semantics in C++ Standard.
-You can replace type `std::mutex` to `yamc::*::mutex`, `std::recursive_mutex` to `yamc::*::recursive_mutex` except in special case.
+You can replace type `std::mutex` to `yamc::*::mutex`, `std::recursive_mutex` to `yamc::*::recursive_mutex` except some special case.
 Note: [`std::mutex`'s default constructor][mutex_ctor] is constexpr, but `yamc::*::mutex` is not.
 
 - `yamc::spin::mutex`: TAS spinlock, non-recursive
 - `yamc::spin_weak::mutex`: TAS spinlock, non-recursive
 - `yamc::spin_ttas::mutex`: TTAS spinlock, non-recursive
 - `yamc::checked::mutex`: requirements debugging, non-recursive
+- `yamc::checked::timed_mutex`: requirements debugging, non-recursive, support timeout
 - `yamc::checked::recursive_mutex`: requirements debugging, recursive
+- `yamc::checked::recursive_timed_mutex`: requirements debugging, recursive, support timeout
 - `yamc::fair::mutex`: fairness, non-recursive
 - `yamc::fair::recursive_mutex`: fairness, recursive
 - `yamc::alternate::recursive_mutex`: recursive

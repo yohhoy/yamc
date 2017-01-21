@@ -1,23 +1,36 @@
+/*
+ * checked_test.cpp
+ */
+#include <chrono>
 #include <system_error>
-#include <thread>
 #include "gtest/gtest.h"
 #include "checked_mutex.hpp"
 #include "yamc_testutil.hpp"
 
 
+using CheckedMutexTypes = ::testing::Types<
+  yamc::checked::mutex,
+  yamc::checked::timed_mutex
+>;
+
+template <typename Mutex>
+struct CheckedMutexTest : ::testing::Test {};
+
+TYPED_TEST_CASE(CheckedMutexTest, CheckedMutexTypes);
+
 // abondon mutex
-TEST(CheckedMutexTest, AbondonMutex) {
+TYPED_TEST(CheckedMutexTest, AbondonMutex) {
   ASSERT_THROW({
-    yamc::checked::mutex mtx;
+    TypeParam mtx;
     mtx.lock();
     // no unlock()
   }, std::system_error);
 }
 
 // abondon mutex by other thread
-TEST(CheckedMutexTest, AbondonMutexSide) {
+TYPED_TEST(CheckedMutexTest, AbondonMutexSide) {
   yamc::test::barrier step(2);
-  auto pmtx = yamc::cxx::make_unique<yamc::checked::mutex>();
+  auto pmtx = yamc::cxx::make_unique<TypeParam>();
   // owner-thread
   yamc::test::join_thread thd([&]{
     ASSERT_NO_THROW(pmtx->lock());
@@ -35,39 +48,39 @@ TEST(CheckedMutexTest, AbondonMutexSide) {
 }
 
 // recurse lock() on non-recursive mutex
-TEST(CheckedMutexTest, RecurseLock) {
-  yamc::checked::mutex mtx;
+TYPED_TEST(CheckedMutexTest, RecurseLock) {
+  TypeParam mtx;
   ASSERT_NO_THROW(mtx.lock());
   ASSERT_THROW(mtx.lock(), std::system_error);
   ASSERT_NO_THROW(mtx.unlock());
 }
 
 // recurse try_lock() on non-recursive mutex
-TEST(CheckedMutexTest, RecurseTryLock) {
-  yamc::checked::mutex mtx;
+TYPED_TEST(CheckedMutexTest, RecurseTryLock) {
+  TypeParam mtx;
   ASSERT_NO_THROW(mtx.lock());
   ASSERT_THROW(mtx.try_lock(), std::system_error);
   ASSERT_NO_THROW(mtx.unlock());
 }
 
 // invalid unlock()
-TEST(CheckedMutexTest, InvalidUnlock0) {
-  yamc::checked::mutex mtx;
+TYPED_TEST(CheckedMutexTest, InvalidUnlock0) {
+  TypeParam mtx;
   ASSERT_THROW(mtx.unlock(), std::system_error);
 }
 
 // invalid unlock()
-TEST(CheckedMutexTest, InvalidUnlock1) {
-  yamc::checked::mutex mtx;
+TYPED_TEST(CheckedMutexTest, InvalidUnlock1) {
+  TypeParam mtx;
   ASSERT_NO_THROW(mtx.lock());
   ASSERT_NO_THROW(mtx.unlock());
   ASSERT_THROW(mtx.unlock(), std::system_error);
 }
 
 // non owner thread call unlock()
-TEST(CheckedMutexTest, NonOwnerUnlock) {
+TYPED_TEST(CheckedMutexTest, NonOwnerUnlock) {
   yamc::test::barrier step(2);
-  yamc::checked::mutex mtx;
+  TypeParam mtx;
   // owner-thread
   yamc::test::join_thread thd([&]{
     ASSERT_NO_THROW(mtx.lock());
@@ -83,19 +96,30 @@ TEST(CheckedMutexTest, NonOwnerUnlock) {
   }
 }
 
+
+using CheckedRecursiveMutexTypes = ::testing::Types<
+  yamc::checked::recursive_mutex,
+  yamc::checked::recursive_timed_mutex
+>;
+
+template <typename Mutex>
+struct CheckedRecursiveMutexTest : ::testing::Test {};
+
+TYPED_TEST_CASE(CheckedRecursiveMutexTest, CheckedRecursiveMutexTypes);
+
 // abondon recursive_mutex
-TEST(CheckedRecursiveMutexTest, AbondonMutex) {
+TYPED_TEST(CheckedRecursiveMutexTest, AbondonMutex) {
   ASSERT_THROW({
-    yamc::checked::recursive_mutex mtx;
+    TypeParam mtx;
     mtx.lock();
     // no unlock()
   }, std::system_error);
 }
 
 // abondon mutex by other thread
-TEST(CheckedRecursiveMutexTest, AbondonMutexSide) {
+TYPED_TEST(CheckedRecursiveMutexTest, AbondonMutexSide) {
   yamc::test::barrier step(2);
-  auto pmtx = yamc::cxx::make_unique<yamc::checked::recursive_mutex>();
+  auto pmtx = yamc::cxx::make_unique<TypeParam>();
   // owner-thread
   yamc::test::join_thread thd([&]{
     ASSERT_NO_THROW(pmtx->lock());
@@ -113,22 +137,22 @@ TEST(CheckedRecursiveMutexTest, AbondonMutexSide) {
 }
 
 // invalid unlock()
-TEST(CheckedRecursiveMutexTest, InvalidUnlock0) {
-  yamc::checked::recursive_mutex mtx;
+TYPED_TEST(CheckedRecursiveMutexTest, InvalidUnlock0) {
+  TypeParam mtx;
   ASSERT_THROW(mtx.unlock(), std::system_error);
 }
 
 // invalid unlock()
-TEST(CheckedRecursiveMutexTest, InvalidUnlock1) {
-  yamc::checked::recursive_mutex mtx;
+TYPED_TEST(CheckedRecursiveMutexTest, InvalidUnlock1) {
+  TypeParam mtx;
   ASSERT_NO_THROW(mtx.lock());    // lockcnt = 1
   ASSERT_NO_THROW(mtx.unlock());  // lockcnt = 0
   ASSERT_THROW(mtx.unlock(), std::system_error);
 }
 
 // invalid unlock()
-TEST(CheckedRecursiveMutexTest, InvalidUnlock2) {
-  yamc::checked::recursive_mutex mtx;
+TYPED_TEST(CheckedRecursiveMutexTest, InvalidUnlock2) {
+  TypeParam mtx;
   ASSERT_NO_THROW(mtx.lock());    // lockcnt = 1
   ASSERT_NO_THROW(mtx.lock());    // lockcnt = 2
   ASSERT_NO_THROW(mtx.unlock());  // lockcnt = 1
@@ -137,9 +161,9 @@ TEST(CheckedRecursiveMutexTest, InvalidUnlock2) {
 }
 
 // non owner thread call unlock()
-TEST(CheckedRecursiveMutexTest, NonOwnerUnlock) {
+TYPED_TEST(CheckedRecursiveMutexTest, NonOwnerUnlock) {
   yamc::test::barrier step(2);
-  yamc::checked::recursive_mutex mtx;
+  TypeParam mtx;
   // owner-thread
   yamc::test::join_thread thd([&]{
     ASSERT_NO_THROW(mtx.lock());
@@ -153,4 +177,25 @@ TEST(CheckedRecursiveMutexTest, NonOwnerUnlock) {
     ASSERT_THROW(mtx.unlock(), std::system_error);
     step.await();  // b2
   }
+}
+
+
+// recurse try_lock_for() on non-recursive mutex
+TEST(CheckedTimedMutexTest, RecurseTryLockFor) {
+  yamc::checked::timed_mutex mtx;
+  ASSERT_NO_THROW(mtx.lock());
+  ASSERT_THROW({
+    mtx.try_lock_for(std::chrono::seconds(1));
+  }, std::system_error);
+  ASSERT_NO_THROW(mtx.unlock());
+}
+
+// recurse try_lock_until() on non-recursive mutex
+TEST(CheckedTimedMutexTest, RecurseTryLockUntil) {
+  yamc::checked::timed_mutex mtx;
+  ASSERT_NO_THROW(mtx.lock());
+  ASSERT_THROW({
+    mtx.try_lock_until(std::chrono::system_clock::now());
+  }, std::system_error);
+  ASSERT_NO_THROW(mtx.unlock());
 }
