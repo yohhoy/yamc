@@ -26,6 +26,8 @@
 #ifndef YAMC_TESTUTIL_HPP_
 #define YAMC_TESTUTIL_HPP_
 
+#include <cassert>
+#include <algorithm>
 #include <chrono>
 #include <condition_variable>
 #include <memory>
@@ -88,6 +90,60 @@ public:
       cv_.wait(lk);
     }
     return false;
+  }
+};
+
+
+/// phase control primitive
+class phaser {
+  std::size_t nthread_;
+  std::size_t sentinel_ = 0;
+  std::vector<std::size_t> phase_;
+  std::condition_variable cv_;
+  std::mutex mtx_;
+
+  void do_advance(std::size_t id, std::size_t n)
+  {
+    std::lock_guard<std::mutex> lk(mtx_);
+    phase_[id] += n;
+    sentinel_ = *std::min_element(phase_.begin(), phase_.end());
+    cv_.notify_all();
+  }
+
+  void do_await(std::size_t id)
+  {
+    std::unique_lock<std::mutex> lk(mtx_);
+    phase_[id] += 1;
+    sentinel_ = *std::min_element(phase_.begin(), phase_.end());
+    while (sentinel_ != phase_[id]) {
+      cv_.wait(lk);
+    }
+    cv_.notify_all();
+  }
+
+public:
+  explicit phaser(std::size_t n)
+    : nthread_(n), phase_(n, 0u) {}
+
+  class proxy {
+    phaser* phaser_;
+    std::size_t id_;
+
+    friend class phaser;
+    proxy(phaser* p, std::size_t id)
+      : phaser_(p), id_(id) {}
+
+  public:
+    void advance(std::size_t n)
+      { phaser_->do_advance(id_, n); }
+    void await()
+      { phaser_->do_await(id_); }
+  };
+
+  proxy get(std::size_t id)
+  {
+    assert(id < nthread_);
+    return {this, id};
   }
 };
 
