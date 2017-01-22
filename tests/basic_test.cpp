@@ -14,7 +14,9 @@
 
 #define TEST_THREADS   8
 #define TEST_ITERATION 10000u
-#define TEST_TIMEOUT   std::chrono::milliseconds(500)
+
+#define TEST_NOT_TIMEOUT    std::chrono::minutes(3)
+#define TEST_EXPECT_TIMEOUT std::chrono::milliseconds(500)
 
 
 using NormalMutexTypes = ::testing::Types<
@@ -187,6 +189,45 @@ struct TimedMutexTest : ::testing::Test {};
 
 TYPED_TEST_CASE(TimedMutexTest, TimedMutexTypes);
 
+// (recursive_)timed_mutex::try_lock_for()
+TYPED_TEST(TimedMutexTest, TryLockFor)
+{
+  TypeParam mtx;
+  std::size_t counter = 0;
+  yamc::test::task_runner(
+    TEST_THREADS,
+    [&](std::size_t /*id*/) {
+      for (std::size_t n = 0; n < TEST_ITERATION; ++n) {
+        while (!mtx.try_lock_for(TEST_NOT_TIMEOUT)) {
+          std::this_thread::yield();
+        }
+        std::lock_guard<decltype(mtx)> lk(mtx, std::adopt_lock);
+        counter = counter + 1;
+      }
+    });
+  ASSERT_EQ(TEST_ITERATION * TEST_THREADS, counter);
+}
+
+// (recursive_)timed_mutex::try_lock_until()
+TYPED_TEST(TimedMutexTest, TryLockUntil)
+{
+  TypeParam mtx;
+  std::size_t counter = 0;
+  yamc::test::task_runner(
+    TEST_THREADS,
+    [&](std::size_t /*id*/) {
+      for (std::size_t n = 0; n < TEST_ITERATION; ++n) {
+        const auto tp = std::chrono::system_clock::now() + TEST_NOT_TIMEOUT;
+        while (!mtx.try_lock_until(tp)) {
+          std::this_thread::yield();
+        }
+        std::lock_guard<decltype(mtx)> lk(mtx, std::adopt_lock);
+        counter = counter + 1;
+      }
+    });
+  ASSERT_EQ(TEST_ITERATION * TEST_THREADS, counter);
+}
+
 // (recursive_)timed_mutex::try_lock_for() timeout
 TYPED_TEST(TimedMutexTest, TryLockForTimeout)
 {
@@ -201,10 +242,10 @@ TYPED_TEST(TimedMutexTest, TryLockForTimeout)
   {
     step.await();  // b1
     yamc::test::stopwatch<> sw;
-    bool result = mtx.try_lock_for(TEST_TIMEOUT);
+    bool result = mtx.try_lock_for(TEST_EXPECT_TIMEOUT);
     auto elapsed = sw.elapsed();
     ASSERT_EQ(false, result);
-    EXPECT_LE(TEST_TIMEOUT, elapsed);
+    EXPECT_LE(TEST_EXPECT_TIMEOUT, elapsed);
     step.await();  // b2
   }
 }
@@ -222,19 +263,19 @@ TYPED_TEST(TimedMutexTest, TryLockUntilTimeout)
   });
   {
     step.await();  // b1
-    const auto tp = std::chrono::system_clock::now() + TEST_TIMEOUT;
+    const auto tp = std::chrono::system_clock::now() + TEST_EXPECT_TIMEOUT;
     yamc::test::stopwatch<> sw;
     bool result = mtx.try_lock_until(tp);
     auto elapsed = sw.elapsed();
     ASSERT_EQ(false, result);
-    EXPECT_LE(TEST_TIMEOUT, elapsed);
+    EXPECT_LE(TEST_EXPECT_TIMEOUT, elapsed);
     step.await();  // b2
   }
 }
 
 
-// backoff::exponential
-TEST(BackoffTest, Exponential1)
+// backoff::exponential<>
+TEST(BackoffTest, Exponential100)
 {
   using BackoffPolicy = yamc::backoff::exponential<100>;
   BackoffPolicy::state state;
@@ -249,6 +290,17 @@ TEST(BackoffTest, Exponential1)
   }
   ASSERT_EQ(1u, state.initcount);
   ASSERT_EQ(0u, state.counter);
+  BackoffPolicy::wait(state);
+  ASSERT_EQ(1u, state.initcount);
+  ASSERT_EQ(0u, state.counter);
+}
+
+TEST(BackoffTest, Exponential1)
+{
+  using BackoffPolicy = yamc::backoff::exponential<1>;
+  BackoffPolicy::state state;
+  ASSERT_EQ(1u, state.initcount);
+  ASSERT_EQ(1u, state.counter);
   BackoffPolicy::wait(state);
   ASSERT_EQ(1u, state.initcount);
   ASSERT_EQ(0u, state.counter);
