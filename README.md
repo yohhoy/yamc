@@ -42,5 +42,33 @@ C++11/14/17 Standard Library define variable mutex types:
 [std_stmutex]: http://en.cppreference.com/w/cpp/thread/shared_timed_mutex
 
 
+# Tweaks
+## Busy waiting for spinlock mutex
+The spinlock mutexes use an exponential backoff algorithm in busy waiting to acquire lock as default.
+These backoff algorithm of spinlock `mutex`-es are implemented with policy-based template class `basic_mutex<BackoffPolicy>`.
+You can tweak the algorithm by specifying BackoffPolicy when you instantiate spinlock mutex type, or define the following macros to change default behavior of all spinlock mutex types.
+
+Customizable macro:
+
+- `YAMC_BACKOFF_SPIN_DEFAULT`: BackoffPolicy of spinlock mutexes. Default policy is `yamc::backoff::exponential<>`.
+- `YAMC_BACKOFF_EXPONENTIAL_INITCOUNT`: An initial conut of `yamc::backoff::exponential<N>` policy class. Default value is `4000`.
+
+Pre-defined BackoffPolicy classes:
+
+- `yamc::backoff::exponential<N>`: An exponential backoff waiting algorithm, `N` denotes initial count.
+- `yamc::backoff::yield`: Always yield thread by calling `std::this_thread::yield()`.
+- `yamc::backoff::busy`: Do nothing. Real busy-loop _may_ waste CPU time and increase power consumtion.
+
+Sample code:
+```cpp
+// change default BackoffPolicy
+#define YAMC_BACKOFF_SPIN_DEFAULT yamc::backoff::yield
+#inlucde "naive_spin_mutex.hpp"
+
+// define spinlock mutex type with exponential backoff (initconut=1000)
+using MyMutex = yamc::spin::basic_mutex<yamc::backoff::exponential<1000>>;
+```
+
+
 # Licence
 MIT License
