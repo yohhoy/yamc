@@ -24,7 +24,6 @@ matrix:
 
 before_install:
   - sudo apt-get update -qq
-  - sudo apt-get install -y libopencv-dev
 
 script:
   - mkdir build
