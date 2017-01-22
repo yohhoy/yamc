@@ -63,7 +63,7 @@ Sample code:
 ```cpp
 // change default BackoffPolicy
 #define YAMC_BACKOFF_SPIN_DEFAULT yamc::backoff::yield
-#inlucde "naive_spin_mutex.hpp"
+#include "naive_spin_mutex.hpp"
 
 // define spinlock mutex type with exponential backoff (initconut=1000)
 using MyMutex = yamc::spin::basic_mutex<yamc::backoff::exponential<1000>>;

@@ -46,7 +46,7 @@ namespace yamc {
 namespace backoff {
 
 
-/// exponential backoff spin polocy
+/// exponential backoff spin policy
 template <
   unsigned int InitCount = YAMC_BACKOFF_EXPONENTIAL_INITCOUNT
 >
