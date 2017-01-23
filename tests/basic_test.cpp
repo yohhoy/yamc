@@ -1,6 +1,7 @@
 /*
  * basic_test.cpp
  */
+#include <atomic>
 #include <chrono>
 #include <mutex>
 #include "gtest/gtest.h"
@@ -274,7 +275,18 @@ TYPED_TEST(TimedMutexTest, TryLockUntilTimeout)
 }
 
 
-// backoff::exponential<>
+// lockfree property of atomic<int>
+TEST(AtomicTest, Lockfree)
+{
+  // std::atomic<int> type is always lock-free
+  ASSERT_EQ(2, ATOMIC_INT_LOCK_FREE);
+  // std::atomic<int> is lock-free
+  std::atomic<int> i;
+  ASSERT_TRUE(i.is_lock_free());
+}
+
+
+// backoff::exponential<100>
 TEST(BackoffTest, Exponential100)
 {
   using BackoffPolicy = yamc::backoff::exponential<100>;
@@ -295,6 +307,7 @@ TEST(BackoffTest, Exponential100)
   ASSERT_EQ(0u, state.counter);
 }
 
+// backoff::exponential<1>
 TEST(BackoffTest, Exponential1)
 {
   using BackoffPolicy = yamc::backoff::exponential<1>;
