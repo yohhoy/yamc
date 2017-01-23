@@ -71,7 +71,7 @@ Sample code:
 using MyMutex = yamc::spin::basic_mutex<yamc::backoff::exponential<1000>>;
 ```
 
-[yield]: http://en.cppreference.com/w/cpp/threa/yield
+[yield]: http://en.cppreference.com/w/cpp/thread/yield
 
 
 ## Check requirements of mutex operation
@@ -84,7 +84,7 @@ An operation on checked mutex have some overhead, so they are designed for debug
 The default behavior is throwing [`std::system_error`][system_error] exception when cheched mutex detect any violation.
 If you `#define YAMC_CHECKED_CALL_ABORT 1` before `#include "checked_mutex.hpp"`, checked mutex call `std::abort()` and the program will immediately terminate.
 
-[system_error]: http://en.cpppreference.com/w/cpp/error/system_error
+[system_error]: http://en.cppreference.com/w/cpp/error/system_error
 
 
 # Licence
