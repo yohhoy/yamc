@@ -89,7 +89,9 @@ TYPED_TEST(NormalMutexTest, TryLockFail)
 
 using RecursiveMutexTypes = ::testing::Types<
   yamc::checked::recursive_mutex,
+  yamc::checked::recursive_timed_mutex,
   yamc::fair::recursive_mutex,
+  yamc::fair::recursive_timed_mutex,
   yamc::alternate::recursive_mutex
 >;
 
@@ -182,7 +184,9 @@ TYPED_TEST(RecursiveMutexTest, TryLockFail)
 
 using TimedMutexTypes = ::testing::Types<
   yamc::checked::timed_mutex,
-  yamc::checked::recursive_timed_mutex
+  yamc::checked::recursive_timed_mutex,
+  yamc::fair::timed_mutex,
+  yamc::fair::recursive_timed_mutex
 >;
 
 template <typename Mutex>

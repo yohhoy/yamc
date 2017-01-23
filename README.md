@@ -22,6 +22,8 @@ Note: [`std::mutex`'s default constructor][mutex_ctor] is constexpr, but `yamc::
 - `yamc::checked::recursive_timed_mutex`: requirements debugging, recursive, support timeout
 - `yamc::fair::mutex`: fairness, non-recursive
 - `yamc::fair::recursive_mutex`: fairness, recursive
+- `yamc::fair::timed_mutex`: fairness, non-recursive, support timeout
+- `yamc::fair::recursive_timed_mutex`: fairness, recursive, support timeout
 - `yamc::alternate::recursive_mutex`: recursive
 
 C++11/14/17 Standard Library define variable mutex types:
@@ -43,7 +45,7 @@ C++11/14/17 Standard Library define variable mutex types:
 
 
 # Tweaks
-## Busy waiting for spinlock mutex
+## Busy waiting in spinlock mutex
 The spinlock mutexes use an exponential backoff algorithm in busy waiting to acquire lock as default.
 These backoff algorithm of spinlock `mutex`-es are implemented with policy-based template class `basic_mutex<BackoffPolicy>`.
 You can tweak the algorithm by specifying BackoffPolicy when you instantiate spinlock mutex type, or define the following macros to change default behavior of all spinlock mutex types.
