@@ -27,11 +27,18 @@
 #define YAMC_CHECKED_MUTEX_HPP_
 
 #include <cassert>
+#include <cstdlib>
 #include <chrono>
 #include <condition_variable>
 #include <mutex>
 #include <system_error>
 #include <thread>
+
+
+// call std::abort() when requirements violation
+#ifndef YAMC_CHECKED_CALL_ABORT
+#define YAMC_CHECKED_CALL_ABORT 0
+#endif
 
 
 namespace yamc {
@@ -53,7 +60,11 @@ protected:
   {
     if (owner_ != std::thread::id()) {
       // object liveness
+#if YAMC_CHECKED_CALL_ABORT
+      std::abort();
+#else
       throw std::system_error(std::make_error_code(std::errc::resource_deadlock_would_occur), emsg);
+#endif
     }
   }
 
@@ -63,7 +74,11 @@ protected:
     std::unique_lock<std::mutex> lk(mtx_);
     if (owner_ == tid) {
       // non-recursive semantics
+#if YAMC_CHECKED_CALL_ABORT
+      std::abort();
+#else
       throw std::system_error(std::make_error_code(std::errc::resource_deadlock_would_occur), "recursive lock");
+#endif
     }
     while (owner_ != std::thread::id()) {
       cv_.wait(lk);
@@ -77,7 +92,11 @@ protected:
     std::lock_guard<std::mutex> lk(mtx_);
     if (owner_ == tid) {
       // non-recursive semantics
+#if YAMC_CHECKED_CALL_ABORT
+      std::abort();
+#else
       throw std::system_error(std::make_error_code(std::errc::resource_deadlock_would_occur), "recursive try_lock");
+#endif
     }
     if (owner_ != std::thread::id()) {
       return false;
@@ -91,7 +110,11 @@ protected:
     std::lock_guard<std::mutex> lk(mtx_);
     if (owner_ != std::this_thread::get_id()) {
       // owner thread
+#if YAMC_CHECKED_CALL_ABORT
+      std::abort();
+#else
       throw std::system_error(std::make_error_code(std::errc::operation_not_permitted), "invalid unlock");
+#endif
     }
     owner_ = std::thread::id();
     cv_.notify_all();
@@ -110,7 +133,11 @@ protected:
   {
     if (ncount_ != 0 || owner_ != std::thread::id()) {
       // object liveness
+#if YAMC_CHECKED_CALL_ABORT
+      std::abort();
+#else
       throw std::system_error(std::make_error_code(std::errc::resource_deadlock_would_occur), emsg);
+#endif
     }
   }
 
@@ -152,7 +179,11 @@ protected:
     std::lock_guard<std::mutex> lk(mtx_);
     if (owner_ != std::this_thread::get_id()) {
       // owner thread
+#if YAMC_CHECKED_CALL_ABORT
+      std::abort();
+#else
       throw std::system_error(std::make_error_code(std::errc::operation_not_permitted), "invalid unlock");
+#endif
     }
     assert(0 < ncount_);
     if (--ncount_ == 0) {
@@ -194,7 +225,11 @@ class timed_mutex : private detail::mutex_base {
     std::unique_lock<std::mutex> lk(mtx_);
     if (owner_ == tid) {
       // non-recursive semantics
+#if YAMC_CHECKED_CALL_ABORT
+      std::abort();
+#else
       throw std::system_error(std::make_error_code(std::errc::resource_deadlock_would_occur), emsg);
+#endif
     }
     while (owner_ != std::thread::id()) {
       if (cv_.wait_until(lk, tp) == std::cv_status::timeout) {

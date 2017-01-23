@@ -50,7 +50,7 @@ The spinlock mutexes use an exponential backoff algorithm in busy waiting to acq
 These backoff algorithm of spinlock `mutex`-es are implemented with policy-based template class `basic_mutex<BackoffPolicy>`.
 You can tweak the algorithm by specifying BackoffPolicy when you instantiate spinlock mutex type, or define the following macros to change default behavior of all spinlock mutex types.
 
-Customizable macro:
+Customizable macros:
 
 - `YAMC_BACKOFF_SPIN_DEFAULT`: BackoffPolicy of spinlock mutexes. Default policy is `yamc::backoff::exponential<>`.
 - `YAMC_BACKOFF_EXPONENTIAL_INITCOUNT`: An initial conut of `yamc::backoff::exponential<N>` policy class. Default value is `4000`.
@@ -58,7 +58,7 @@ Customizable macro:
 Pre-defined BackoffPolicy classes:
 
 - `yamc::backoff::exponential<N>`: An exponential backoff waiting algorithm, `N` denotes initial count.
-- `yamc::backoff::yield`: Always yield thread by calling `std::this_thread::yield()`.
+- `yamc::backoff::yield`: Always yield thread by calling [`std::this_thread::yield()`][yield].
 - `yamc::backoff::busy`: Do nothing. Real busy-loop _may_ waste CPU time and increase power consumtion.
 
 Sample code:
@@ -70,6 +70,21 @@ Sample code:
 // define spinlock mutex type with exponential backoff (initconut=1000)
 using MyMutex = yamc::spin::basic_mutex<yamc::backoff::exponential<1000>>;
 ```
+
+[yield]: http://en.cppreference.com/w/cpp/threa/yield
+
+
+## Check requirements of mutex operation
+Some operation of mutex type has pre-condition statement, for instance, the thread which call `m.unlock()` shall own its lock of mutex `m`.
+C++ Standard say that the behavior is _undefined_ when your program violate any requirements.
+This means incorrect usage of mutex might cause deadlock, data corruption, or anything wrong.
+
+Checked mutex types which are defined `yamc::checked::*` validate such requirements on run-time.
+An operation on checked mutex have some overhead, so they are designed for debugging purpose only.
+The default behavior is throwing [`std::system_error`][system_error] exception when cheched mutex detect any violation.
+If you `#define YAMC_CHECKED_CALL_ABORT 1` before `#include "checked_mutex.hpp"`, checked mutex call `std::abort()` and the program will immediately terminate.
+
+[system_error]: http://en.cpppreference.com/w/cpp/error/system_error
 
 
 # Licence
