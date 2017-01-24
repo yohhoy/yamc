@@ -51,13 +51,13 @@ You can tweak the algorithm by specifying BackoffPolicy when you instantiate spi
 Customizable macros:
 
 - `YAMC_BACKOFF_SPIN_DEFAULT`: BackoffPolicy of spinlock mutexes. Default policy is `yamc::backoff::exponential<>`.
-- `YAMC_BACKOFF_EXPONENTIAL_INITCOUNT`: An initial conut of `yamc::backoff::exponential<N>` policy class. Default value is `4000`.
+- `YAMC_BACKOFF_EXPONENTIAL_INITCOUNT`: An initial count of `yamc::backoff::exponential<N>` policy class. Default value is `4000`.
 
 Pre-defined BackoffPolicy classes:
 
 - `yamc::backoff::exponential<N>`: An exponential backoff waiting algorithm, `N` denotes initial count.
 - `yamc::backoff::yield`: Always yield thread by calling [`std::this_thread::yield()`][yield].
-- `yamc::backoff::busy`: Do nothing. Real busy-loop _may_ waste CPU time and increase power consumtion.
+- `yamc::backoff::busy`: Do nothing. Real busy-loop _may_ waste CPU time and increase power consumption.
 
 Sample code:
 ```cpp
@@ -81,10 +81,10 @@ Checked mutex types which are defined `yamc::checked::*` validate the following 
 
 - A thread that call `unlock()` SHALL own its lock. (unpaired Lock/Unlock)
 - For `mutex` and `timed_mutex`, a thread that call `lock()` or `try_lock` family SHALL NOT own its lock. (non-recursive semantics)
-- When a thread destruct mutex object, all threads (include this thread) SHALL NOT own its lock. (abondoned lock)
+- When a thread destruct mutex object, all threads (include this thread) SHALL NOT own its lock. (abandoned lock)
 
 An operation on checked mutex have some overhead, so they are designed for debugging purpose only.
-The default behavior is throwing [`std::system_error`][system_error] exception when cheched mutex detect any violation.
+The default behavior is throwing [`std::system_error`][system_error] exception when checked mutex detect any violation.
 If you `#define YAMC_CHECKED_CALL_ABORT 1` before `#include "checked_mutex.hpp"`, checked mutex call `std::abort()` and the program will immediately terminate.
 
 [system_error]: http://en.cppreference.com/w/cpp/error/system_error
