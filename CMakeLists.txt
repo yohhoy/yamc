@@ -1,10 +1,16 @@
-cmake_minimum_required(VERSION 2.8.4)
+cmake_minimum_required(VERSION 3.2)
 
-project(yamc CXX)
+project(yamc C CXX)
 
-set(CMAKE_CXX_FLAGS "-std=c++11 -Wall -Wextra -pedantic -pthread")
-set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g")
-set(CMAKE_CXX_FLAGS_RELEASE "-DNDEBUG -O2")
+# require C++11
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+  set(CMAKE_CXX_FLAGS "-Wall -Wextra -pedantic")
+  set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g")
+  set(CMAKE_CXX_FLAGS_RELEASE "-DNDEBUG -O2")
+endif()
 
 include_directories(include)
 enable_testing()
