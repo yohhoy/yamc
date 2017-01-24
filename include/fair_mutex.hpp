@@ -26,8 +26,6 @@
 #ifndef YAMC_FAIR_MUTEX_HPP_
 #define YAMC_FAIR_MUTEX_HPP_
 
-#include <cassert>
-#include <chrono>
 #include <condition_variable>
 #include <mutex>
 #include <thread>
@@ -40,14 +38,18 @@ namespace yamc {
  */
 namespace fair {
 
-namespace detail {
-
-class mutex_base {
-protected:
+class mutex {
   std::size_t next_ = 0;
   std::size_t curr_ = 0;
   std::condition_variable cv_;
   std::mutex mtx_;
+
+public:
+  mutex() = default;
+  ~mutex() = default;
+
+  mutex(const mutex&) = delete;
+  mutex& operator=(const mutex&) = delete;
 
   void lock()
   {
@@ -76,14 +78,20 @@ protected:
 };
 
 
-class recursive_mutex_base {
-protected:
+class recursive_mutex {
   std::size_t next_ = 0;
   std::size_t curr_ = 0;
   std::size_t ncount_ = 0;
   std::thread::id owner_;
   std::condition_variable cv_;
   std::mutex mtx_;
+
+public:
+  recursive_mutex() = default;
+  ~recursive_mutex() = default;
+
+  recursive_mutex(const recursive_mutex&) = delete;
+  recursive_mutex& operator=(const recursive_mutex&) = delete;
 
   void lock()
   {
@@ -131,139 +139,6 @@ protected:
       owner_ = std::thread::id();
       cv_.notify_all();
     }
-  }
-};
-
-} // namespace detail
-
-
-class mutex : private detail::mutex_base {
-  using base = detail::mutex_base;
-
-public:
-  mutex() = default;
-  ~mutex() = default;
-
-  mutex(const mutex&) = delete;
-  mutex& operator=(const mutex&) = delete;
-
-  using base::lock;
-  using base::try_lock;
-  using base::unlock;
-};
-
-
-class timed_mutex : private detail::mutex_base {
-  using base = detail::mutex_base;
-
-  template <typename Clock, typename Duration>
-  bool do_try_lockwait(const std::chrono::time_point<Clock, Duration>& tp)
-  {
-    std::unique_lock<decltype(mtx_)> lk(mtx_);
-    std::size_t request = next_;
-    while (request != curr_) {
-      if (cv_.wait_until(lk, tp) == std::cv_status::timeout) {
-        if (request == curr_)  // re-check predicate
-          break;
-        return false;
-      }
-    }
-    ++next_;
-    return true;
-  }
-
-public:
-  timed_mutex() = default;
-  ~timed_mutex() = default;
-
-  timed_mutex(const timed_mutex&) = delete;
-  timed_mutex& operator=(const timed_mutex&) = delete;
-
-  using base::lock;
-  using base::try_lock;
-  using base::unlock;
-
-  template <typename Rep, typename Period>
-  bool try_lock_for(const std::chrono::duration<Rep, Period>& duration)
-  {
-    const auto tp = std::chrono::system_clock::now() + duration;
-    return do_try_lockwait(tp);
-  }
-
-  template <typename Clock, typename Duration>
-  bool try_lock_until(const std::chrono::time_point<Clock, Duration>& tp)
-  {
-    return do_try_lockwait(tp);
-  }
-};
-
-
-class recursive_mutex : private detail::recursive_mutex_base {
-  using base = detail::recursive_mutex_base;
-
-public:
-  recursive_mutex() = default;
-  ~recursive_mutex() = default;
-
-  recursive_mutex(const recursive_mutex&) = delete;
-  recursive_mutex& operator=(const recursive_mutex&) = delete;
-
-  using base::lock;
-  using base::try_lock;
-  using base::unlock;
-};
-
-
-class recursive_timed_mutex : private detail::recursive_mutex_base {
-  using base = detail::recursive_mutex_base;
-
-  template <typename Clock, typename Duration>
-  bool do_try_lockwait(const std::chrono::time_point<Clock, Duration>& tp)
-  {
-    const auto tid = std::this_thread::get_id();
-    std::unique_lock<decltype(mtx_)> lk(mtx_);
-    if (owner_ == tid) {
-      assert(0 < ncount_);
-      ++ncount_;
-      return true;
-    }
-    std::size_t request = next_;
-    while (request != curr_) {
-      if (cv_.wait_until(lk, tp) == std::cv_status::timeout) {
-        if (request == curr_)  // re-check predicate
-          break;
-        return false;
-      }
-    }
-    ++next_;
-    assert(ncount_ == 0 && owner_ == std::thread::id());
-    ncount_ = 1;
-    owner_ = tid;
-    return true;
-  }
-
-public:
-  recursive_timed_mutex() = default;
-  ~recursive_timed_mutex() = default;
-
-  recursive_timed_mutex(const recursive_timed_mutex&) = delete;
-  recursive_timed_mutex& operator=(const recursive_timed_mutex&) = delete;
-
-  using base::lock;
-  using base::try_lock;
-  using base::unlock;
-
-  template <typename Rep, typename Period>
-  bool try_lock_for(const std::chrono::duration<Rep, Period>& duration)
-  {
-    const auto tp = std::chrono::system_clock::now() + duration;
-    return do_try_lockwait(tp);
-  }
-
-  template <typename Clock, typename Duration>
-  bool try_lock_until(const std::chrono::time_point<Clock, Duration>& tp)
-  {
-    return do_try_lockwait(tp);
   }
 };
 
