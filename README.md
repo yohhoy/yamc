@@ -77,7 +77,12 @@ Some operation of mutex type has pre-condition statement, for instance, the thre
 C++ Standard say that the behavior is _undefined_ when your program violate any requirements.
 This means incorrect usage of mutex might cause deadlock, data corruption, or anything wrong.
 
-Checked mutex types which are defined `yamc::checked::*` validate such requirements on run-time.
+Checked mutex types which are defined `yamc::checked::*` validate the following requirements on run-time:
+
+- A thread that call `unlock()` SHALL own its lock. (unpaired Lock/Unlock)
+- For `mutex` and `timed_mutex`, a thread that call `lock()` or `try_lock` family SHALL NOT own its lock. (non-recursive semantics)
+- When a thread destruct mutex object, all threads (include this thread) SHALL NOT own its lock. (abondoned lock)
+
 An operation on checked mutex have some overhead, so they are designed for debugging purpose only.
 The default behavior is throwing [`std::system_error`][system_error] exception when cheched mutex detect any violation.
 If you `#define YAMC_CHECKED_CALL_ABORT 1` before `#include "checked_mutex.hpp"`, checked mutex call `std::abort()` and the program will immediately terminate.
