@@ -23,6 +23,8 @@ Note: [`std::mutex`'s default constructor][mutex_ctor] is constexpr, but `yamc::
 - `yamc::fair::mutex`: fairness, non-recursive
 - `yamc::fair::recursive_mutex`: fairness, recursive
 - `yamc::alternate::recursive_mutex`: recursive
+- `yamc::alternate::timed_mutex`: non-recursive, support timeout
+- `yamc::alternate::recursive_timed_mutex`: recursive, support timeout
 
 C++11/14/17 Standard Library define variable mutex types:
 

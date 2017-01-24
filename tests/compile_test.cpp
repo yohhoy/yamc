@@ -81,5 +81,7 @@ int main()
   test_requirements<yamc::fair::mutex>();
   test_requirements<yamc::fair::recursive_mutex>();
   test_requirements<yamc::alternate::recursive_mutex>();
+  test_requirements_timed<yamc::alternate::timed_mutex>();
+  test_requirements_timed<yamc::alternate::recursive_timed_mutex>();
   return 0;
 }

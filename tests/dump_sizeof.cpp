@@ -34,5 +34,7 @@ int main()
   DUMP(yamc::fair::mutex);
   DUMP(yamc::fair::recursive_mutex);
   DUMP(yamc::alternate::recursive_mutex);
+  DUMP(yamc::alternate::timed_mutex);
+  DUMP(yamc::alternate::recursive_timed_mutex);
   return 0;
 }
