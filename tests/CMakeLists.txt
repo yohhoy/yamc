@@ -5,11 +5,15 @@ set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads)
 
 # Google Test
+if(MSVC)
+  set(GTEST_FORCE_SHARED_CRT ON)
+endif()
 include(ExternalProject)
 set(EXTERNAL_INSTALL_LOCATION ${CMAKE_BINARY_DIR}/external)
 ExternalProject_Add(googletest
   GIT_REPOSITORY https://github.com/google/googletest
   CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${EXTERNAL_INSTALL_LOCATION}
+             -Dgtest_force_shared_crt=${GTEST_FORCE_SHARED_CRT}
 )
 
 include_directories(${EXTERNAL_INSTALL_LOCATION}/include)
@@ -32,4 +36,3 @@ endmacro (do_test)
 do_test(basic)
 do_test(checked)
 do_test(fairness)
-
