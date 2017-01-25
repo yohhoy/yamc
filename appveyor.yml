@@ -1,0 +1,20 @@
+platform:
+  - Win32
+  - x64
+
+configuration:
+  - Debug
+
+before_build:
+  - echo "Running cmake..."
+  - cd c:\projects\yamc
+  - cmake --version
+  - set PATH=C:\Program Files (x86)\MSBuild\14.0\Bin;%PATH%
+  - if %PLATFORM% == Win32 cmake -G "Visual Studio 14 2015" .
+  - if %PLATFORM% == x64 cmake -G "Visual Studio 14 2015 Win64" .
+
+build:
+  project: yamc.sln
+
+test_script:
+  - ctest

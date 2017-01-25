@@ -1,5 +1,6 @@
 # yamc
 [![Build Status](https://travis-ci.org/yohhoy/yamc.svg?branch=master)](https://travis-ci.org/yohhoy/yamc)
+[![Build status](https://ci.appveyor.com/api/projects/status/omke97drkdcmntfh/branch/master?svg=true)](https://ci.appveyor.com/project/yohhoy/yamc/branch/master)
 
 C++ mutexes (mutual exclusion primitives for multi-threading) collections.
 This is header-only, cross-platform, no external dependency C++ library.
