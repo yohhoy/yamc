@@ -25,6 +25,9 @@ matrix:
 before_install:
   - sudo apt-get update -qq
 
+before_script:
+  - cmake --version
+
 script:
   - mkdir build
   - cd build
