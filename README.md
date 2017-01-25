@@ -4,6 +4,12 @@
 
 C++ mutexes (mutual exclusion primitives for multi-threading) collections.
 This is header-only, cross-platform, no external dependency C++ library.
+A compiler which support C++11 are required.
+
+CI building and unit-testing with C++ compilers:
+- G++ 5.4
+- Clang 3.7
+- MSVC 14.0 (Visual Studio 2015)
 
 "yamc" is an acronym for Yet Another (or Yohhoy's Ad-hoc) Mutex Collections ;)
 
