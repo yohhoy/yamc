@@ -30,6 +30,7 @@ std::mutex g_guard;
 
 using FairMutexTypes = ::testing::Types<
   yamc::fair::mutex,
+  yamc::fair::timed_mutex,
   yamc::fair::recursive_mutex
 >;
 

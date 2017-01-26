@@ -26,6 +26,7 @@
 #ifndef YAMC_FAIR_MUTEX_HPP_
 #define YAMC_FAIR_MUTEX_HPP_
 
+#include <chrono>
 #include <condition_variable>
 #include <mutex>
 #include <thread>
@@ -141,6 +142,129 @@ public:
     }
   }
 };
+
+
+class timed_mutex {
+  struct node {
+    node* next;
+    node* prev;
+  };
+
+  node queue_;   // q.next = front(), q.prev = back()
+  node locked_;  // placeholder node of 'locked' state
+  std::condition_variable cv_;
+  std::mutex mtx_;
+
+  bool wq_empty()
+  {
+    return queue_.next == &queue_;
+  }
+
+  void wq_push_back(node* p)
+  {
+    node* back = queue_.prev;
+    back->next = queue_.prev = p;
+    p->next = &queue_;
+    p->prev = back;
+  }
+
+  void wq_erase(node* p)
+  {
+    p->next->prev= p->prev;
+    p->prev->next = p->next;
+  }
+
+  void wq_pop_front()
+  {
+    wq_erase(queue_.next);
+  }
+
+  void wq_replace_front(node* p)
+  {
+    // q.push_front() + q.push_front(p)
+    node* front = queue_.next;
+    assert(front != p);
+    *p = *front;
+    queue_.next = front->next->prev = p;
+  }
+
+  template<typename Clock, typename Duration>
+  bool do_try_lockwait(const std::chrono::time_point<Clock, Duration>& tp)
+  {
+    std::unique_lock<decltype(mtx_)> lk(mtx_);
+    if (!wq_empty()) {
+      node request;
+      wq_push_back(&request);
+      while (queue_.next != &request) {
+        if (cv_.wait_until(lk, tp) == std::cv_status::timeout) {
+          if (queue_.next == &request)  // re-check predicate
+            break;
+          wq_erase(&request);
+          return false;
+        }
+      }
+      wq_replace_front(&locked_);
+    } else {
+      wq_push_back(&locked_);
+    }
+    return true;
+  }
+
+public:
+  timed_mutex()
+    : queue_{&queue_, &queue_} {}
+  ~timed_mutex() = default;
+
+  timed_mutex(const timed_mutex&) = delete;
+  timed_mutex& operator=(const timed_mutex&) = delete;
+
+  void lock()
+  {
+    std::unique_lock<decltype(mtx_)> lk(mtx_);
+    if (!wq_empty()) {
+      node request;
+      wq_push_back(&request);
+      while (queue_.next != &request) {
+        cv_.wait(lk);
+      }
+      wq_replace_front(&locked_);
+    } else {
+      wq_push_back(&locked_);
+    }
+  }
+
+  bool try_lock()
+  {
+    std::lock_guard<decltype(mtx_)> lk(mtx_);
+    if (!wq_empty()) {
+      return false;
+    }
+    wq_push_back(&locked_);
+    return true;
+  }
+
+  void unlock()
+  {
+    std::lock_guard<decltype(mtx_)> lk(mtx_);
+    assert(queue_.next == &locked_);
+    wq_pop_front();
+    cv_.notify_all();
+  }
+
+  template<typename Rep, typename Period>
+  bool try_lock_for(const std::chrono::duration<Rep, Period>& duration)
+  {
+    const auto tp = std::chrono::system_clock::now() + duration;
+    return do_try_lockwait(tp);
+  }
+
+  template<typename Clock, typename Duration>
+  bool try_lock_until(const std::chrono::time_point<Clock, Duration>& tp)
+  {
+    return do_try_lockwait(tp);
+  }
+};
+
 
 } // namespace fair
 } // namespace yamc
