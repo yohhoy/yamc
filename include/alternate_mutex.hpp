@@ -152,7 +152,7 @@ public:
   template<typename Rep, typename Period>
   bool try_lock_for(const std::chrono::duration<Rep, Period>& duration)
   {
-    const auto tp = std::chrono::system_clock::now() + duration;
+    const auto tp = std::chrono::steady_clock::now() + duration;
     return do_try_lockwait(tp);
   }
 
@@ -248,7 +248,7 @@ public:
   template<typename Rep, typename Period>
   bool try_lock_for(const std::chrono::duration<Rep, Period>& duration)
   {
-    const auto tp = std::chrono::system_clock::now() + duration;
+    const auto tp = std::chrono::steady_clock::now() + duration;
     return do_try_lockwait(tp);
   }
 
