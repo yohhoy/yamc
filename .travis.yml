@@ -22,9 +22,6 @@ matrix:
             - clang-3.7
       env: COMPILER=clang++-3.7
 
-before_install:
-  - sudo apt-get update -qq
-
 before_script:
   - cmake --version
 
