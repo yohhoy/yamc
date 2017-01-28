@@ -2,7 +2,7 @@
 [![Build Status](https://travis-ci.org/yohhoy/yamc.svg?branch=master)](https://travis-ci.org/yohhoy/yamc)
 [![Build status](https://ci.appveyor.com/api/projects/status/omke97drkdcmntfh/branch/master?svg=true)](https://ci.appveyor.com/project/yohhoy/yamc/branch/master)
 
-C++ mutexes (mutual exclusion primitives for multi-threading) collections.
+C++ mutex (mutual exclusion primitive for multi-threading) collections.
 This is header-only, cross-platform, no external dependency C++ library.
 A compiler which support C++11 are required.
 
@@ -15,8 +15,46 @@ CI building and unit-testing with C++ compilers:
 "yamc" is an acronym for Yet Another (or Yohhoy's Ad-hoc) Mutex Collections ;)
 
 
-# Mutex characteristics
-This library provide the following mutex types.
+# Description
+## Example
+All mutex types in this library are compatible with corresponding mutex types in C++ Standard Library.
+The following toy example use spinlock mutex (`yamc::spin_ttas::mutex`) and scoped locking by [`std::lock_guard<>`][std_lockguard]. 
+
+```cpp
+#include <mutex>  // std::lock_guard<>
+#include "ttas_spin_mutex.hpp"
+
+template <typename T>
+class ValueHolder {
+  // declare mutex type for this class implementation
+  using MutexType = yamc::spin_ttas::mutex;
+
+  T value_;
+  mutable MutexType guard_;  // guard to value_ access
+
+public:
+  ValueHolder(const T& v = T())
+    : value_(v) {}
+
+  void set(const T& v)
+  {
+    std::lock_guard<MutexType> lk(guard_);  // acquire lock
+    value_ = v;
+  }
+
+  T get() const
+  {
+    std::lock_guard<MutexType> lk(guard_);  // acquire lock
+    return value_;
+  }
+};
+```
+
+[std_lockguard]: http://en.cppreference.com/w/cpp/thread/lock_guard
+
+
+## Mutex characteristics
+This mutex collections library provide the following types.
 All mutex types fulfil normal mutex or recursive mutex semantics in C++ Standard.
 You can replace type `std::mutex` to `yamc::*::mutex`, `std::recursive_mutex` to `yamc::*::recursive_mutex` except some special case.
 Note: [`std::mutex`'s default constructor][mutex_ctor] is constexpr, but `yamc::*::mutex` is not.
@@ -45,6 +83,8 @@ C++11/14/17 Standard Library define variable mutex types:
 - [`std::shared_mutex`][std_smutex]: RW locking, non-recursive (C++17 or later)
 - [`std::shared_timed_mutex`][std_stmutex]: RW locking, non-recursive, support timeout (C++14 or later)
 
+The implementation of this library use C++11 Standard threading primitives only `std::mutex`, [`std::condition_variable`][std_condvar] and [`std::atomic<T>`][std_atomic].
+
 [mutex_ctor]: http://en.cppreference.com/w/cpp/thread/mutex/mutex
 [std_mutex]: http://en.cppreference.com/w/cpp/thread/mutex
 [std_tmutex]: http://en.cppreference.com/w/cpp/thread/timed_mutex
@@ -52,13 +92,25 @@ C++11/14/17 Standard Library define variable mutex types:
 [std_rtmutex]: http://en.cppreference.com/w/cpp/thread/recursive_timed_mutex
 [std_smutex]: http://en.cppreference.com/w/cpp/thread/shared_mutex
 [std_stmutex]: http://en.cppreference.com/w/cpp/thread/shared_timed_mutex
+[std_condvar]: http://en.cppreference.com/w/cpp/thread/condition_variable
+[std_atomic]: http://en.cppreference.com/w/cpp/atomic/atomic
+
+
+## Which mutex should I use?
+Basically, you _should_ use `std::mutex` or variants of C++ Standard Library in your products.
+Period.
+
+- When you debug misuse of mutex object, checked mutex in `yamc::checked::*` will help you.
+- When you _really_ need spinlock mutex, I suppose `yamc::spin_ttas::mutex` may be best choice.
+- When you _actually_ need fairness of locking order, try to use fair mutex in `yamc::fair::*`.
+- Mutex in `yamc::alternate::*` has the same semantics of C++ Standard mutex, no additional features.
 
 
 # Tweaks
 ## Busy waiting in spinlock mutex
 The spinlock mutexes use an exponential backoff algorithm in busy waiting to acquire lock as default.
 These backoff algorithm of spinlock `mutex`-es are implemented with policy-based template class `basic_mutex<BackoffPolicy>`.
-You can tweak the algorithm by specifying BackoffPolicy when you instantiate spinlock mutex type, or define the following macros to change default behavior of all spinlock mutex types.
+You can tweak the algorithm by specifying `BackoffPolicy` when you instantiate spinlock mutex type, or define the following macros to change default behavior of all spinlock mutex types.
 
 Customizable macros:
 
@@ -67,8 +119,8 @@ Customizable macros:
 
 Pre-defined BackoffPolicy classes:
 
-- `yamc::backoff::exponential<N>`: An exponential backoff waiting algorithm, `N` denotes initial count.
-- `yamc::backoff::yield`: Always yield thread by calling [`std::this_thread::yield()`][yield].
+- `yamc::backoff::exponential<N>`: An exponential backoff waiting algorithm, `N` denotes initial count. Yield the thread at an exponential decaying intervals in busy waiting loop.
+- `yamc::backoff::yield`: Always yield the thread by calling [`std::this_thread::yield()`][yield].
 - `yamc::backoff::busy`: Do nothing. Real busy-loop _may_ waste CPU time and increase power consumption.
 
 Sample code:
@@ -86,20 +138,21 @@ using MyMutex = yamc::spin::basic_mutex<yamc::backoff::exponential<1000>>;
 
 ## Check requirements of mutex operation
 Some operation of mutex type has pre-condition statement, for instance, the thread which call `m.unlock()` shall own its lock of mutex `m`.
-C++ Standard say that the behavior is _undefined_ when your program violate any requirements.
+C++ Standard say that the behavior is __undefined__ when your program violate any requirements.
 This means incorrect usage of mutex might cause deadlock, data corruption, or anything wrong.
 
-Checked mutex types which are defined `yamc::checked::*` validate the following requirements on run-time:
+Checked mutex types which are defined in `yamc::checked::*` validate the following requirements on run-time:
 
-- A thread that call `unlock()` SHALL own its lock. (unpaired Lock/Unlock)
-- For `mutex` and `timed_mutex`, a thread that call `lock()` or `try_lock` family SHALL NOT own its lock. (non-recursive semantics)
-- When a thread destruct mutex object, all threads (include this thread) SHALL NOT own its lock. (abandoned lock)
+- A thread that call `unlock()` SHALL own its lock. (_Unpaired Lock/Unlock_)
+- For `mutex` and `timed_mutex`, a thread that call `lock()` or `trylock` family SHALL NOT own its lock. (_Non-recursive Semantics_)
+- When a thread destruct mutex object, all threads (include this thread) SHALL NOT own its lock. (_Abandoned Lock_)
 
-An operation on checked mutex have some overhead, so they are designed for debugging purpose only.
+Checked mutexes are designed for debugging purpose, so the operation on checked mutex have some overhead.
 The default behavior is throwing [`std::system_error`][system_error] exception when checked mutex detect any violation.
-If you `#define YAMC_CHECKED_CALL_ABORT 1` before `#include "checked_mutex.hpp"`, checked mutex call `std::abort()` and the program will immediately terminate.
+If you `#define YAMC_CHECKED_CALL_ABORT 1` before `#include "checked_mutex.hpp"`, checked mutex will call [`std::abort()`][abort] instead of throwing exception and the program immediately terminate.
 
 [system_error]: http://en.cppreference.com/w/cpp/error/system_error
+[abort]: http://en.cppreference.com/w/cpp/utility/program/abort
 
 
 # Licence
