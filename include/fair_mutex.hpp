@@ -26,6 +26,7 @@
 #ifndef YAMC_FAIR_MUTEX_HPP_
 #define YAMC_FAIR_MUTEX_HPP_
 
+#include <chrono>
 #include <condition_variable>
 #include <mutex>
 #include <thread>
@@ -35,6 +36,11 @@ namespace yamc {
 
 /*
  * fairness (FIFO locking) mutex
+ *
+ * - yamc::fair::mutex
+ * - yamc::fair::recursive_mutex
+ * - yamc::fair::timed_mutex
+ * - yamc::fair::recursive_timed_mutex
  */
 namespace fair {
 
@@ -132,15 +138,248 @@ public:
   void unlock()
   {
     std::lock_guard<decltype(mtx_)> lk(mtx_);
-    assert(0 < ncount_);
+    assert(0 < ncount_ && owner_ == std::this_thread::get_id());
     if (--ncount_ == 0) {
       ++curr_;
-      assert(owner_ == std::this_thread::get_id());
       owner_ = std::thread::id();
       cv_.notify_all();
     }
   }
 };
+
+
+namespace detail {
+
+class timed_mutex_base {
+  struct node {
+    node* next;
+    node* prev;
+  };
+
+  node queue_;   // q.next = front(), q.prev = back()
+  node locked_;  // placeholder node of 'locked' state
+
+protected:
+  std::condition_variable cv_;
+  std::mutex mtx_;
+
+private:
+  bool wq_empty()
+  {
+    return queue_.next == &queue_;
+  }
+
+  void wq_push_back(node* p)
+  {
+    node* back = queue_.prev;
+    back->next = queue_.prev = p;
+    p->next = &queue_;
+    p->prev = back;
+  }
+
+  void wq_erase(node* p)
+  {
+    p->next->prev= p->prev;
+    p->prev->next = p->next;
+  }
+
+  void wq_pop_front()
+  {
+    wq_erase(queue_.next);
+  }
+
+  void wq_replace_front(node* p)
+  {
+    // q.push_front() + q.push_front(p)
+    node* front = queue_.next;
+    assert(front != p);
+    *p = *front;
+    queue_.next = front->next->prev = p;
+  }
+
+protected:
+  timed_mutex_base()
+    : queue_{&queue_, &queue_} {}
+  ~timed_mutex_base() = default;
+
+  void impl_lock(std::unique_lock<std::mutex>& lk)
+  {
+    if (!wq_empty()) {
+      node request;
+      wq_push_back(&request);
+      while (queue_.next != &request) {
+        cv_.wait(lk);
+      }
+      wq_replace_front(&locked_);
+    } else {
+      wq_push_back(&locked_);
+    }
+  }
+
+  bool impl_try_lock()
+  {
+    if (!wq_empty()) {
+      return false;
+    }
+    wq_push_back(&locked_);
+    return true;
+  }
+
+  void impl_unlock()
+  {
+    assert(queue_.next == &locked_);
+    wq_pop_front();
+    cv_.notify_all();
+  }
+
+  template<typename Clock, typename Duration>
+  bool impl_try_lockwait(std::unique_lock<std::mutex>& lk, const std::chrono::time_point<Clock, Duration>& tp)
+  {
+    if (!wq_empty()) {
+      node request;
+      wq_push_back(&request);
+      while (queue_.next != &request) {
+        if (cv_.wait_until(lk, tp) == std::cv_status::timeout) {
+          if (queue_.next == &request)  // re-check predicate
+            break;
+          wq_erase(&request);
+          return false;
+        }
+      }
+      wq_replace_front(&locked_);
+    } else {
+      wq_push_back(&locked_);
+    }
+    return true;
+  }
+};
+
+} // namespace detail
+
+
+class timed_mutex : private detail::timed_mutex_base {
+  using base = detail::timed_mutex_base;
+
+public:
+  timed_mutex() = default;
+  ~timed_mutex() = default;
+
+  timed_mutex(const timed_mutex&) = delete;
+  timed_mutex& operator=(const timed_mutex&) = delete;
+
+  void lock()
+  {
+    std::unique_lock<decltype(mtx_)> lk(mtx_);
+    base::impl_lock(lk);
+  }
+
+  bool try_lock()
+  {
+    std::lock_guard<decltype(mtx_)> lk(mtx_);
+    return base::impl_try_lock();
+  }
+
+  void unlock()
+  {
+    std::lock_guard<decltype(mtx_)> lk(mtx_);
+    base::impl_unlock();
+  }
+
+  template<typename Rep, typename Period>
+  bool try_lock_for(const std::chrono::duration<Rep, Period>& duration)
+  {
+    const auto tp = std::chrono::steady_clock::now() + duration;
+    std::unique_lock<decltype(mtx_)> lk(mtx_);
+    return base::impl_try_lockwait(lk, tp);
+  }
+
+  template<typename Clock, typename Duration>
+  bool try_lock_until(const std::chrono::time_point<Clock, Duration>& tp)
+  {
+    std::unique_lock<decltype(mtx_)> lk(mtx_);
+    return base::impl_try_lockwait(lk, tp);
+  }
+};
+
+
+class recursive_timed_mutex : private detail::timed_mutex_base {
+  using base = detail::timed_mutex_base;
+
+  std::size_t ncount_ = 0;
+  std::thread::id owner_ = {};
+
+public:
+  recursive_timed_mutex() = default;
+  ~recursive_timed_mutex() = default;
+
+  recursive_timed_mutex(const recursive_timed_mutex&) = delete;
+  recursive_timed_mutex& operator=(const recursive_timed_mutex&) = delete;
+
+  void lock()
+  {
+    const auto tid = std::this_thread::get_id();
+    std::unique_lock<decltype(mtx_)> lk(mtx_);
+    if (owner_ == tid) {
+      assert(0 < ncount_);
+      ++ncount_;
+    } else {
+      base::impl_lock(lk);
+      ncount_ = 1;
+      owner_ = tid;
+    }
+  }
+
+  bool try_lock()
+  {
+    const auto tid = std::this_thread::get_id();
+    std::lock_guard<decltype(mtx_)> lk(mtx_);
+    if (owner_ == tid) {
+      assert(0 < ncount_);
+      ++ncount_;
+      return true;
+    }
+    if (!base::impl_try_lock())
+      return false;
+    ncount_ = 1;
+    owner_ = tid;
+    return true;
+  }
+
+  void unlock()
+  {
+    std::lock_guard<decltype(mtx_)> lk(mtx_);
+    assert(0 < ncount_ && owner_ == std::this_thread::get_id());
+    if (--ncount_ == 0) {
+      base::impl_unlock();
+      owner_ = std::thread::id();
+    }
+  }
+
+  template<typename Rep, typename Period>
+  bool try_lock_for(const std::chrono::duration<Rep, Period>& duration)
+  {
+    const auto tp = std::chrono::steady_clock::now() + duration;
+    return try_lock_until(tp);  // delegate
+  }
+
+  template<typename Clock, typename Duration>
+  bool try_lock_until(const std::chrono::time_point<Clock, Duration>& tp)
+  {
+    const auto tid = std::this_thread::get_id();
+    std::unique_lock<decltype(mtx_)> lk(mtx_);
+    if (owner_ == tid) {
+      assert(0 < ncount_);
+      ++ncount_;
+      return true;
+    }
+    if (!base::impl_try_lockwait(lk, tp))
+      return false;
+    ncount_ = 1;
+    owner_ = tid;
+    return true;
+  }
+};
+
 
 } // namespace fair
 } // namespace yamc
