@@ -17,5 +17,5 @@ build:
   project: yamc.sln
 
 test_script:
-  - tests/dump_sizeof
+  - C:\projects\yamc\tests\Debug\dump_sizeof
   - ctest
