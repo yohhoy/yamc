@@ -37,6 +37,7 @@ script:
   - cd build
   - cmake -DCMAKE_CXX_COMPILER=$COMPILER ..
   - make
+  - tests/dump_sizeof
   - make test
 
 notifications:

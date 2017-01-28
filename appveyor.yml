@@ -17,4 +17,5 @@ build:
   project: yamc.sln
 
 test_script:
+  - tests/dump_sizeof
   - ctest
