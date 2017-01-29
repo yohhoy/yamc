@@ -28,6 +28,7 @@
 
 
 #include <cassert>
+#include <chrono>
 #include <condition_variable>
 #include <mutex>
 #include "yamc_rwlock_sched.hpp"
@@ -37,18 +38,14 @@ namespace yamc {
 
 namespace alternate {
 
+namespace detail {
+
 template <typename RwLockPolicy>
-class basic_shared_mutex {
+class shared_mutex_base {
+protected:
   typename RwLockPolicy::state state_;
   std::condition_variable cv_;
   std::mutex mtx_;
-
-public:
-  basic_shared_mutex() = default;
-  ~basic_shared_mutex() = default;
-
-  basic_shared_mutex(const basic_shared_mutex&) = delete;
-  basic_shared_mutex& operator=(const basic_shared_mutex&) = delete;
 
   void lock()
   {
@@ -104,7 +101,116 @@ public:
   }
 };
 
+} // namespace detail
+
+
+template <typename RwLockPolicy>
+class basic_shared_mutex : private detail::shared_mutex_base<RwLockPolicy> {
+  using base = detail::shared_mutex_base<RwLockPolicy>;
+
+public:
+  basic_shared_mutex() = default;
+  ~basic_shared_mutex() = default;
+
+  basic_shared_mutex(const basic_shared_mutex&) = delete;
+  basic_shared_mutex& operator=(const basic_shared_mutex&) = delete;
+
+  using base::lock;
+  using base::try_lock;
+  using base::unlock;
+
+  using base::lock_shared;
+  using base::try_lock_shared;
+  using base::unlock_shared;
+};
+
 using shared_mutex = basic_shared_mutex<YAMC_RWLOCK_SCHED_DEFAULT>;
+
+
+template <typename RwLockPolicy>
+class basic_shared_timed_mutex : private detail::shared_mutex_base<RwLockPolicy> {
+  using base = detail::shared_mutex_base<RwLockPolicy>;
+
+  using base::state_;
+  using base::cv_;
+  using base::mtx_;
+
+  template<typename Clock, typename Duration>
+  bool do_try_lockwait(const std::chrono::time_point<Clock, Duration>& tp)
+  {
+    std::unique_lock<std::mutex> lk(mtx_);
+    RwLockPolicy::before_wait_wlock(state_);
+    while (RwLockPolicy::wait_wlock(state_)) {
+      if (cv_.wait_until(lk, tp) == std::cv_status::timeout) {
+        if (!RwLockPolicy::wait_wlock(state_))  // re-check predicate
+          break;
+        RwLockPolicy::after_wait_wlock(state_);
+        return false;
+      }
+    }
+    RwLockPolicy::after_wait_wlock(state_);
+    RwLockPolicy::acquire_wlock(state_);
+    return true;
+  }
+
+  template<typename Clock, typename Duration>
+  bool do_try_lock_sharedwait(const std::chrono::time_point<Clock, Duration>& tp)
+  {
+    std::unique_lock<std::mutex> lk(mtx_);
+    while (RwLockPolicy::wait_rlock(state_)) {
+      if (cv_.wait_until(lk, tp) == std::cv_status::timeout) {
+        if (!RwLockPolicy::wait_rlock(state_))  // re-check predicate
+          break;
+        return false;
+      }
+    }
+    RwLockPolicy::acquire_rlock(state_);
+    return true;
+  }
+
+public:
+  basic_shared_timed_mutex() = default;
+  ~basic_shared_timed_mutex() = default;
+
+  basic_shared_timed_mutex(const basic_shared_timed_mutex&) = delete;
+  basic_shared_timed_mutex& operator=(const basic_shared_timed_mutex&) = delete;
+
+  using base::lock;
+  using base::try_lock;
+  using base::unlock;
+
+  template<typename Rep, typename Period>
+  bool try_lock_for(const std::chrono::duration<Rep, Period>& duration)
+  {
+    const auto tp = std::chrono::steady_clock::now() + duration;
+    return do_try_lockwait(tp);
+  }
+
+  template<typename Clock, typename Duration>
+  bool try_lock_until(const std::chrono::time_point<Clock, Duration>& tp)
+  {
+    return do_try_lockwait(tp);
+  }
+
+  using base::lock_shared;
+  using base::try_lock_shared;
+  using base::unlock_shared;
+
+  template<typename Rep, typename Period>
+  bool try_lock_shared_for(const std::chrono::duration<Rep, Period>& duration)
+  {
+    const auto tp = std::chrono::steady_clock::now() + duration;
+    return do_try_lock_sharedwait(tp);
+  }
+
+  template<typename Clock, typename Duration>
+  bool try_lock_shared_until(const std::chrono::time_point<Clock, Duration>& tp)
+  {
+    return do_try_lock_sharedwait(tp);
+  }
+};
+
+using shared_timed_mutex = basic_shared_timed_mutex<YAMC_RWLOCK_SCHED_DEFAULT>;
 
 } // namespace alternate
 } // namespace yamc

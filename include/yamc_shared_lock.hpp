@@ -28,6 +28,7 @@
 
 
 #include <cassert>
+#include <chrono>
 #include <system_error>
 #include <utility>  // std::swap
 
@@ -35,10 +36,20 @@
 namespace yamc {
 
 /*
- * an alternative of std::shared_lock of C++14 Standard Library
+ * std::shared_lock in C++14 Standard Library
  */
 template <typename Mutex>
 class shared_lock {
+  void locking_precondition(const char* emsg)
+  {
+    if (pm_ == nullptr) {
+      throw std::system_error(std::make_error_code(std::errc::operation_not_permitted), emsg);
+    }
+    if (owns_) {
+      throw std::system_error(std::make_error_code(std::errc::resource_deadlock_would_occur), emsg);
+    }
+  }
+
 public:
   using mutex_type = Mutex;
 
@@ -67,6 +78,20 @@ public:
   {
     pm_ = &m;
     owns_ = true;
+  }
+
+  template <typename Clock, typename Duration>
+  shared_lock(mutex_type& m, const std::chrono::time_point<Clock, Duration>& abs_time)
+  {
+    pm_ = &m;
+    owns_ = m.try_lock_shared_until(abs_time);
+  }
+
+  template <typename Rep, typename Period>
+  shared_lock(mutex_type& m, const std::chrono::duration<Rep, Period>& rel_time)
+  {
+    pm_ = &m;
+    owns_ = m.try_lock_shared_for(rel_time);
   }
 
   ~shared_lock()
@@ -104,29 +129,34 @@ public:
 
   void lock()
   {
-    if (pm_ == nullptr) {
-      throw std::system_error(std::make_error_code(std::errc::operation_not_permitted), "shared_lock::lock");
-    }
-    if (owns_) {
-      throw std::system_error(std::make_error_code(std::errc::resource_deadlock_would_occur), "shared_lock::lock");
-    }
+    locking_precondition("shared_lock::lock");
     pm_->lock_shared();
     owns_ = true;
   }
 
   bool try_lock()
   {
-    if (pm_ == nullptr) {
-      throw std::system_error(std::make_error_code(std::errc::operation_not_permitted), "shared_lock::try_lock");
-    }
-    if (owns_) {
-      throw std::system_error(std::make_error_code(std::errc::resource_deadlock_would_occur), "shared_lock::try_lock");
-    }
+    locking_precondition("shared_lock::try_lock");
     return (owns_ = pm_->try_lock_shared());
+  }
+
+  template <typename Rep, typename Period>
+  bool try_lock_for(const std::chrono::duration<Rep, Period>& rel_time)
+  {
+    locking_precondition("shared_lock::try_lock_for");
+    return (owns_ = pm_->try_lock_shared_for(rel_time));
+  }
+
+  template <typename Clock, typename Duration>
+  bool try_lock_until(const std::chrono::time_point<Clock, Duration>& abs_time)
+  {
+    locking_precondition("shared_lock::try_lock_until");
+    return (owns_ = pm_->try_lock_shared_until(abs_time));
   }
 
   void unlock()
   {
+    assert(pm_ != nullptr);
     if (!owns_) {
       throw std::system_error(std::make_error_code(std::errc::resource_deadlock_would_occur), "shared_lock::unlock");
     }

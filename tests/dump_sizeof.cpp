@@ -40,7 +40,10 @@ int main()
   DUMP(yamc::alternate::recursive_timed_mutex);
 
   DUMP(yamc::alternate::shared_mutex);
+  DUMP(yamc::alternate::shared_timed_mutex);
   DUMP(yamc::alternate::basic_shared_mutex<yamc::rwlock::ReaderPrefer>);
   DUMP(yamc::alternate::basic_shared_mutex<yamc::rwlock::WriterPrefer>);
+  DUMP(yamc::alternate::basic_shared_timed_mutex<yamc::rwlock::ReaderPrefer>);
+  DUMP(yamc::alternate::basic_shared_timed_mutex<yamc::rwlock::WriterPrefer>);
   return 0;
 }
