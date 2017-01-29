@@ -166,15 +166,20 @@ int main()
   test_requirements<yamc::checked::recursive_mutex>();
   test_requirements_timed<yamc::checked::timed_mutex>();
   test_requirements_timed<yamc::checked::recursive_timed_mutex>();
+
   test_requirements<yamc::fair::mutex>();
   test_requirements<yamc::fair::recursive_mutex>();
   test_requirements_timed<yamc::fair::timed_mutex>();
   test_requirements_timed<yamc::fair::recursive_timed_mutex>();
+
   test_requirements<yamc::alternate::recursive_mutex>();
   test_requirements_timed<yamc::alternate::timed_mutex>();
   test_requirements_timed<yamc::alternate::recursive_timed_mutex>();
 
   test_shared_lock();
   test_requirements_shared<yamc::alternate::shared_mutex>();
+  // shared_mutex with yamc::rwlock::* policy
+  test_requirements_shared<yamc::alternate::basic_shared_mutex<yamc::rwlock::ReaderPrefer>>();
+  test_requirements_shared<yamc::alternate::basic_shared_mutex<yamc::rwlock::WriterPrefer>>();
   return 0;
 }

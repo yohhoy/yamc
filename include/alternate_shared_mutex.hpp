@@ -30,79 +30,81 @@
 #include <cassert>
 #include <condition_variable>
 #include <mutex>
+#include "yamc_rwlock_sched.hpp"
 
 
 namespace yamc {
 
 namespace alternate {
 
-/*
- * alternate implementation of shared_mutex
- */
-class shared_mutex {
-  bool writer_ = false;
-  std::size_t nreader_ = 0;
+template <typename RwLockPolicy>
+class basic_shared_mutex {
+  typename RwLockPolicy::state state_;
   std::condition_variable cv_;
   std::mutex mtx_;
 
 public:
-  shared_mutex() = default;
-  ~shared_mutex() = default;
+  basic_shared_mutex() = default;
+  ~basic_shared_mutex() = default;
 
-  shared_mutex(const shared_mutex&) = delete;
-  shared_mutex& operator=(const shared_mutex&) = delete;
+  basic_shared_mutex(const basic_shared_mutex&) = delete;
+  basic_shared_mutex& operator=(const basic_shared_mutex&) = delete;
 
   void lock()
   {
     std::unique_lock<decltype(mtx_)> lk(mtx_);
-    while (writer_ || 0 < nreader_) {
+    RwLockPolicy::before_wait_wlock(state_);
+    while (RwLockPolicy::wait_wlock(state_)) {
       cv_.wait(lk);
     }
-    writer_ = true;
+    RwLockPolicy::after_wait_wlock(state_);
+    RwLockPolicy::acquire_wlock(state_);
   }
 
   bool try_lock()
   {
     std::lock_guard<decltype(mtx_)> lk(mtx_);
-    if (writer_ || 0 < nreader_)
+    if (RwLockPolicy::wait_wlock(state_))
       return false;
-    writer_ = true;
+    RwLockPolicy::acquire_wlock(state_);
     return true;
   }
 
   void unlock()
   {
     std::lock_guard<decltype(mtx_)> lk(mtx_);
-    writer_ = false;
+    RwLockPolicy::release_wlock(state_);
     cv_.notify_all();
   }
 
   void lock_shared()
   {
     std::unique_lock<decltype(mtx_)> lk(mtx_);
-    while (writer_) {
+    while (RwLockPolicy::wait_rlock(state_)) {
       cv_.wait(lk);
     }
-    ++nreader_;
+    RwLockPolicy::acquire_rlock(state_);
   }
 
   bool try_lock_shared()
   {
     std::lock_guard<decltype(mtx_)> lk(mtx_);
-    if (writer_)
+    if (RwLockPolicy::wait_rlock(state_))
       return false;
-    ++nreader_;
+    RwLockPolicy::acquire_rlock(state_);
     return true;
   }
 
   void unlock_shared()
   {
     std::lock_guard<decltype(mtx_)> lk(mtx_);
-    assert(0 < nreader_);
-    --nreader_;
-    cv_.notify_all();
+    if (RwLockPolicy::release_rlock(state_)) {
+      cv_.notify_all();
+    }
   }
 };
+
+using shared_mutex = basic_shared_mutex<YAMC_RWLOCK_SCHED_DEFAULT>;
 
 } // namespace alternate
 } // namespace yamc
