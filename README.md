@@ -56,7 +56,7 @@ public:
 ## Mutex characteristics
 This mutex collections library provide the following types.
 All mutex types fulfil normal mutex or recursive mutex semantics in C++ Standard.
-You can replace type `std::mutex` to `yamc::*::mutex`, `std::recursive_mutex` to `yamc::*::recursive_mutex` except some special case.
+You can replace type `std::mutex` to `yamc::*::mutex`, `std::recursive_mutex` to `yamc::*::recursive_mutex` likewise, except some special case.
 Note: [`std::mutex`'s default constructor][mutex_ctor] is constexpr, but `yamc::*::mutex` is not.
 
 - `yamc::spin::mutex`: TAS spinlock, non-recursive
@@ -73,6 +73,8 @@ Note: [`std::mutex`'s default constructor][mutex_ctor] is constexpr, but `yamc::
 - `yamc::alternate::recursive_mutex`: recursive
 - `yamc::alternate::timed_mutex`: non-recursive, support timeout
 - `yamc::alternate::recursive_timed_mutex`: recursive, support timeout
+- `yamc::alternate::shared_mutex`: RW locking, non-recursive
+- `yamc::alternate::shared_timed_mutex`: RW locking, non-recursive, support timeout
 
 C++11/14/17 Standard Library define variable mutex types:
 
@@ -83,7 +85,8 @@ C++11/14/17 Standard Library define variable mutex types:
 - [`std::shared_mutex`][std_smutex]: RW locking, non-recursive (C++17 or later)
 - [`std::shared_timed_mutex`][std_stmutex]: RW locking, non-recursive, support timeout (C++14 or later)
 
-The implementation of this library use C++11 Standard threading primitives only `std::mutex`, [`std::condition_variable`][std_condvar] and [`std::atomic<T>`][std_atomic].
+The implementation of this library depends on C++11 Standard threading primitives only `std::mutex`, [`std::condition_variable`][std_condvar] and [`std::atomic<T>`][std_atomic].
+This means that you can use shared mutex variants (`shared_mutex`, `shared_timed_mutex`) with C++11 compiler which doesn't not support C++14/17 yet.
 
 [mutex_ctor]: http://en.cppreference.com/w/cpp/thread/mutex/mutex
 [std_mutex]: http://en.cppreference.com/w/cpp/thread/mutex
@@ -104,6 +107,9 @@ Period.
 - When you _really_ need spinlock mutex, I suppose `yamc::spin_ttas::mutex` may be best choice.
 - When you _actually_ need fairness of locking order, try to use fair mutex in `yamc::fair::*`.
 - Mutex in `yamc::alternate::*` has the same semantics of C++ Standard mutex, no additional features.
+ - When your compiler doesn't support C++14/17 Standard Library, shared mutex in `yamc::alternate::*` and `yamc::shared_lock<Mutex>` which emulate C++14 [`std::shared_lock<Mutex>`][std_sharedlock] are useful.
+
+[std_sharedlock]: http://en.cppreference.com/w/cpp/thread/shared_lock
 
 
 # Tweaks
@@ -134,6 +140,33 @@ using MyMutex = yamc::spin::basic_mutex<yamc::backoff::exponential<1000>>;
 ```
 
 [yield]: http://en.cppreference.com/w/cpp/thread/yield
+
+
+## Readers-Writer lock by shared mutex
+The shared mutex types provide "[Readers-Writer lock][rwlock]" (a.k.a "Shared-Exclusive lock") semantics, they implement data sharing mechanism with multiple-readers and single-writer threads.
+When readers and writer thread try to acquire lock simultaneously, there are some scheduling algorithm that determinate what thread can acquire next lock.
+You can tweak the scheduling algorithm by specifying `RwLockPolicy` when you instantiate shared mutex type, or define the following macros to change default behavior of all shared mutex types.
+
+Customizable macro:
+
+- `YAMC_RWLOCK_SCHED_DEFAULT`: RwLockPolicy of shared mutexes. Default policy is `yamc::rwlock::ReaderPrefer`.
+
+Pre-defined RwLockPolicy classes:
+
+- `yamc::rwlock::ReaderPrefer`: Reader prefer locking. This policy might introduce "Writer Starvation" if reader threads continuously hold shared lock.
+- `yamc::rwlock::WriterPrefer`: Writer prefer locking. This policy might introduce "Reader Starvation" if writer threads continuously try to acquire exclusive lock.
+
+Sample code:
+```cpp
+// change default RwLockPolicy
+#define YAMC_RWLOCK_SCHED_DEFAULT yamc::rwlock::WriterPrefer
+#include "alternate_shared_mutex.hpp"
+
+// define shared mutex type with ReaderPrefer policy
+using MySharedMutex = yamc::alternate::basic_shared_mutex<yamc::rwlock::ReaderPrefer>;
+```
+
+[rwlock]: https://en.wikipedia.org/wiki/Readers%E2%80%93writer_lock
 
 
 ## Check requirements of mutex operation

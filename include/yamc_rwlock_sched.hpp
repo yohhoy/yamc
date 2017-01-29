@@ -40,8 +40,8 @@ namespace rwlock {
 /// Reader prefer scheduling
 ///
 /// NOTE:
-//    This policy cause "writer starvation" when readers hold its lock.
-//    PThreads rwlock implementation use this scheduling policy as default.
+//    This policy might introduce "Writer Starvation" if readers continuously hold shared lock.
+//    PThreads rwlock implementation in Linux use this scheduling policy as default.
 //    (see also PTHREAD_RWLOCK_PREFER_READER_NP)
 //
 struct ReaderPrefer {
@@ -94,10 +94,10 @@ struct ReaderPrefer {
 /// Writer prefer scheduling
 ///
 /// NOTE:
-///   This policy prevent "writer starvation". When there are waiting writer,
-///   new readers will be blocked until all reader-lock are released, and
-///   the writer thread can get writer lock in preference to other readers.
-///   (see also PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP in PThreads)
+///   If there are waiting writer, new readers are blocked until all shared lock are released,
+//    and the writer thread can get exclusive lock in preference to blocked reader threads.
+//    This policy might introduce "Reader Starvation" if writers continuously request exclusive lock.
+///   (see also PTHREAD_RWLOCK_PREFER_WRITER_NONRECURSIVE_NP)
 ///
 struct WriterPrefer {
   static const std::size_t locked = ~(~std::size_t(0u) >> 1);  // MSB 1bit
