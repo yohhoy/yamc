@@ -31,6 +31,11 @@ std::mutex g_guard;
 #define TEST_TICKS std::chrono::milliseconds(100)
 #define WAIT_TICKS std::this_thread::sleep_for(TEST_TICKS)
 
+#define EXPECT_STEP(n_) \
+  { TRACE("STEP"#n_); EXPECT_EQ(n_, ++step); WAIT_TICKS; }
+#define EXPECT_STEP_RANGE(r0_, r1_) \
+  { TRACE("STEP"#r0_"-"#r1_); int s = ++step; EXPECT_TRUE(r0_ <= s && s <= r1_); WAIT_TICKS; }
+
 
 using SharedMutexTypes = ::testing::Types<
   yamc::alternate::basic_shared_mutex<yamc::rwlock::ReaderPrefer>,
@@ -430,4 +435,138 @@ TYPED_TEST(SharedTimedMutexTest, TryLockSharedUntilTimeout)
         step.await();  // b2
       }
     });
+}
+
+
+using RWLockReaderPreferTypes = ::testing::Types<
+  yamc::alternate::basic_shared_mutex<yamc::rwlock::ReaderPrefer>,
+  yamc::alternate::basic_shared_timed_mutex<yamc::rwlock::ReaderPrefer>
+>;
+
+template <typename Mutex>
+struct RWLockReaderPreferTest : ::testing::Test {};
+
+TYPED_TEST_CASE(RWLockReaderPreferTest, RWLockReaderPreferTypes);
+
+// Reader prefer lock
+//
+// T0: L=a=1=U...w...a.l-----L=7=U
+//       |   |   |    \      |
+// T1: ..w.s-S=2=a=3=V.w.S=6=V....
+//       |       |     |
+// T2: ..a.......w.S=4=a=5=V......
+//
+//  l/L=lock(request/acquire), U=unlock()
+//  s/S=lock_shared(request/acquire), V=unlock_shared()
+//  a=phase advance, w=phase await
+//
+TYPED_TEST(RWLockReaderPreferTest, LockOrder)
+{
+  yamc::test::phaser phaser(3);
+  std::atomic<int> step = {};
+  TypeParam mtx;
+  yamc::test::stopwatch<> sw;
+  yamc::test::task_runner(3, [&](std::size_t id) {
+    auto ph = phaser.get(id);
+    switch (id) {
+    case 0:
+      mtx.lock();
+      EXPECT_STEP(1)
+      ph.advance(1);  // p1
+      mtx.unlock();
+      ph.await();     // p2
+      ph.advance(1);  // p3
+      mtx.lock();
+      EXPECT_STEP(7)
+      mtx.unlock();
+      break;
+    case 1:
+      ph.await();     // p1
+      mtx.lock_shared();
+      EXPECT_STEP(2)
+      ph.advance(1);  // p2
+      EXPECT_STEP_RANGE(3, 4)
+      mtx.unlock_shared();
+      ph.await();     // p3
+      mtx.lock_shared();
+      EXPECT_STEP_RANGE(5, 6)
+      mtx.unlock_shared();
+      break;
+    case 2:
+      ph.advance(1);  // p1
+      ph.await();     // p2
+      mtx.lock_shared();
+      EXPECT_STEP_RANGE(3, 4)
+      ph.advance(1);  // p3
+      EXPECT_STEP_RANGE(5, 6)
+      mtx.unlock_shared();
+      break;
+    }
+  });
+  ASSERT_LE(TEST_TICKS * 5, sw.elapsed());
+}
+
+
+using RWLockWriterPreferTypes = ::testing::Types<
+  yamc::alternate::basic_shared_mutex<yamc::rwlock::WriterPrefer>,
+  yamc::alternate::basic_shared_timed_mutex<yamc::rwlock::WriterPrefer>
+>;
+
+template <typename Mutex>
+struct RWLockWriterPreferTest : ::testing::Test {};
+
+TYPED_TEST_CASE(RWLockWriterPreferTest, RWLockWriterPreferTypes);
+
+// Writer prefer lock
+//
+// T0: L=a=1=U...w.a.l---L=5=U....
+//       |   |   |  \    |   |
+// T1: ..w.s-S=2=a=3=a=4=V...|....
+//       |       |   |       |
+// T2: ..a.......a...w.s-----S=6=V
+//
+//  l/L=lock(request/acquire), U=unlock()
+//  s/S=lock_shared(request/acquire), V=unlock_shared()
+//  a=phase advance, w=phase await
+//
+TYPED_TEST(RWLockWriterPreferTest, LockOrder)
+{
+  yamc::test::phaser phaser(3);
+  std::atomic<int> step = {};
+  TypeParam mtx;
+  yamc::test::stopwatch<> sw;
+  yamc::test::task_runner(3, [&](std::size_t id) {
+    auto ph = phaser.get(id);
+    switch (id) {
+    case 0:
+      mtx.lock();
+      EXPECT_STEP(1)
+      ph.advance(1);  // p1
+      mtx.unlock();
+      ph.await();     // p2
+      ph.advance(1);  // p3
+      mtx.lock();
+      EXPECT_STEP(5)
+      mtx.unlock();
+      break;
+    case 1:
+      ph.await();     // p1
+      mtx.lock_shared();
+      EXPECT_STEP(2)
+      ph.advance(1);  // p2
+      EXPECT_STEP(3)
+      ph.advance(1);  // p3
+      EXPECT_STEP(4)
+      mtx.unlock_shared();
+      break;
+    case 2:
+      ph.advance(2);  // p1-2
+      ph.await();     // p3
+      mtx.lock_shared();
+      EXPECT_STEP(6)
+      mtx.unlock_shared();
+      break;
+    }
+  });
+  ASSERT_LE(TEST_TICKS * 6, sw.elapsed());
 }
