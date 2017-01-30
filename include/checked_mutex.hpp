@@ -62,6 +62,7 @@ protected:
       // object liveness
 #if YAMC_CHECKED_CALL_ABORT
       std::abort();
+      (void)emsg;  // suppress "unused variable" warning
 #else
       throw std::system_error(std::make_error_code(std::errc::resource_deadlock_would_occur), emsg);
 #endif
@@ -135,6 +136,7 @@ protected:
       // object liveness
 #if YAMC_CHECKED_CALL_ABORT
       std::abort();
+      (void)emsg;  // suppress "unused variable" warning
 #else
       throw std::system_error(std::make_error_code(std::errc::resource_deadlock_would_occur), emsg);
 #endif
@@ -227,6 +229,7 @@ class timed_mutex : private detail::mutex_base {
       // non-recursive semantics
 #if YAMC_CHECKED_CALL_ABORT
       std::abort();
+      (void)emsg;  // suppress "unused variable" warning
 #else
       throw std::system_error(std::make_error_code(std::errc::resource_deadlock_would_occur), emsg);
 #endif
