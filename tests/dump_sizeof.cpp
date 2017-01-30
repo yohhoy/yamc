@@ -7,6 +7,7 @@
 #include "checked_mutex.hpp"
 #include "fair_mutex.hpp"
 #include "alternate_mutex.hpp"
+#include "alternate_shared_mutex.hpp"
 
 
 #define DUMP(T) std::printf("%s %zu\n", #T, sizeof(T))
@@ -37,5 +38,12 @@ int main()
   DUMP(yamc::alternate::recursive_mutex);
   DUMP(yamc::alternate::timed_mutex);
   DUMP(yamc::alternate::recursive_timed_mutex);
+
+  DUMP(yamc::alternate::shared_mutex);
+  DUMP(yamc::alternate::shared_timed_mutex);
+  DUMP(yamc::alternate::basic_shared_mutex<yamc::rwlock::ReaderPrefer>);
+  DUMP(yamc::alternate::basic_shared_mutex<yamc::rwlock::WriterPrefer>);
+  DUMP(yamc::alternate::basic_shared_timed_mutex<yamc::rwlock::ReaderPrefer>);
+  DUMP(yamc::alternate::basic_shared_timed_mutex<yamc::rwlock::WriterPrefer>);
   return 0;
 }

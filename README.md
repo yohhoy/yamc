@@ -56,7 +56,7 @@ public:
 ## Mutex characteristics
 This mutex collections library provide the following types.
 All mutex types fulfil normal mutex or recursive mutex semantics in C++ Standard.
-You can replace type `std::mutex` to `yamc::*::mutex`, `std::recursive_mutex` to `yamc::*::recursive_mutex` except some special case.
+You can replace type `std::mutex` to `yamc::*::mutex`, `std::recursive_mutex` to `yamc::*::recursive_mutex` likewise, except some special case.
 Note: [`std::mutex`'s default constructor][mutex_ctor] is constexpr, but `yamc::*::mutex` is not.
 
 - `yamc::spin::mutex`: TAS spinlock, non-recursive
@@ -73,6 +73,8 @@ Note: [`std::mutex`'s default constructor][mutex_ctor] is constexpr, but `yamc::
 - `yamc::alternate::recursive_mutex`: recursive
 - `yamc::alternate::timed_mutex`: non-recursive, support timeout
 - `yamc::alternate::recursive_timed_mutex`: recursive, support timeout
+- `yamc::alternate::shared_mutex`: RW locking, non-recursive
+- `yamc::alternate::shared_timed_mutex`: RW locking, non-recursive, support timeout
 
 C++11/14/17 Standard Library define variable mutex types:
 
@@ -83,7 +85,8 @@ C++11/14/17 Standard Library define variable mutex types:
 - [`std::shared_mutex`][std_smutex]: RW locking, non-recursive (C++17 or later)
 - [`std::shared_timed_mutex`][std_stmutex]: RW locking, non-recursive, support timeout (C++14 or later)
 
-The implementation of this library use C++11 Standard threading primitives only `std::mutex`, [`std::condition_variable`][std_condvar] and [`std::atomic<T>`][std_atomic].
+The implementation of this library depends on C++11 Standard threading primitives only `std::mutex`, [`std::condition_variable`][std_condvar] and [`std::atomic<T>`][std_atomic].
+This means that you can use shared mutex variants (`shared_mutex`, `shared_timed_mutex`) with C++11 compiler which doesn't not support C++14/17 yet.
 
 [mutex_ctor]: http://en.cppreference.com/w/cpp/thread/mutex/mutex
 [std_mutex]: http://en.cppreference.com/w/cpp/thread/mutex
@@ -104,6 +107,9 @@ Period.
 - When you _really_ need spinlock mutex, I suppose `yamc::spin_ttas::mutex` may be best choice.
 - When you _actually_ need fairness of locking order, try to use fair mutex in `yamc::fair::*`.
 - Mutex in `yamc::alternate::*` has the same semantics of C++ Standard mutex, no additional features.
+ - When your compiler doesn't support C++14/17 Standard Library, shared mutex in `yamc::alternate::*` and `yamc::shared_lock<Mutex>` which emulate C++14 [`std::shared_lock<Mutex>`][std_sharedlock] are useful.
+
+[std_sharedlock]: http://en.cppreference.com/w/cpp/thread/shared_lock
 
 
 # Tweaks
@@ -114,7 +120,7 @@ You can tweak the algorithm by specifying `BackoffPolicy` when you instantiate s
 
 Customizable macros:
 
-- `YAMC_BACKOFF_SPIN_DEFAULT`: BackoffPolicy of spinlock mutexes. Default policy is `yamc::backoff::exponential<>`.
+- `YAMC_BACKOFF_SPIN_DEFAULT`: BackoffPolicy of spinlock mutex types. Default policy is `yamc::backoff::exponential<>`.
 - `YAMC_BACKOFF_EXPONENTIAL_INITCOUNT`: An initial count of `yamc::backoff::exponential<N>` policy class. Default value is `4000`.
 
 Pre-defined BackoffPolicy classes:
@@ -136,6 +142,41 @@ using MyMutex = yamc::spin::basic_mutex<yamc::backoff::exponential<1000>>;
 [yield]: http://en.cppreference.com/w/cpp/thread/yield
 
 
+## Readers-Writer lock by shared mutex
+The shared mutex types provide "[Readers-Writer lock][rwlock]" (a.k.a. "Shared-Exclusive lock") semantics.
+They implement data sharing mechanism between multiple-readers and single-writer threads.
+Multiple threads can acquire shared lock to concurrently read shared data, or single thread can acquire exclusive lock to modify shared data.
+When readers and writers threads try to acquire lock simultaneously, there are some scheduling algorithm that determinate which thread can acquire next lock.
+
+These scheduling algorithm of shared mutex types are implemented with policy-based template class `basic_shared_(timed_)mutex<RwLockPolicy>`.
+You can tweak the algorithm by specifying `RwLockPolicy` when you instantiate shared mutex type, or define the following macro to change default behavior of all shared mutex types.
+
+Customizable macro:
+
+- `YAMC_RWLOCK_SCHED_DEFAULT`: RwLockPolicy of shared mutex types. Default policy is `yamc::rwlock::ReaderPrefer`.
+
+Pre-defined RwLockPolicy classes:
+
+- `yamc::rwlock::ReaderPrefer`: Reader prefer locking.
+  While any reader thread owns shared lock, subsequent other reader threads can immediately acquire shared lock, but subsequent writer threads will be blocked until all reader threads release shared lock.
+  This policy might introduce "Writer Starvation" if reader threads continuously hold shared lock.
+- `yamc::rwlock::WriterPrefer`: Writer prefer locking.
+  While any reader thread owns shared lock and there are a waiting writer thread, subsequent other reader threads which try to acquire shared lock are blocked until writer thread's work is done.
+  This policy might introduce "Reader Starvation" if writer threads continuously try to acquire exclusive lock.
+
+Sample code:
+```cpp
+// change default RwLockPolicy
+#define YAMC_RWLOCK_SCHED_DEFAULT yamc::rwlock::WriterPrefer
+#include "alternate_shared_mutex.hpp"
+
+// define shared mutex type with ReaderPrefer policy
+using MySharedMutex = yamc::alternate::basic_shared_mutex<yamc::rwlock::ReaderPrefer>;
+```
+
+[rwlock]: https://en.wikipedia.org/wiki/Readers%E2%80%93writer_lock
+
+
 ## Check requirements of mutex operation
 Some operation of mutex type has pre-condition statement, for instance, the thread which call `m.unlock()` shall own its lock of mutex `m`.
 C++ Standard say that the behavior is __undefined__ when your program violate any requirements.
@@ -144,7 +185,7 @@ This means incorrect usage of mutex might cause deadlock, data corruption, or an
 Checked mutex types which are defined in `yamc::checked::*` validate the following requirements on run-time:
 
 - A thread that call `unlock()` SHALL own its lock. (_Unpaired Lock/Unlock_)
-- For `mutex` and `timed_mutex`, a thread that call `lock()` or `trylock` family SHALL NOT own its lock. (_Non-recursive Semantics_)
+- For `mutex` and `timed_mutex`, a thread that call `lock()` or `try_lock` family SHALL NOT own its lock. (_Non-recursive Semantics_)
 - When a thread destruct mutex object, all threads (include this thread) SHALL NOT own its lock. (_Abandoned Lock_)
 
 Checked mutexes are designed for debugging purpose, so the operation on checked mutex have some overhead.

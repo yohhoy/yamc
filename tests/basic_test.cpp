@@ -10,6 +10,7 @@
 #include "checked_mutex.hpp"
 #include "fair_mutex.hpp"
 #include "alternate_mutex.hpp"
+#include "alternate_shared_mutex.hpp"
 #include "yamc_testutil.hpp"
 
 
@@ -25,8 +26,10 @@ using NormalMutexTypes = ::testing::Types<
   yamc::spin_weak::mutex,
   yamc::spin_ttas::mutex,
   yamc::checked::mutex,
+  yamc::checked::timed_mutex,
   yamc::fair::mutex,
-  yamc::fair::timed_mutex
+  yamc::fair::timed_mutex,
+  yamc::alternate::shared_mutex
 >;
 
 template <typename Mutex>
@@ -190,7 +193,8 @@ using TimedMutexTypes = ::testing::Types<
   yamc::fair::timed_mutex,
   yamc::fair::recursive_timed_mutex,
   yamc::alternate::timed_mutex,
-  yamc::alternate::recursive_timed_mutex
+  yamc::alternate::recursive_timed_mutex,
+  yamc::alternate::shared_timed_mutex
 >;
 
 template <typename Mutex>
