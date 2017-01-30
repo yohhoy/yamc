@@ -120,7 +120,7 @@ You can tweak the algorithm by specifying `BackoffPolicy` when you instantiate s
 
 Customizable macros:
 
-- `YAMC_BACKOFF_SPIN_DEFAULT`: BackoffPolicy of spinlock mutexes. Default policy is `yamc::backoff::exponential<>`.
+- `YAMC_BACKOFF_SPIN_DEFAULT`: BackoffPolicy of spinlock mutex types. Default policy is `yamc::backoff::exponential<>`.
 - `YAMC_BACKOFF_EXPONENTIAL_INITCOUNT`: An initial count of `yamc::backoff::exponential<N>` policy class. Default value is `4000`.
 
 Pre-defined BackoffPolicy classes:
@@ -143,18 +143,26 @@ using MyMutex = yamc::spin::basic_mutex<yamc::backoff::exponential<1000>>;
 
 
 ## Readers-Writer lock by shared mutex
-The shared mutex types provide "[Readers-Writer lock][rwlock]" (a.k.a "Shared-Exclusive lock") semantics, they implement data sharing mechanism with multiple-readers and single-writer threads.
-When readers and writer thread try to acquire lock simultaneously, there are some scheduling algorithm that determinate what thread can acquire next lock.
-You can tweak the scheduling algorithm by specifying `RwLockPolicy` when you instantiate shared mutex type, or define the following macros to change default behavior of all shared mutex types.
+The shared mutex types provide "[Readers-Writer lock][rwlock]" (a.k.a. "Shared-Exclusive lock") semantics.
+They implement data sharing mechanism between multiple-readers and single-writer threads.
+Multiple threads can acquire shared lock to concurrently read shared data, or single thread can acquire exclusive lock to modify shared data.
+When readers and writers threads try to acquire lock simultaneously, there are some scheduling algorithm that determinate which thread can acquire next lock.
+
+These scheduling algorithm of shared mutex types are implemented with policy-based template class `basic_shared_(timed_)mutex<RwLockPolicy>`.
+You can tweak the algorithm by specifying `RwLockPolicy` when you instantiate shared mutex type, or define the following macro to change default behavior of all shared mutex types.
 
 Customizable macro:
 
-- `YAMC_RWLOCK_SCHED_DEFAULT`: RwLockPolicy of shared mutexes. Default policy is `yamc::rwlock::ReaderPrefer`.
+- `YAMC_RWLOCK_SCHED_DEFAULT`: RwLockPolicy of shared mutex types. Default policy is `yamc::rwlock::ReaderPrefer`.
 
 Pre-defined RwLockPolicy classes:
 
-- `yamc::rwlock::ReaderPrefer`: Reader prefer locking. This policy might introduce "Writer Starvation" if reader threads continuously hold shared lock.
-- `yamc::rwlock::WriterPrefer`: Writer prefer locking. This policy might introduce "Reader Starvation" if writer threads continuously try to acquire exclusive lock.
+- `yamc::rwlock::ReaderPrefer`: Reader prefer locking.
+  While any reader thread owns shared lock, subsequent other reader threads can immediately acquire shared lock, but subsequent writer threads will be blocked until all reader threads release shared lock.
+  This policy might introduce "Writer Starvation" if reader threads continuously hold shared lock.
+- `yamc::rwlock::WriterPrefer`: Writer prefer locking.
+  While any reader thread owns shared lock and there are a waiting writer thread, subsequent other reader threads which try to acquire shared lock are blocked until writer thread's work is done.
+  This policy might introduce "Reader Starvation" if writer threads continuously try to acquire exclusive lock.
 
 Sample code:
 ```cpp
@@ -177,7 +185,7 @@ This means incorrect usage of mutex might cause deadlock, data corruption, or an
 Checked mutex types which are defined in `yamc::checked::*` validate the following requirements on run-time:
 
 - A thread that call `unlock()` SHALL own its lock. (_Unpaired Lock/Unlock_)
-- For `mutex` and `timed_mutex`, a thread that call `lock()` or `trylock` family SHALL NOT own its lock. (_Non-recursive Semantics_)
+- For `mutex` and `timed_mutex`, a thread that call `lock()` or `try_lock` family SHALL NOT own its lock. (_Non-recursive Semantics_)
 - When a thread destruct mutex object, all threads (include this thread) SHALL NOT own its lock. (_Abandoned Lock_)
 
 Checked mutexes are designed for debugging purpose, so the operation on checked mutex have some overhead.
