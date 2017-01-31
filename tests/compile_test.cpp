@@ -7,6 +7,7 @@
 #include "naive_spin_mutex.hpp"
 #include "ttas_spin_mutex.hpp"
 #include "checked_mutex.hpp"
+#include "checked_shared_mutex.hpp"
 #include "fair_mutex.hpp"
 #include "alternate_mutex.hpp"
 #include "alternate_shared_mutex.hpp"
@@ -237,6 +238,8 @@ int main()
   test_requirements<yamc::checked::recursive_mutex>();
   test_requirements_timed<yamc::checked::timed_mutex>();
   test_requirements_timed<yamc::checked::recursive_timed_mutex>();
+  test_requirements<yamc::checked::shared_mutex>();
+  test_requirements_timed<yamc::checked::shared_timed_mutex>();
 
   test_requirements<yamc::fair::mutex>();
   test_requirements<yamc::fair::recursive_mutex>();

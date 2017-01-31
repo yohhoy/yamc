@@ -5,6 +5,7 @@
 #include "naive_spin_mutex.hpp"
 #include "ttas_spin_mutex.hpp"
 #include "checked_mutex.hpp"
+#include "checked_shared_mutex.hpp"
 #include "fair_mutex.hpp"
 #include "alternate_mutex.hpp"
 #include "alternate_shared_mutex.hpp"
@@ -28,10 +29,14 @@ int main()
   DUMP(yamc::spin::mutex);
   DUMP(yamc::spin_weak::mutex);
   DUMP(yamc::spin_ttas::mutex);
+
   DUMP(yamc::checked::mutex);
   DUMP(yamc::checked::timed_mutex);
   DUMP(yamc::checked::recursive_mutex);
   DUMP(yamc::checked::recursive_timed_mutex);
+  DUMP(yamc::checked::shared_mutex);
+  DUMP(yamc::checked::shared_timed_mutex);
+
   DUMP(yamc::fair::mutex);
   DUMP(yamc::fair::recursive_mutex);
   DUMP(yamc::fair::timed_mutex);

@@ -66,6 +66,8 @@ Note: [`std::mutex`'s default constructor][mutex_ctor] is constexpr, but `yamc::
 - `yamc::checked::timed_mutex`: requirements debugging, non-recursive, support timeout
 - `yamc::checked::recursive_mutex`: requirements debugging, recursive
 - `yamc::checked::recursive_timed_mutex`: requirements debugging, recursive, support timeout
+- `yamc::checked::shared_mutex`: requirements debugging, RW locking, non-recursive
+- `yamc::checked::shared_timed_mutex`: requirements debugging, RW locking, non-recursive, support timeout
 - `yamc::fair::mutex`: fairness, non-recursive
 - `yamc::fair::recursive_mutex`: fairness, recursive
 - `yamc::fair::timed_mutex`: fairness, non-recursive, support timeout
