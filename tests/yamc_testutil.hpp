@@ -36,6 +36,13 @@
 #include <vector>
 
 
+#if defined(_WIN32) || defined(WIN32)
+#define TEST_PLATFORM_WINDOWS 1
+#else
+#define TEST_PLATFORM_WINDOWS 0
+#endif
+
+
 namespace yamc {
 namespace test {
 

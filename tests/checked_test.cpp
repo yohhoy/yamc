@@ -9,6 +9,25 @@
 #include "yamc_testutil.hpp"
 
 
+#if YAMC_CHECKED_CALL_ABORT
+// call std::abort() on check failure
+#if TEST_PLATFORM_WINDOWS
+//
+// NOTE:
+//   Some death tests (*.AbandonMutexSide) does not work correctly on Windows platform.
+//
+#define EXPECT_CHECK_FAILURE(statement_) EXPECT_EXIT(statement_, ::testing::ExitedWithCode(3), "")
+#else
+#define EXPECT_CHECK_FAILURE(statement_) EXPECT_EXIT(statement_, ::testing::KilledBySignal(SIGABRT), "")
+#endif
+
+#else
+// throw an exception on check failure
+#define EXPECT_CHECK_FAILURE(statement_) EXPECT_THROW(statement_, std::system_error)
+
+#endif
+
+
 using CheckedMutexTypes = ::testing::Types<
   yamc::checked::mutex,
   yamc::checked::timed_mutex,
@@ -20,17 +39,18 @@ struct CheckedMutexTest : ::testing::Test {};
 
 TYPED_TEST_CASE(CheckedMutexTest, CheckedMutexTypes);
 
-// abondon mutex
-TYPED_TEST(CheckedMutexTest, AbondonMutex) {
-  ASSERT_THROW({
+// abandon mutex
+TYPED_TEST(CheckedMutexTest, AbandonMutex) {
+  EXPECT_CHECK_FAILURE({
     TypeParam mtx;
     mtx.lock();
     // no unlock()
-  }, std::system_error);
+  });
 }
 
-// abondon mutex by other thread
-TYPED_TEST(CheckedMutexTest, AbondonMutexSide) {
+// abandon mutex by other thread
+TYPED_TEST(CheckedMutexTest, AbandonMutexSide) {
+#if !TEST_PLATFORM_WINDOWS
   yamc::test::barrier step(2);
   auto pmtx = yamc::cxx::make_unique<TypeParam>();
   // owner-thread
@@ -42,18 +62,19 @@ TYPED_TEST(CheckedMutexTest, AbondonMutexSide) {
   // other-thread
   {
     step.await();  // b1
-    EXPECT_THROW({
+    EXPECT_CHECK_FAILURE({
       delete pmtx.release();
-    }, std::system_error);
+    });
     step.await();  // b2
   }
+#endif
 }
 
 // recurse lock() on non-recursive mutex
 TYPED_TEST(CheckedMutexTest, RecurseLock) {
   TypeParam mtx;
   ASSERT_NO_THROW(mtx.lock());
-  ASSERT_THROW(mtx.lock(), std::system_error);
+  EXPECT_CHECK_FAILURE(mtx.lock());
   ASSERT_NO_THROW(mtx.unlock());
 }
 
@@ -61,14 +82,14 @@ TYPED_TEST(CheckedMutexTest, RecurseLock) {
 TYPED_TEST(CheckedMutexTest, RecurseTryLock) {
   TypeParam mtx;
   ASSERT_NO_THROW(mtx.lock());
-  ASSERT_THROW(mtx.try_lock(), std::system_error);
+  EXPECT_CHECK_FAILURE(mtx.try_lock());
   ASSERT_NO_THROW(mtx.unlock());
 }
 
 // invalid unlock()
 TYPED_TEST(CheckedMutexTest, InvalidUnlock0) {
   TypeParam mtx;
-  ASSERT_THROW(mtx.unlock(), std::system_error);
+  EXPECT_CHECK_FAILURE(mtx.unlock());
 }
 
 // invalid unlock()
@@ -76,7 +97,7 @@ TYPED_TEST(CheckedMutexTest, InvalidUnlock1) {
   TypeParam mtx;
   ASSERT_NO_THROW(mtx.lock());
   ASSERT_NO_THROW(mtx.unlock());
-  ASSERT_THROW(mtx.unlock(), std::system_error);
+  EXPECT_CHECK_FAILURE(mtx.unlock());
 }
 
 // non owner thread call unlock()
@@ -93,7 +114,7 @@ TYPED_TEST(CheckedMutexTest, NonOwnerUnlock) {
   // other-thread
   {
     step.await();  // b1
-    EXPECT_THROW(mtx.unlock(), std::system_error);
+    EXPECT_CHECK_FAILURE(mtx.unlock());
     step.await();  // b2
   }
 }
@@ -109,17 +130,18 @@ struct CheckedRecursiveMutexTest : ::testing::Test {};
 
 TYPED_TEST_CASE(CheckedRecursiveMutexTest, CheckedRecursiveMutexTypes);
 
-// abondon recursive_mutex
-TYPED_TEST(CheckedRecursiveMutexTest, AbondonMutex) {
-  ASSERT_THROW({
+// abandon recursive_mutex
+TYPED_TEST(CheckedRecursiveMutexTest, AbandonMutex) {
+  EXPECT_CHECK_FAILURE({
     TypeParam mtx;
     mtx.lock();
     // no unlock()
-  }, std::system_error);
+  });
 }
 
-// abondon mutex by other thread
-TYPED_TEST(CheckedRecursiveMutexTest, AbondonMutexSide) {
+// abandon mutex by other thread
+TYPED_TEST(CheckedRecursiveMutexTest, AbandonMutexSide) {
+#if !TEST_PLATFORM_WINDOWS
   yamc::test::barrier step(2);
   auto pmtx = yamc::cxx::make_unique<TypeParam>();
   // owner-thread
@@ -131,17 +153,18 @@ TYPED_TEST(CheckedRecursiveMutexTest, AbondonMutexSide) {
   // other-thread
   {
     step.await();  // b1
-    EXPECT_THROW({
+    EXPECT_CHECK_FAILURE({
       delete pmtx.release();
-    }, std::system_error);
+    });
     step.await();  // b2
   }
+#endif
 }
 
 // invalid unlock()
 TYPED_TEST(CheckedRecursiveMutexTest, InvalidUnlock0) {
   TypeParam mtx;
-  ASSERT_THROW(mtx.unlock(), std::system_error);
+  EXPECT_CHECK_FAILURE(mtx.unlock());
 }
 
 // invalid unlock()
@@ -149,7 +172,7 @@ TYPED_TEST(CheckedRecursiveMutexTest, InvalidUnlock1) {
   TypeParam mtx;
   ASSERT_NO_THROW(mtx.lock());    // lockcnt = 1
   ASSERT_NO_THROW(mtx.unlock());  // lockcnt = 0
-  ASSERT_THROW(mtx.unlock(), std::system_error);
+  EXPECT_CHECK_FAILURE(mtx.unlock());
 }
 
 // invalid unlock()
@@ -159,7 +182,7 @@ TYPED_TEST(CheckedRecursiveMutexTest, InvalidUnlock2) {
   ASSERT_NO_THROW(mtx.lock());    // lockcnt = 2
   ASSERT_NO_THROW(mtx.unlock());  // lockcnt = 1
   ASSERT_NO_THROW(mtx.unlock());  // lockcnt = 0
-  ASSERT_THROW(mtx.unlock(), std::system_error);
+  EXPECT_CHECK_FAILURE(mtx.unlock());
 }
 
 // non owner thread call unlock()
@@ -176,7 +199,7 @@ TYPED_TEST(CheckedRecursiveMutexTest, NonOwnerUnlock) {
   // other-thread
   {
     step.await();  // b1
-    EXPECT_THROW(mtx.unlock(), std::system_error);
+    EXPECT_CHECK_FAILURE(mtx.unlock());
     step.await();  // b2
   }
 }
@@ -196,9 +219,7 @@ TYPED_TEST_CASE(CheckedTimedMutexTest, CheckedTimedMutexTypes);
 TYPED_TEST(CheckedTimedMutexTest, RecurseTryLockFor) {
   TypeParam mtx;
   ASSERT_NO_THROW(mtx.lock());
-  ASSERT_THROW({
-    mtx.try_lock_for(std::chrono::seconds(1));
-  }, std::system_error);
+  EXPECT_CHECK_FAILURE(mtx.try_lock_for(std::chrono::seconds(1)));
   ASSERT_NO_THROW(mtx.unlock());
 }
 
@@ -206,9 +227,7 @@ TYPED_TEST(CheckedTimedMutexTest, RecurseTryLockFor) {
 TYPED_TEST(CheckedTimedMutexTest, RecurseTryLockUntil) {
   TypeParam mtx;
   ASSERT_NO_THROW(mtx.lock());
-  ASSERT_THROW({
-    mtx.try_lock_until(std::chrono::system_clock::now());
-  }, std::system_error);
+  EXPECT_CHECK_FAILURE(mtx.try_lock_until(std::chrono::system_clock::now()));
   ASSERT_NO_THROW(mtx.unlock());
 }
 
@@ -223,17 +242,18 @@ struct CheckedSharedMutexTest : ::testing::Test {};
 
 TYPED_TEST_CASE(CheckedSharedMutexTest, CheckedSharedMutexTypes);
 
-// abondon mutex
-TYPED_TEST(CheckedSharedMutexTest, AbondonMutex) {
-  ASSERT_THROW({
+// abandon mutex
+TYPED_TEST(CheckedSharedMutexTest, AbandonMutex) {
+  EXPECT_CHECK_FAILURE({
     TypeParam mtx;
     mtx.lock_shared();
     // no unlock()
-  }, std::system_error);
+  });
 }
 
-// abondon mutex by other thread
-TYPED_TEST(CheckedSharedMutexTest, AbondonMutexSide) {
+// abandon mutex by other thread
+TYPED_TEST(CheckedSharedMutexTest, AbandonMutexSide) {
+#if !TEST_PLATFORM_WINDOWS
   yamc::test::barrier step(2);
   auto pmtx = yamc::cxx::make_unique<TypeParam>();
   // owner-thread
@@ -245,18 +265,19 @@ TYPED_TEST(CheckedSharedMutexTest, AbondonMutexSide) {
   // other-thread
   {
     step.await();  // b1
-    EXPECT_THROW({
+    EXPECT_CHECK_FAILURE({
       delete pmtx.release();
-    }, std::system_error);
+    });
     step.await();  // b2
   }
+#endif
 }
 
 // recurse lock_shared()
 TYPED_TEST(CheckedSharedMutexTest, RecurseLockShared) {
   TypeParam mtx;
   ASSERT_NO_THROW(mtx.lock_shared());
-  ASSERT_THROW(mtx.lock_shared(), std::system_error);
+  EXPECT_CHECK_FAILURE(mtx.lock_shared());
   ASSERT_NO_THROW(mtx.unlock_shared());
 }
 
@@ -264,7 +285,7 @@ TYPED_TEST(CheckedSharedMutexTest, RecurseLockShared) {
 TYPED_TEST(CheckedSharedMutexTest, RecurseTryLockShared) {
   TypeParam mtx;
   ASSERT_NO_THROW(mtx.lock_shared());
-  ASSERT_THROW(mtx.try_lock_shared(), std::system_error);
+  EXPECT_CHECK_FAILURE(mtx.try_lock_shared());
   ASSERT_NO_THROW(mtx.unlock_shared());
 }
 
@@ -272,7 +293,7 @@ TYPED_TEST(CheckedSharedMutexTest, RecurseTryLockShared) {
 TYPED_TEST(CheckedSharedMutexTest, LockToLockShared) {
   TypeParam mtx;
   ASSERT_NO_THROW(mtx.lock());
-  ASSERT_THROW(mtx.lock_shared(), std::system_error);
+  EXPECT_CHECK_FAILURE(mtx.lock_shared());
   ASSERT_NO_THROW(mtx.unlock());
 }
 
@@ -280,7 +301,7 @@ TYPED_TEST(CheckedSharedMutexTest, LockToLockShared) {
 TYPED_TEST(CheckedSharedMutexTest, LockToTryLockShared) {
   TypeParam mtx;
   ASSERT_NO_THROW(mtx.lock());
-  ASSERT_THROW(mtx.try_lock_shared(), std::system_error);
+  EXPECT_CHECK_FAILURE(mtx.try_lock_shared());
   ASSERT_NO_THROW(mtx.unlock());
 }
 
@@ -288,7 +309,7 @@ TYPED_TEST(CheckedSharedMutexTest, LockToTryLockShared) {
 TYPED_TEST(CheckedSharedMutexTest, LockSharedToLock) {
   TypeParam mtx;
   ASSERT_NO_THROW(mtx.lock_shared());
-  ASSERT_THROW(mtx.lock(), std::system_error);
+  EXPECT_CHECK_FAILURE(mtx.lock());
   ASSERT_NO_THROW(mtx.unlock_shared());
 }
 
@@ -296,7 +317,7 @@ TYPED_TEST(CheckedSharedMutexTest, LockSharedToLock) {
 TYPED_TEST(CheckedSharedMutexTest, LockSharedToTryLock) {
   TypeParam mtx;
   ASSERT_NO_THROW(mtx.lock_shared());
-  ASSERT_THROW(mtx.try_lock(), std::system_error);
+  EXPECT_CHECK_FAILURE(mtx.try_lock());
   ASSERT_NO_THROW(mtx.unlock_shared());
 }
 
@@ -304,7 +325,7 @@ TYPED_TEST(CheckedSharedMutexTest, LockSharedToTryLock) {
 TYPED_TEST(CheckedSharedMutexTest, UnmatchUnlock) {
   TypeParam mtx;
   ASSERT_NO_THROW(mtx.lock_shared());
-  ASSERT_THROW(mtx.unlock(), std::system_error);
+  EXPECT_CHECK_FAILURE(mtx.unlock());
   ASSERT_NO_THROW(mtx.unlock_shared());
 }
 
@@ -312,14 +333,14 @@ TYPED_TEST(CheckedSharedMutexTest, UnmatchUnlock) {
 TYPED_TEST(CheckedSharedMutexTest, UnmatchUnlockShared) {
   TypeParam mtx;
   ASSERT_NO_THROW(mtx.lock());
-  ASSERT_THROW(mtx.unlock_shared(), std::system_error);
+  EXPECT_CHECK_FAILURE(mtx.unlock_shared());
   ASSERT_NO_THROW(mtx.unlock());
 }
 
 // invalid unlock_shared()
 TYPED_TEST(CheckedSharedMutexTest, InvalidUnlockShared0) {
   TypeParam mtx;
-  ASSERT_THROW(mtx.unlock_shared(), std::system_error);
+  EXPECT_CHECK_FAILURE(mtx.unlock_shared());
 }
 
 // invalid unlock_shared()
@@ -327,7 +348,7 @@ TYPED_TEST(CheckedSharedMutexTest, InvalidUnlockShared1) {
   TypeParam mtx;
   ASSERT_NO_THROW(mtx.lock_shared());
   ASSERT_NO_THROW(mtx.unlock_shared());
-  ASSERT_THROW(mtx.unlock_shared(), std::system_error);
+  EXPECT_CHECK_FAILURE(mtx.unlock_shared());
 }
 
 // non owner thread call unlock_shared()
@@ -344,7 +365,7 @@ TYPED_TEST(CheckedSharedMutexTest, NonOwnerUnlockShared) {
   // other-thread
   {
     step.await();  // b1
-    EXPECT_THROW(mtx.unlock_shared(), std::system_error);
+    EXPECT_CHECK_FAILURE(mtx.unlock_shared());
     step.await();  // b2
   }
 }
@@ -363,9 +384,7 @@ TYPED_TEST_CASE(CheckedSharedTimedMutexTest, CheckedSharedTimedMutexTypes);
 TYPED_TEST(CheckedSharedTimedMutexTest, RecurseTryLockSharedFor) {
   TypeParam mtx;
   ASSERT_NO_THROW(mtx.lock_shared());
-  ASSERT_THROW({
-    mtx.try_lock_shared_for(std::chrono::seconds(1));
-  }, std::system_error);
+  EXPECT_CHECK_FAILURE(mtx.try_lock_shared_for(std::chrono::seconds(1)));
   ASSERT_NO_THROW(mtx.unlock_shared());
 }
 
@@ -373,9 +392,7 @@ TYPED_TEST(CheckedSharedTimedMutexTest, RecurseTryLockSharedFor) {
 TYPED_TEST(CheckedSharedTimedMutexTest, RecurseTryLockSharedUntil) {
   TypeParam mtx;
   ASSERT_NO_THROW(mtx.lock_shared());
-  ASSERT_THROW({
-    mtx.try_lock_shared_until(std::chrono::system_clock::now());
-  }, std::system_error);
+  EXPECT_CHECK_FAILURE(mtx.try_lock_shared_until(std::chrono::system_clock::now()));
   ASSERT_NO_THROW(mtx.unlock_shared());
 }
 
@@ -383,9 +400,7 @@ TYPED_TEST(CheckedSharedTimedMutexTest, RecurseTryLockSharedUntil) {
 TYPED_TEST(CheckedSharedTimedMutexTest, LockToTryLockSharedFor) {
   TypeParam mtx;
   ASSERT_NO_THROW(mtx.lock());
-  ASSERT_THROW({
-    mtx.try_lock_shared_for(std::chrono::seconds(1));
-  }, std::system_error);
+  EXPECT_CHECK_FAILURE(mtx.try_lock_shared_for(std::chrono::seconds(1)));
   ASSERT_NO_THROW(mtx.unlock());
 }
 
@@ -393,9 +408,7 @@ TYPED_TEST(CheckedSharedTimedMutexTest, LockToTryLockSharedFor) {
 TYPED_TEST(CheckedSharedTimedMutexTest, LockToTryLockSharedUntil) {
   TypeParam mtx;
   ASSERT_NO_THROW(mtx.lock());
-  ASSERT_THROW({
-    mtx.try_lock_shared_until(std::chrono::system_clock::now());
-  }, std::system_error);
+  EXPECT_CHECK_FAILURE(mtx.try_lock_shared_until(std::chrono::system_clock::now()));
   ASSERT_NO_THROW(mtx.unlock());
 }
 
@@ -403,9 +416,7 @@ TYPED_TEST(CheckedSharedTimedMutexTest, LockToTryLockSharedUntil) {
 TYPED_TEST(CheckedSharedTimedMutexTest, LockSharedToTryLockFor) {
   TypeParam mtx;
   ASSERT_NO_THROW(mtx.lock_shared());
-  ASSERT_THROW({
-    mtx.try_lock_for(std::chrono::seconds(1));
-  }, std::system_error);
+  EXPECT_CHECK_FAILURE(mtx.try_lock_for(std::chrono::seconds(1)));
   ASSERT_NO_THROW(mtx.unlock_shared());
 }
 
@@ -413,8 +424,6 @@ TYPED_TEST(CheckedSharedTimedMutexTest, LockSharedToTryLockFor) {
 TYPED_TEST(CheckedSharedTimedMutexTest, LockSharedToTryLockUntil) {
   TypeParam mtx;
   ASSERT_NO_THROW(mtx.lock_shared());
-  ASSERT_THROW({
-    mtx.try_lock_until(std::chrono::system_clock::now());
-  }, std::system_error);
+  EXPECT_CHECK_FAILURE(mtx.try_lock_until(std::chrono::system_clock::now()));
   ASSERT_NO_THROW(mtx.unlock_shared());
 }
