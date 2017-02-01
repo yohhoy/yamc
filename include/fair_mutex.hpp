@@ -151,6 +151,7 @@ public:
 namespace detail {
 
 class timed_mutex_base {
+protected:
   struct node {
     node* next;
     node* prev;
@@ -159,7 +160,6 @@ class timed_mutex_base {
   node queue_;   // q.next = front(), q.prev = back()
   node locked_;  // placeholder node of 'locked' state
 
-protected:
   std::condition_variable cv_;
   std::mutex mtx_;
 
