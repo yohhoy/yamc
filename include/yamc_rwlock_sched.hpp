@@ -74,7 +74,7 @@ struct ReaderPrefer {
 
   static bool wait_rlock(state& s)
   {
-    return (s.rwcount & writer_mask);
+    return (s.rwcount & writer_mask) != 0;
   }
 
   static void acquire_rlock(state& s)
