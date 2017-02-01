@@ -1,7 +1,11 @@
+/*
+ * dump_typeinfo.cpp
+ */
 #include <cstdio>
 #include <condition_variable>
 #include <mutex>
 #include <thread>
+#include <type_traits>
 #include "naive_spin_mutex.hpp"
 #include "ttas_spin_mutex.hpp"
 #include "checked_mutex.hpp"
@@ -11,7 +15,13 @@
 #include "alternate_shared_mutex.hpp"
 
 
+#ifdef DUMP_SIZEOF
 #define DUMP(T) std::printf("%s %zu\n", #T, sizeof(T))
+#endif
+
+#ifdef DUMP_STANDARD_LAYOUT
+#define DUMP(T) std::printf("%s %d\n", #T, (int)std::is_standard_layout<T>::value)
+#endif
 
 
 int main()
@@ -40,6 +50,8 @@ int main()
   DUMP(yamc::fair::mutex);
   DUMP(yamc::fair::recursive_mutex);
   DUMP(yamc::fair::timed_mutex);
+  DUMP(yamc::fair::recursive_timed_mutex);
+
   DUMP(yamc::alternate::recursive_mutex);
   DUMP(yamc::alternate::timed_mutex);
   DUMP(yamc::alternate::recursive_timed_mutex);

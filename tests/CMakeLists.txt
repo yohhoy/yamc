@@ -23,7 +23,10 @@ add_executable(compile_test compile_test.cpp)
 target_link_libraries(compile_test Threads::Threads)
 add_test(compile compile_test)
 
-add_executable(dump_sizeof dump_sizeof.cpp)
+add_executable(dump_sizeof dump_typeinfo.cpp)
+add_executable(dump_layout dump_typeinfo.cpp)
+set_target_properties(dump_sizeof PROPERTIES COMPILE_DEFINITIONS "DUMP_SIZEOF")
+set_target_properties(dump_layout PROPERTIES COMPILE_DEFINITIONS "DUMP_STANDARD_LAYOUT")
 
 macro (do_test name)
   set(testname ${name}_test)
