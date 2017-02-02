@@ -4,6 +4,7 @@ platform:
 
 configuration:
   - Debug
+#  - Release
 
 before_build:
   - echo "Running cmake..."
@@ -17,6 +18,6 @@ build:
   project: yamc.sln
 
 test_script:
-  - C:\projects\yamc\tests\Debug\dump_sizeof
-  - C:\projects\yamc\tests\Debug\dump_layout
+  - tests\%CONFIGURATION%\dump_sizeof
+  - tests\%CONFIGURATION%\dump_layout
   - ctest
