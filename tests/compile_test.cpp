@@ -9,6 +9,7 @@
 #include "checked_mutex.hpp"
 #include "checked_shared_mutex.hpp"
 #include "fair_mutex.hpp"
+#include "fair_shared_mutex.hpp"
 #include "alternate_mutex.hpp"
 #include "alternate_shared_mutex.hpp"
 #include "yamc_testutil.hpp"
@@ -155,13 +156,15 @@ int main()
   test_requirements<yamc::checked::recursive_mutex>();
   test_requirements_timed<yamc::checked::timed_mutex>();
   test_requirements_timed<yamc::checked::recursive_timed_mutex>();
-  test_requirements<yamc::checked::shared_mutex>();
-  test_requirements_timed<yamc::checked::shared_timed_mutex>();
+  test_requirements_shared<yamc::checked::shared_mutex>();
+  test_requirements_shared_timed<yamc::checked::shared_timed_mutex>();
 
   test_requirements<yamc::fair::mutex>();
   test_requirements<yamc::fair::recursive_mutex>();
   test_requirements_timed<yamc::fair::timed_mutex>();
   test_requirements_timed<yamc::fair::recursive_timed_mutex>();
+  test_requirements_shared<yamc::fair::shared_mutex>();
+  test_requirements_shared_timed<yamc::fair::shared_timed_mutex>();
 
   test_requirements<yamc::alternate::recursive_mutex>();
   test_requirements_timed<yamc::alternate::timed_mutex>();
