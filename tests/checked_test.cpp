@@ -20,10 +20,14 @@
 #else
 #define EXPECT_CHECK_FAILURE(statement_) EXPECT_EXIT(statement_, ::testing::KilledBySignal(SIGABRT), "")
 #endif
+#define EXPECT_CHECK_FAILURE_OUTER(block_) EXPECT_CHECK_FAILURE(block_)
+#define EXPECT_CHECK_FAILURE_INNER(block_) block_
 
 #else
 // throw an exception on check failure
 #define EXPECT_CHECK_FAILURE(statement_) EXPECT_THROW(statement_, std::system_error)
+#define EXPECT_CHECK_FAILURE_OUTER(block_) block_
+#define EXPECT_CHECK_FAILURE_INNER(block_) EXPECT_CHECK_FAILURE(block_)
 
 #endif
 
@@ -48,27 +52,29 @@ TYPED_TEST(CheckedMutexTest, AbandonMutex) {
   });
 }
 
+#if !TEST_PLATFORM_WINDOWS
 // abandon mutex by other thread
 TYPED_TEST(CheckedMutexTest, AbandonMutexSide) {
-#if !TEST_PLATFORM_WINDOWS
-  yamc::test::barrier step(2);
-  auto pmtx = yamc::cxx::make_unique<TypeParam>();
-  // owner-thread
-  yamc::test::join_thread thd([&]{
-    ASSERT_NO_THROW(pmtx->lock());
-    step.await();  // b1
-    step.await();  // b2
-  });
-  // other-thread
-  {
-    step.await();  // b1
-    EXPECT_CHECK_FAILURE({
-      delete pmtx.release();
+  EXPECT_CHECK_FAILURE_OUTER({
+    yamc::test::barrier step(2);
+    auto pmtx = yamc::cxx::make_unique<TypeParam>();
+    // owner-thread
+    yamc::test::join_thread thd([&]{
+      ASSERT_NO_THROW(pmtx->lock());
+      step.await();  // b1
+      step.await();  // b2
     });
-    step.await();  // b2
-  }
-#endif
+    // other-thread
+    {
+      step.await();  // b1
+      EXPECT_CHECK_FAILURE_INNER({
+        delete pmtx.release();
+      });
+      step.await();  // b2
+    }
+  });
 }
+#endif
 
 // recurse lock() on non-recursive mutex
 TYPED_TEST(CheckedMutexTest, RecurseLock) {
@@ -102,21 +108,23 @@ TYPED_TEST(CheckedMutexTest, InvalidUnlock1) {
 
 // non owner thread call unlock()
 TYPED_TEST(CheckedMutexTest, NonOwnerUnlock) {
-  yamc::test::barrier step(2);
-  TypeParam mtx;
-  // owner-thread
-  yamc::test::join_thread thd([&]{
-    ASSERT_NO_THROW(mtx.lock());
-    step.await();  // b1
-    step.await();  // b2
-    ASSERT_NO_THROW(mtx.unlock());
+  EXPECT_CHECK_FAILURE_OUTER({
+    yamc::test::barrier step(2);
+    TypeParam mtx;
+    // owner-thread
+    yamc::test::join_thread thd([&]{
+      ASSERT_NO_THROW(mtx.lock());
+      step.await();  // b1
+      step.await();  // b2
+      ASSERT_NO_THROW(mtx.unlock());
+    });
+    // other-thread
+    {
+      step.await();  // b1
+      EXPECT_CHECK_FAILURE_INNER(mtx.unlock());
+      step.await();  // b2
+    }
   });
-  // other-thread
-  {
-    step.await();  // b1
-    EXPECT_CHECK_FAILURE(mtx.unlock());
-    step.await();  // b2
-  }
 }
 
 
@@ -139,27 +147,29 @@ TYPED_TEST(CheckedRecursiveMutexTest, AbandonMutex) {
   });
 }
 
+#if !TEST_PLATFORM_WINDOWS
 // abandon mutex by other thread
 TYPED_TEST(CheckedRecursiveMutexTest, AbandonMutexSide) {
-#if !TEST_PLATFORM_WINDOWS
-  yamc::test::barrier step(2);
-  auto pmtx = yamc::cxx::make_unique<TypeParam>();
-  // owner-thread
-  yamc::test::join_thread thd([&]{
-    ASSERT_NO_THROW(pmtx->lock());
-    step.await();  // b1
-    step.await();  // b2
-  });
-  // other-thread
-  {
-    step.await();  // b1
-    EXPECT_CHECK_FAILURE({
-      delete pmtx.release();
+  EXPECT_CHECK_FAILURE_OUTER({
+    yamc::test::barrier step(2);
+    auto pmtx = yamc::cxx::make_unique<TypeParam>();
+    // owner-thread
+    yamc::test::join_thread thd([&]{
+      ASSERT_NO_THROW(pmtx->lock());
+      step.await();  // b1
+      step.await();  // b2
     });
-    step.await();  // b2
-  }
-#endif
+    // other-thread
+    {
+      step.await();  // b1
+      EXPECT_CHECK_FAILURE_INNER({
+        delete pmtx.release();
+      });
+      step.await();  // b2
+    }
+  });
 }
+#endif
 
 // invalid unlock()
 TYPED_TEST(CheckedRecursiveMutexTest, InvalidUnlock0) {
@@ -187,21 +197,23 @@ TYPED_TEST(CheckedRecursiveMutexTest, InvalidUnlock2) {
 
 // non owner thread call unlock()
 TYPED_TEST(CheckedRecursiveMutexTest, NonOwnerUnlock) {
-  yamc::test::barrier step(2);
-  TypeParam mtx;
-  // owner-thread
-  yamc::test::join_thread thd([&]{
-    ASSERT_NO_THROW(mtx.lock());
-    step.await();  // b1
-    step.await();  // b2
-    ASSERT_NO_THROW(mtx.unlock());
+  EXPECT_CHECK_FAILURE_OUTER({
+    yamc::test::barrier step(2);
+    TypeParam mtx;
+    // owner-thread
+    yamc::test::join_thread thd([&]{
+      ASSERT_NO_THROW(mtx.lock());
+      step.await();  // b1
+      step.await();  // b2
+      ASSERT_NO_THROW(mtx.unlock());
+    });
+    // other-thread
+    {
+      step.await();  // b1
+      EXPECT_CHECK_FAILURE_INNER(mtx.unlock());
+      step.await();  // b2
+    }
   });
-  // other-thread
-  {
-    step.await();  // b1
-    EXPECT_CHECK_FAILURE(mtx.unlock());
-    step.await();  // b2
-  }
 }
 
 
@@ -251,27 +263,29 @@ TYPED_TEST(CheckedSharedMutexTest, AbandonMutex) {
   });
 }
 
+#if !TEST_PLATFORM_WINDOWS
 // abandon mutex by other thread
 TYPED_TEST(CheckedSharedMutexTest, AbandonMutexSide) {
-#if !TEST_PLATFORM_WINDOWS
-  yamc::test::barrier step(2);
-  auto pmtx = yamc::cxx::make_unique<TypeParam>();
-  // owner-thread
-  yamc::test::join_thread thd([&]{
-    ASSERT_NO_THROW(pmtx->lock_shared());
-    step.await();  // b1
-    step.await();  // b2
-  });
-  // other-thread
-  {
-    step.await();  // b1
-    EXPECT_CHECK_FAILURE({
-      delete pmtx.release();
+  EXPECT_CHECK_FAILURE_OUTER({
+    yamc::test::barrier step(2);
+    auto pmtx = yamc::cxx::make_unique<TypeParam>();
+    // owner-thread
+    yamc::test::join_thread thd([&]{
+      ASSERT_NO_THROW(pmtx->lock_shared());
+      step.await();  // b1
+      step.await();  // b2
     });
-    step.await();  // b2
-  }
-#endif
+    // other-thread
+    {
+      step.await();  // b1
+      EXPECT_CHECK_FAILURE_INNER({
+        delete pmtx.release();
+      });
+      step.await();  // b2
+    }
+  });
 }
+#endif
 
 // recurse lock_shared()
 TYPED_TEST(CheckedSharedMutexTest, RecurseLockShared) {
@@ -353,21 +367,23 @@ TYPED_TEST(CheckedSharedMutexTest, InvalidUnlockShared1) {
 
 // non owner thread call unlock_shared()
 TYPED_TEST(CheckedSharedMutexTest, NonOwnerUnlockShared) {
-  yamc::test::barrier step(2);
-  TypeParam mtx;
-  // owner-thread
-  yamc::test::join_thread thd([&]{
-    ASSERT_NO_THROW(mtx.lock_shared());
-    step.await();  // b1
-    step.await();  // b2
-    ASSERT_NO_THROW(mtx.unlock_shared());
+  EXPECT_CHECK_FAILURE_OUTER({
+    yamc::test::barrier step(2);
+    TypeParam mtx;
+    // owner-thread
+    yamc::test::join_thread thd([&]{
+      ASSERT_NO_THROW(mtx.lock_shared());
+      step.await();  // b1
+      step.await();  // b2
+      ASSERT_NO_THROW(mtx.unlock_shared());
+    });
+    // other-thread
+    {
+      step.await();  // b1
+      EXPECT_CHECK_FAILURE_INNER(mtx.unlock_shared());
+      step.await();  // b2
+    }
   });
-  // other-thread
-  {
-    step.await();  // b1
-    EXPECT_CHECK_FAILURE(mtx.unlock_shared());
-    step.await();  // b2
-  }
 }
 
 
