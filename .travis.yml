@@ -38,6 +38,7 @@ script:
   - cmake -DCMAKE_CXX_COMPILER=$COMPILER ..
   - make -j2
   - tests/dump_sizeof
+  - tests/dump_layout
   - make test
 
 notifications:

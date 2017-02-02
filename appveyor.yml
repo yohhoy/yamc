@@ -18,4 +18,5 @@ build:
 
 test_script:
   - C:\projects\yamc\tests\Debug\dump_sizeof
+  - C:\projects\yamc\tests\Debug\dump_layout
   - ctest
