@@ -54,10 +54,7 @@ public:
 
 
 ## Mutex characteristics
-This mutex collections library provide the following types.
-All mutex types fulfil normal mutex or recursive mutex semantics in C++ Standard.
-You can replace type `std::mutex` to `yamc::*::mutex`, `std::recursive_mutex` to `yamc::*::recursive_mutex` likewise, except some special case.
-Note: [`std::mutex`'s default constructor][mutex_ctor] is constexpr, but `yamc::*::mutex` is not.
+This mutex collections library provide the following types:
 
 - `yamc::spin::mutex`: TAS spinlock, non-recursive
 - `yamc::spin_weak::mutex`: TAS spinlock, non-recursive
@@ -78,6 +75,11 @@ Note: [`std::mutex`'s default constructor][mutex_ctor] is constexpr, but `yamc::
 - `yamc::alternate::shared_mutex`: RW locking, non-recursive
 - `yamc::alternate::shared_timed_mutex`: RW locking, non-recursive, support timeout
 
+These mutex types fulfil corresponding mutex semantics in C++ Standard.
+You can replace type `std::mutex` to `yamc::*::mutex`, `std::recursive_mutex` to `yamc::*::recursive_mutex` likewise, except some special case.
+Note: [`std::mutex`'s default constructor][mutex_ctor] is constexpr, but `yamc::*::mutex` is not.
+All mutex types in C++ Standard are [standard-layout][standardlayout] class, but not all types in `yamc` namespace are.
+
 C++11/14/17 Standard Library define variable mutex types:
 
 - [`std::mutex`][std_mutex]: non-recursive, support static initialization
@@ -91,6 +93,7 @@ The implementation of this library depends on C++11 Standard threading primitive
 This means that you can use shared mutex variants (`shared_mutex`, `shared_timed_mutex`) with C++11 compiler which doesn't not support C++14/17 yet.
 
 [mutex_ctor]: http://en.cppreference.com/w/cpp/thread/mutex/mutex
+[standardlayout]: http://en.cppreference.com/w/cpp/concept/StandardLayoutType
 [std_mutex]: http://en.cppreference.com/w/cpp/thread/mutex
 [std_tmutex]: http://en.cppreference.com/w/cpp/thread/timed_mutex
 [std_rmutex]: http://en.cppreference.com/w/cpp/thread/recursive_mutex
