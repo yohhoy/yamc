@@ -150,8 +150,8 @@ public:
 
 namespace detail {
 
-class timed_mutex_base {
-protected:
+class timed_mutex_impl {
+public:
   struct node {
     node* next;
     node* prev;
@@ -159,7 +159,6 @@ protected:
 
   node queue_;   // q.next = front(), q.prev = back()
   node locked_;  // placeholder node of 'locked' state
-
   std::condition_variable cv_;
   std::mutex mtx_;
 
@@ -197,10 +196,15 @@ private:
     queue_.next = front->next->prev = p;
   }
 
-protected:
-  timed_mutex_base()
+public:
+  timed_mutex_impl()
     : queue_{&queue_, &queue_} {}
-  ~timed_mutex_base() = default;
+  ~timed_mutex_impl() = default;
+
+  std::unique_lock<std::mutex> internal_lock()
+  {
+    return std::unique_lock<std::mutex>(mtx_);
+  }
 
   void impl_lock(std::unique_lock<std::mutex>& lk)
   {
@@ -257,8 +261,8 @@ protected:
 } // namespace detail
 
 
-class timed_mutex : private detail::timed_mutex_base {
-  using base = detail::timed_mutex_base;
+class timed_mutex {
+  detail::timed_mutex_impl impl_;
 
 public:
   timed_mutex() = default;
@@ -269,44 +273,43 @@ public:
 
   void lock()
   {
-    std::unique_lock<decltype(mtx_)> lk(mtx_);
-    base::impl_lock(lk);
+    auto lk = impl_.internal_lock();
+    impl_.impl_lock(lk);
   }
 
   bool try_lock()
   {
-    std::lock_guard<decltype(mtx_)> lk(mtx_);
-    return base::impl_try_lock();
+    auto lk = impl_.internal_lock();
+    return impl_.impl_try_lock();
   }
 
   void unlock()
   {
-    std::lock_guard<decltype(mtx_)> lk(mtx_);
-    base::impl_unlock();
+    auto lk = impl_.internal_lock();
+    impl_.impl_unlock();
   }
 
   template<typename Rep, typename Period>
   bool try_lock_for(const std::chrono::duration<Rep, Period>& duration)
   {
     const auto tp = std::chrono::steady_clock::now() + duration;
-    std::unique_lock<decltype(mtx_)> lk(mtx_);
-    return base::impl_try_lockwait(lk, tp);
+    auto lk = impl_.internal_lock();
+    return impl_.impl_try_lockwait(lk, tp);
   }
 
   template<typename Clock, typename Duration>
   bool try_lock_until(const std::chrono::time_point<Clock, Duration>& tp)
   {
-    std::unique_lock<decltype(mtx_)> lk(mtx_);
-    return base::impl_try_lockwait(lk, tp);
+    auto lk = impl_.internal_lock();
+    return impl_.impl_try_lockwait(lk, tp);
   }
 };
 
 
-class recursive_timed_mutex : private detail::timed_mutex_base {
-  using base = detail::timed_mutex_base;
-
+class recursive_timed_mutex {
   std::size_t ncount_ = 0;
   std::thread::id owner_ = {};
+  detail::timed_mutex_impl impl_;
 
 public:
   recursive_timed_mutex() = default;
@@ -318,12 +321,12 @@ public:
   void lock()
   {
     const auto tid = std::this_thread::get_id();
-    std::unique_lock<decltype(mtx_)> lk(mtx_);
+    auto lk = impl_.internal_lock();
     if (owner_ == tid) {
       assert(0 < ncount_);
       ++ncount_;
     } else {
-      base::impl_lock(lk);
+      impl_.impl_lock(lk);
       ncount_ = 1;
       owner_ = tid;
     }
@@ -332,13 +335,13 @@ public:
   bool try_lock()
   {
     const auto tid = std::this_thread::get_id();
-    std::lock_guard<decltype(mtx_)> lk(mtx_);
+    auto lk = impl_.internal_lock();
     if (owner_ == tid) {
       assert(0 < ncount_);
       ++ncount_;
       return true;
     }
-    if (!base::impl_try_lock())
+    if (!impl_.impl_try_lock())
       return false;
     ncount_ = 1;
     owner_ = tid;
@@ -347,10 +350,10 @@ public:
 
   void unlock()
   {
-    std::lock_guard<decltype(mtx_)> lk(mtx_);
+    auto lk = impl_.internal_lock();
     assert(0 < ncount_ && owner_ == std::this_thread::get_id());
     if (--ncount_ == 0) {
-      base::impl_unlock();
+      impl_.impl_unlock();
       owner_ = std::thread::id();
     }
   }
@@ -366,13 +369,13 @@ public:
   bool try_lock_until(const std::chrono::time_point<Clock, Duration>& tp)
   {
     const auto tid = std::this_thread::get_id();
-    std::unique_lock<decltype(mtx_)> lk(mtx_);
+    auto lk = impl_.internal_lock();
     if (owner_ == tid) {
       assert(0 < ncount_);
       ++ncount_;
       return true;
     }
-    if (!base::impl_try_lockwait(lk, tp))
+    if (!impl_.impl_try_lockwait(lk, tp))
       return false;
     ncount_ = 1;
     owner_ = tid;
