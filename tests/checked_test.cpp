@@ -55,7 +55,7 @@ TYPED_TEST(CheckedMutexTest, AbandonMutex) {
 #if !TEST_PLATFORM_WINDOWS
 // abandon mutex by other thread
 TYPED_TEST(CheckedMutexTest, AbandonMutexSide) {
-  EXPECT_CHECK_FAILURE_OUTER({
+  auto test_body = []{
     yamc::test::barrier step(2);
     auto pmtx = yamc::cxx::make_unique<TypeParam>();
     // owner-thread
@@ -72,7 +72,8 @@ TYPED_TEST(CheckedMutexTest, AbandonMutexSide) {
       });
       step.await();  // b2
     }
-  });
+  };
+  EXPECT_CHECK_FAILURE_OUTER(test_body());
 }
 #endif
 
@@ -108,7 +109,7 @@ TYPED_TEST(CheckedMutexTest, InvalidUnlock1) {
 
 // non owner thread call unlock()
 TYPED_TEST(CheckedMutexTest, NonOwnerUnlock) {
-  EXPECT_CHECK_FAILURE_OUTER({
+  auto test_body = []{
     yamc::test::barrier step(2);
     TypeParam mtx;
     // owner-thread
@@ -124,7 +125,8 @@ TYPED_TEST(CheckedMutexTest, NonOwnerUnlock) {
       EXPECT_CHECK_FAILURE_INNER(mtx.unlock());
       step.await();  // b2
     }
-  });
+  };
+  EXPECT_CHECK_FAILURE_OUTER(test_body());
 }
 
 
@@ -150,7 +152,7 @@ TYPED_TEST(CheckedRecursiveMutexTest, AbandonMutex) {
 #if !TEST_PLATFORM_WINDOWS
 // abandon mutex by other thread
 TYPED_TEST(CheckedRecursiveMutexTest, AbandonMutexSide) {
-  EXPECT_CHECK_FAILURE_OUTER({
+  auto test_body = []{
     yamc::test::barrier step(2);
     auto pmtx = yamc::cxx::make_unique<TypeParam>();
     // owner-thread
@@ -167,7 +169,8 @@ TYPED_TEST(CheckedRecursiveMutexTest, AbandonMutexSide) {
       });
       step.await();  // b2
     }
-  });
+  };
+  EXPECT_CHECK_FAILURE_OUTER(test_body());
 }
 #endif
 
@@ -197,7 +200,7 @@ TYPED_TEST(CheckedRecursiveMutexTest, InvalidUnlock2) {
 
 // non owner thread call unlock()
 TYPED_TEST(CheckedRecursiveMutexTest, NonOwnerUnlock) {
-  EXPECT_CHECK_FAILURE_OUTER({
+  auto test_body = []{
     yamc::test::barrier step(2);
     TypeParam mtx;
     // owner-thread
@@ -213,7 +216,8 @@ TYPED_TEST(CheckedRecursiveMutexTest, NonOwnerUnlock) {
       EXPECT_CHECK_FAILURE_INNER(mtx.unlock());
       step.await();  // b2
     }
-  });
+  };
+  EXPECT_CHECK_FAILURE_OUTER(test_body());
 }
 
 
@@ -266,7 +270,7 @@ TYPED_TEST(CheckedSharedMutexTest, AbandonMutex) {
 #if !TEST_PLATFORM_WINDOWS
 // abandon mutex by other thread
 TYPED_TEST(CheckedSharedMutexTest, AbandonMutexSide) {
-  EXPECT_CHECK_FAILURE_OUTER({
+  auto test_body = []{
     yamc::test::barrier step(2);
     auto pmtx = yamc::cxx::make_unique<TypeParam>();
     // owner-thread
@@ -283,7 +287,8 @@ TYPED_TEST(CheckedSharedMutexTest, AbandonMutexSide) {
       });
       step.await();  // b2
     }
-  });
+  };
+  EXPECT_CHECK_FAILURE_OUTER(test_body());
 }
 #endif
 
@@ -367,7 +372,7 @@ TYPED_TEST(CheckedSharedMutexTest, InvalidUnlockShared1) {
 
 // non owner thread call unlock_shared()
 TYPED_TEST(CheckedSharedMutexTest, NonOwnerUnlockShared) {
-  EXPECT_CHECK_FAILURE_OUTER({
+  auto test_body = []{
     yamc::test::barrier step(2);
     TypeParam mtx;
     // owner-thread
@@ -383,7 +388,8 @@ TYPED_TEST(CheckedSharedMutexTest, NonOwnerUnlockShared) {
       EXPECT_CHECK_FAILURE_INNER(mtx.unlock_shared());
       step.await();  // b2
     }
-  });
+  };
+  EXPECT_CHECK_FAILURE_OUTER(test_body());
 }
 
 
