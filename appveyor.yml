@@ -20,4 +20,4 @@ build:
 test_script:
   - tests\%CONFIGURATION%\dump_sizeof
   - tests\%CONFIGURATION%\dump_layout
-  - ctest
+  - ctest --output-on-failure

@@ -39,7 +39,7 @@ script:
   - make -j2
   - tests/dump_sizeof
   - tests/dump_layout
-  - make test
+  - ctest --output-on-failure
 
 notifications:
   email: false
