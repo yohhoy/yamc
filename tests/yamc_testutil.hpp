@@ -36,10 +36,35 @@
 #include <vector>
 
 
-#if defined(_WIN32) || defined(WIN32)
+// platform
+#if defined(_WIN32)
+#define TEST_PLATFORM_LINUX 0
+#define TEST_PLATFORM_OSX 0
 #define TEST_PLATFORM_WINDOWS 1
-#else
+#elif defined(__APPLE__)
+#define TEST_PLATFORM_LINUX 0
+#define TEST_PLATFORM_OSX 1
 #define TEST_PLATFORM_WINDOWS 0
+#elif defined(__linux)
+#define TEST_PLATFORM_LINUX 1
+#define TEST_PLATFORM_OSX 0
+#define TEST_PLATFORM_WINDOWS 0
+#endif
+
+
+// C++ compiler
+#if defined(__clang__)
+#define TEST_COMPILER_CLANG 1
+#define TEST_COMPILER_GCC 0
+#define TEST_COMPILER_MSVC 0
+#elif defined(__GNUC__)
+#define TEST_COMPILER_CLANG 0
+#define TEST_COMPILER_GCC 1
+#define TEST_COMPILER_MSVC
+#elif defined(_MSC_VER)
+#define TEST_COMPILER_CLANG 0
+#define TEST_COMPILER_GCC 0
+#define TEST_COMPILER_MSVC 1
 #endif
 
 
