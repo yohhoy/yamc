@@ -19,24 +19,29 @@ ExternalProject_Add(googletest
 include_directories(${EXTERNAL_INSTALL_LOCATION}/include)
 link_directories(${EXTERNAL_INSTALL_LOCATION}/lib)
 
-add_executable(compile_test compile_test.cpp)
-target_link_libraries(compile_test Threads::Threads)
-add_test(compile compile_test)
-
+# dump type information
 add_executable(dump_sizeof dump_typeinfo.cpp)
 add_executable(dump_layout dump_typeinfo.cpp)
 set_target_properties(dump_sizeof PROPERTIES COMPILE_DEFINITIONS "DUMP_SIZEOF")
 set_target_properties(dump_layout PROPERTIES COMPILE_DEFINITIONS "DUMP_STANDARD_LAYOUT")
 
-macro (do_test name)
+# Unit tests
+add_executable(compile_test compile_test.cpp)
+target_link_libraries(compile_test Threads::Threads)
+add_test(compile compile_test)
+
+macro (do_test name srcfile)
   set(testname ${name}_test)
-  add_executable(${testname} ${testname}.cpp)
+  add_executable(${testname} ${srcfile}.cpp)
   add_dependencies(${testname} googletest)
   target_link_libraries(${testname} Threads::Threads gtest gtest_main)
   add_test(${name} ${testname})
 endmacro (do_test)
 
-do_test(basic)
-do_test(checked)
-do_test(fairness)
-do_test(rwlock)
+do_test(basic basic_test)
+do_test(checked0 checked_test)
+do_test(checked1 checked_test)
+set_target_properties(checked0_test PROPERTIES COMPILE_DEFINITIONS "YAMC_CHECKED_CALL_ABORT=0")
+set_target_properties(checked1_test PROPERTIES COMPILE_DEFINITIONS "YAMC_CHECKED_CALL_ABORT=1")
+do_test(fairness fairness_test)
+do_test(rwlock rwlock_test)
