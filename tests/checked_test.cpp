@@ -1,5 +1,9 @@
 /*
  * checked_test.cpp
+ *
+ * test configuration:
+ *   - YAMC_CHECKED_CALL_ABORT=0  throw std::system_error [default]
+ *   - YAMC_CHECKED_CALL_ABORT=1  call std::abort()
  */
 #include <chrono>
 #include <system_error>
@@ -12,10 +16,6 @@
 #if YAMC_CHECKED_CALL_ABORT
 // call std::abort() on check failure
 #if TEST_PLATFORM_WINDOWS
-//
-// NOTE:
-//   Some death tests (*.AbandonMutexSide) does not work correctly on Windows platform.
-//
 #define EXPECT_CHECK_FAILURE(statement_) EXPECT_EXIT(statement_, ::testing::ExitedWithCode(3), "")
 #else
 #define EXPECT_CHECK_FAILURE(statement_) EXPECT_EXIT(statement_, ::testing::KilledBySignal(SIGABRT), "")
@@ -52,7 +52,6 @@ TYPED_TEST(CheckedMutexTest, AbandonMutex) {
   });
 }
 
-#if !TEST_PLATFORM_WINDOWS
 // abandon mutex by other thread
 TYPED_TEST(CheckedMutexTest, AbandonMutexSide) {
   auto test_body = []{
@@ -75,7 +74,6 @@ TYPED_TEST(CheckedMutexTest, AbandonMutexSide) {
   };
   EXPECT_CHECK_FAILURE_OUTER(test_body());
 }
-#endif
 
 // recurse lock() on non-recursive mutex
 TYPED_TEST(CheckedMutexTest, RecurseLock) {
@@ -149,7 +147,6 @@ TYPED_TEST(CheckedRecursiveMutexTest, AbandonMutex) {
   });
 }
 
-#if !TEST_PLATFORM_WINDOWS
 // abandon mutex by other thread
 TYPED_TEST(CheckedRecursiveMutexTest, AbandonMutexSide) {
   auto test_body = []{
@@ -172,7 +169,6 @@ TYPED_TEST(CheckedRecursiveMutexTest, AbandonMutexSide) {
   };
   EXPECT_CHECK_FAILURE_OUTER(test_body());
 }
-#endif
 
 // invalid unlock()
 TYPED_TEST(CheckedRecursiveMutexTest, InvalidUnlock0) {
@@ -267,7 +263,6 @@ TYPED_TEST(CheckedSharedMutexTest, AbandonMutex) {
   });
 }
 
-#if !TEST_PLATFORM_WINDOWS
 // abandon mutex by other thread
 TYPED_TEST(CheckedSharedMutexTest, AbandonMutexSide) {
   auto test_body = []{
@@ -290,7 +285,6 @@ TYPED_TEST(CheckedSharedMutexTest, AbandonMutexSide) {
   };
   EXPECT_CHECK_FAILURE_OUTER(test_body());
 }
-#endif
 
 // recurse lock_shared()
 TYPED_TEST(CheckedSharedMutexTest, RecurseLockShared) {
