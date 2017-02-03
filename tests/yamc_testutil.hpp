@@ -213,10 +213,9 @@ std::unique_ptr<T> make_unique(Args&&... args)
 // mock classes of mutex types
 namespace mock {
 
-class mutex {
-  bool trymock_ = true;
+struct mutex {
+  bool retval_on_trylock = true;
 
-public:
   mutex() = default;
   ~mutex() = default;
 
@@ -224,14 +223,13 @@ public:
   mutex& operator=(const mutex&) = delete;
 
   void lock() {}
-  bool try_lock() { return trymock_; }
+  bool try_lock() { return retval_on_trylock; }
   void unlock() {}
 };
 
-class recursive_mutex {
-  bool trymock_ = true;
+struct recursive_mutex {
+  bool retval_on_trylock = true;
 
-public:
   recursive_mutex() = default;
   ~recursive_mutex() = default;
 
@@ -239,14 +237,13 @@ public:
   recursive_mutex& operator=(const recursive_mutex&) = delete;
 
   void lock() {}
-  bool try_lock() { return trymock_; }
+  bool try_lock() { return retval_on_trylock; }
   void unlock() {}
 };
 
-class timed_mutex {
-  bool trymock_ = true;
+struct timed_mutex {
+  bool retval_on_trylock = true;
 
-public:
   timed_mutex() = default;
   ~timed_mutex() = default;
 
@@ -254,22 +251,21 @@ public:
   timed_mutex& operator=(const timed_mutex&) = delete;
 
   void lock() {}
-  bool try_lock() { return trymock_; }
+  bool try_lock() { return retval_on_trylock; }
   void unlock() {}
 
   template<typename Rep, typename Period>
   bool try_lock_for(const std::chrono::duration<Rep, Period>&)
-    { return trymock_; }
+    { return retval_on_trylock; }
 
   template<typename Clock, typename Duration>
   bool try_lock_until(const std::chrono::time_point<Clock, Duration>&)
-    { return trymock_; }
+    { return retval_on_trylock; }
 };
 
-class recursive_timed_mutex {
-  bool trymock_ = true;
+struct recursive_timed_mutex {
+  bool retval_on_trylock = true;
 
-public:
   recursive_timed_mutex() = default;
   ~recursive_timed_mutex() = default;
 
@@ -277,22 +273,21 @@ public:
   recursive_timed_mutex& operator=(const recursive_timed_mutex&) = delete;
 
   void lock() {}
-  bool try_lock() { return trymock_; }
+  bool try_lock() { return retval_on_trylock; }
   void unlock() {}
 
   template<typename Rep, typename Period>
   bool try_lock_for(const std::chrono::duration<Rep, Period>&)
-    { return trymock_; }
+    { return retval_on_trylock; }
 
   template<typename Clock, typename Duration>
   bool try_lock_until(const std::chrono::time_point<Clock, Duration>&)
-    { return trymock_; }
+    { return retval_on_trylock; }
 };
 
-class shared_mutex {
-  bool trymock_ = true;
+struct shared_mutex {
+  bool retval_on_trylock = true;
 
-public:
   shared_mutex() = default;
   ~shared_mutex() = default;
 
@@ -300,18 +295,17 @@ public:
   shared_mutex& operator=(const shared_mutex&) = delete;
 
   void lock() {}
-  bool try_lock() { return trymock_; }
+  bool try_lock() { return retval_on_trylock; }
   void unlock() {}
 
   void lock_shared() {}
-  bool try_lock_shared() { return trymock_; }
+  bool try_lock_shared() { return retval_on_trylock; }
   void unlock_shared() {}
 };
 
-class shared_timed_mutex {
-  bool trymock_ = true;
+struct shared_timed_mutex {
+  bool retval_on_trylock = true;
 
-public:
   shared_timed_mutex() = default;
   ~shared_timed_mutex() = default;
 
@@ -319,28 +313,28 @@ public:
   shared_timed_mutex& operator=(const shared_timed_mutex&) = delete;
 
   void lock() {}
-  bool try_lock() { return trymock_; }
+  bool try_lock() { return retval_on_trylock; }
   void unlock() {}
 
   template<typename Rep, typename Period>
   bool try_lock_for(const std::chrono::duration<Rep, Period>&)
-    { return trymock_; }
+    { return retval_on_trylock; }
 
   template<typename Clock, typename Duration>
   bool try_lock_until(const std::chrono::time_point<Clock, Duration>&)
-    { return trymock_; }
+    { return retval_on_trylock; }
 
   void lock_shared() {}
-  bool try_lock_shared() { return trymock_; }
+  bool try_lock_shared() { return retval_on_trylock; }
   void unlock_shared() {}
 
   template<typename Rep, typename Period>
   bool try_lock_shared_for(const std::chrono::duration<Rep, Period>&)
-    { return trymock_; }
+    { return retval_on_trylock; }
 
   template<typename Clock, typename Duration>
   bool try_lock_shared_until(const std::chrono::time_point<Clock, Duration>&)
-    { return trymock_; }
+    { return retval_on_trylock; }
 };
 
 } // namespace mock
