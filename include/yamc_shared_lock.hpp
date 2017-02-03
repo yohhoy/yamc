@@ -96,7 +96,8 @@ public:
 
   ~shared_lock()
   {
-    if (pm_ && owns_) {
+    if (owns_) {
+      assert(pm_ != nullptr);
       pm_->unlock_shared();
     }
   }
@@ -158,7 +159,7 @@ public:
   {
     assert(pm_ != nullptr);
     if (!owns_) {
-      throw std::system_error(std::make_error_code(std::errc::resource_deadlock_would_occur), "shared_lock::unlock");
+      throw std::system_error(std::make_error_code(std::errc::operation_not_permitted), "shared_lock::unlock");
     }
     pm_->unlock_shared();
     owns_ = false;
