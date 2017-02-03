@@ -209,6 +209,142 @@ std::unique_ptr<T> make_unique(Args&&... args)
 
 } // namespace cxx
 
+
+// mock classes of mutex types
+namespace mock {
+
+class mutex {
+  bool trymock_ = true;
+
+public:
+  mutex() = default;
+  ~mutex() = default;
+
+  mutex(const mutex&) = delete;
+  mutex& operator=(const mutex&) = delete;
+
+  void lock() {}
+  bool try_lock() { return trymock_; }
+  void unlock() {}
+};
+
+class recursive_mutex {
+  bool trymock_ = true;
+
+public:
+  recursive_mutex() = default;
+  ~recursive_mutex() = default;
+
+  recursive_mutex(const recursive_mutex&) = delete;
+  recursive_mutex& operator=(const recursive_mutex&) = delete;
+
+  void lock() {}
+  bool try_lock() { return trymock_; }
+  void unlock() {}
+};
+
+class timed_mutex {
+  bool trymock_ = true;
+
+public:
+  timed_mutex() = default;
+  ~timed_mutex() = default;
+
+  timed_mutex(const timed_mutex&) = delete;
+  timed_mutex& operator=(const timed_mutex&) = delete;
+
+  void lock() {}
+  bool try_lock() { return trymock_; }
+  void unlock() {}
+
+  template<typename Rep, typename Period>
+  bool try_lock_for(const std::chrono::duration<Rep, Period>&)
+    { return trymock_; }
+
+  template<typename Clock, typename Duration>
+  bool try_lock_until(const std::chrono::time_point<Clock, Duration>&)
+    { return trymock_; }
+};
+
+class recursive_timed_mutex {
+  bool trymock_ = true;
+
+public:
+  recursive_timed_mutex() = default;
+  ~recursive_timed_mutex() = default;
+
+  recursive_timed_mutex(const recursive_timed_mutex&) = delete;
+  recursive_timed_mutex& operator=(const recursive_timed_mutex&) = delete;
+
+  void lock() {}
+  bool try_lock() { return trymock_; }
+  void unlock() {}
+
+  template<typename Rep, typename Period>
+  bool try_lock_for(const std::chrono::duration<Rep, Period>&)
+    { return trymock_; }
+
+  template<typename Clock, typename Duration>
+  bool try_lock_until(const std::chrono::time_point<Clock, Duration>&)
+    { return trymock_; }
+};
+
+class shared_mutex {
+  bool trymock_ = true;
+
+public:
+  shared_mutex() = default;
+  ~shared_mutex() = default;
+
+  shared_mutex(const shared_mutex&) = delete;
+  shared_mutex& operator=(const shared_mutex&) = delete;
+
+  void lock() {}
+  bool try_lock() { return trymock_; }
+  void unlock() {}
+
+  void lock_shared() {}
+  bool try_lock_shared() { return trymock_; }
+  void unlock_shared() {}
+};
+
+class shared_timed_mutex {
+  bool trymock_ = true;
+
+public:
+  shared_timed_mutex() = default;
+  ~shared_timed_mutex() = default;
+
+  shared_timed_mutex(const shared_timed_mutex&) = delete;
+  shared_timed_mutex& operator=(const shared_timed_mutex&) = delete;
+
+  void lock() {}
+  bool try_lock() { return trymock_; }
+  void unlock() {}
+
+  template<typename Rep, typename Period>
+  bool try_lock_for(const std::chrono::duration<Rep, Period>&)
+    { return trymock_; }
+
+  template<typename Clock, typename Duration>
+  bool try_lock_until(const std::chrono::time_point<Clock, Duration>&)
+    { return trymock_; }
+
+  void lock_shared() {}
+  bool try_lock_shared() { return trymock_; }
+  void unlock_shared() {}
+
+  template<typename Rep, typename Period>
+  bool try_lock_shared_for(const std::chrono::duration<Rep, Period>&)
+    { return trymock_; }
+
+  template<typename Clock, typename Duration>
+  bool try_lock_shared_until(const std::chrono::time_point<Clock, Duration>&)
+    { return trymock_; }
+};
+
+} // namespace mock
+
 } // namespace yamc
 
 #endif

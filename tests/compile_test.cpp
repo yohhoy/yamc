@@ -12,6 +12,7 @@
 #include "alternate_mutex.hpp"
 #include "alternate_shared_mutex.hpp"
 #include "yamc_shared_lock.hpp"
+#include "yamc_testutil.hpp"
 
 
 template <typename Mutex>
@@ -137,79 +138,76 @@ void test_requirements_shared_timed()
 void test_shared_lock()
 {
   {
-    using mutex_type = yamc::alternate::shared_mutex;
-    using shared_lock = yamc::shared_lock<mutex_type>;
-    mutex_type mtx;
-    // default-ctor
+    using shared_mutex = yamc::mock::shared_mutex;
+    using shared_lock = yamc::shared_lock<shared_mutex>;
+    shared_mutex mtx;
+    // constructors
     {
-      shared_lock lk;
+      shared_lock lk0;
+      shared_lock lk1(mtx);
+      shared_lock lk2(mtx, std::defer_lock);
+      shared_lock lk3(mtx, std::try_to_lock);
+      shared_lock lk4(mtx, std::adopt_lock);
       static_assert(noexcept(shared_lock{}), "noexcept(default constructor");
+      static_assert(noexcept(shared_lock(mtx, std::defer_lock)), "noexcept(defer_lock constructor)");
     }
-    // ctor(mutex)
-    {
-      shared_lock lk(mtx);
-    }
-    // ctor(defer_lock) + lock,try_lock,unlock
     {
       shared_lock lk(mtx, std::defer_lock);
-      static_assert(noexcept(shared_lock(mtx, std::defer_lock)), "noexcept(defer_lock constructor)");
+      // lock,try_lock,unlock
       lk.lock();
       lk.unlock();
       lk.try_lock();
     }
-    // ctor(try_to_lock)
     {
-      shared_lock lk(mtx, std::try_to_lock);
-    }
-    // ctor(adopt_lock) + getters
-    {
-      mtx.lock_shared();
-      shared_lock lk(mtx, std::adopt_lock);
+      shared_lock lk(mtx);
+      // owns_lock,mutex,operator-bool
       lk.owns_lock();
-      static_assert(noexcept(lk.owns_lock()), "noexcept(owns_lock)");
       lk.mutex();
-      static_assert(noexcept(lk.mutex()), "noexcept(mutex)");
       if (lk) {}  // operator bool()
+      static_assert(noexcept(lk.owns_lock()), "noexcept(owns_lock)");
+      static_assert(noexcept(lk.mutex()), "noexcept(mutex)");
       static_assert(noexcept(static_cast<bool>(lk)), "noexcept(operator bool)");
     }
-    // move-ctor + setters
     {
-      shared_lock lk1;
+      // release
+      shared_lock lk(mtx);
+      lk.release();
+      static_assert(noexcept(lk.release()), "noexcept(release)");
+    }
+    {
+      // move-constructor
+      shared_lock lk1(mtx);
       shared_lock lk2 = std::move(lk1);
       static_assert(noexcept(shared_lock(std::move(lk1))), "noexcept(move constructor)");
+      // move-assignment
+      lk1 = std::move(lk2);
+      static_assert(noexcept(lk1 = std::move(lk2)), "noexcept(move assignment)");
+      // swap
       lk1.swap(lk2);
       static_assert(noexcept(lk1.swap(lk2)), "noexcept(swap)");
-      lk1.release();
-      static_assert(noexcept(lk1.release()), "noexcept(release)");
-    }
-    // move-assignment + std::swap overloading
-    {
-      shared_lock lk1;
-      shared_lock lk2;
-      lk2 = std::move(lk1);
-      static_assert(noexcept(lk2 = std::move(lk1)), "noexcept(move assingment)");
+      // std::swap overloading
       std::swap(lk1, lk2);
       static_assert(noexcept(std::swap(lk1, lk2)), "noexcept(std::swap)");
     }
   }
   {
-    using mutex_type = yamc::alternate::shared_timed_mutex;
-    using shared_lock = yamc::shared_lock<mutex_type>;
+    using shared_timed_mutex = yamc::mock::shared_timed_mutex;
+    using shared_lock = yamc::shared_lock<shared_timed_mutex>;
     using Clock = std::chrono::system_clock;
-    mutex_type mtx;
-    // ctor(rel_time)
+    shared_timed_mutex mtx;
+    // constructors
     {
-      shared_lock lk(mtx, std::chrono::seconds(1));
+      shared_lock lk1(mtx, std::chrono::seconds(1));
+      shared_lock lk2(mtx, Clock::now() + std::chrono::seconds(1));
     }
-    // ctor(abs_time)
-    {
-      shared_lock lk(mtx, Clock::now() + std::chrono::seconds(1));
-    }
-    // try_lock_for,try_lock_until
+    // try_lock_for
     {
       shared_lock lk(mtx, std::defer_lock);
       lk.try_lock_for(std::chrono::seconds(1));
-      lk.unlock();
+    }
+    // try_lock_until
+    {
+      shared_lock lk(mtx, std::defer_lock);
       lk.try_lock_until(Clock::now() + std::chrono::seconds(1));
     }
   }
