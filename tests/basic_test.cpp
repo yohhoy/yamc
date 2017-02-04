@@ -20,7 +20,7 @@
 #define TEST_ITERATION 10000u
 
 #define TEST_NOT_TIMEOUT    std::chrono::minutes(3)
-#define TEST_EXPECT_TIMEOUT std::chrono::milliseconds(500)
+#define TEST_EXPECT_TIMEOUT std::chrono::milliseconds(300)
 
 
 #define ASSERT_THORW_SYSTEM_ERROR(errorcode_, block_) \
