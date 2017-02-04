@@ -128,7 +128,6 @@ public:
 
 /// phase control primitive
 class phaser {
-  std::size_t nthread_;
   std::size_t sentinel_ = 0;
   std::vector<std::size_t> phase_;
   std::condition_variable cv_;
@@ -155,7 +154,7 @@ class phaser {
 
 public:
   explicit phaser(std::size_t n)
-    : nthread_(n), phase_(n, 0u) {}
+    : phase_(n, 0u) {}
 
   class proxy {
     phaser* phaser_;
@@ -174,7 +173,7 @@ public:
 
   proxy get(std::size_t id)
   {
-    assert(id < nthread_);
+    assert(id < phase_.size());
     return {this, id};
   }
 };
