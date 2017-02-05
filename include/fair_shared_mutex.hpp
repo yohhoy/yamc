@@ -97,7 +97,7 @@ private:
     return wq_empty() || (queue_.prev->status & node_status_mask) == 3;
   }
 
-  void wq_push_locknode(int mode)
+  void wq_push_locknode(unsigned mode)
   {
     if (queue_.next != &locked_) {
       locked_.status = mode | 2;
