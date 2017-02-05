@@ -69,6 +69,8 @@ This mutex collections library provide the following types:
 - `yamc::fair::recursive_mutex`: fairness, recursive
 - `yamc::fair::timed_mutex`: fairness, non-recursive, support timeout
 - `yamc::fair::recursive_timed_mutex`: fairness, recursive, support timeout
+- `yamc::fair::shared_mutex`: phase-fairness, RW locking, non-recursive
+- `yamc::fair::shared_timed_mutex`: phase-fairness, RW locking, non-recursive, support timeout
 - `yamc::alternate::recursive_mutex`: recursive
 - `yamc::alternate::timed_mutex`: non-recursive, support timeout
 - `yamc::alternate::recursive_timed_mutex`: recursive, support timeout
@@ -153,8 +155,8 @@ They implement data sharing mechanism between multiple-readers and single-writer
 Multiple threads can acquire shared lock to concurrently read shared data, or single thread can acquire exclusive lock to modify shared data.
 When readers and writers threads try to acquire lock simultaneously, there are some scheduling algorithm that determinate which thread can acquire next lock.
 
-These scheduling algorithm of shared mutex types are implemented with policy-based template class `basic_shared_(timed_)mutex<RwLockPolicy>`.
-You can tweak the algorithm by specifying `RwLockPolicy` when you instantiate shared mutex type, or define the following macro to change default behavior of all shared mutex types.
+These scheduling algorithm of shared mutex types are implemented with policy-based template class `basic_shared_(timed_)mutex<RwLockPolicy>`, except `yamc::fair::shared_(timed_)mutex` which implement fairness locking between readers and writers.
+You can tweak the algorithm by specifying `RwLockPolicy` when you instantiate shared mutex type, or define the following macro to change default behavior of these shared mutex types.
 
 Customizable macro:
 
@@ -168,6 +170,11 @@ Pre-defined RwLockPolicy classes:
 - `yamc::rwlock::WriterPrefer`: Writer prefer locking.
   While any reader thread owns shared lock and there are a waiting writer thread, subsequent other reader threads which try to acquire shared lock are blocked until writer thread's work is done.
   This policy might introduce "Reader Starvation" if writer threads continuously try to acquire exclusive lock.
+
+Shared mutex types in `yamc::fair` namespace provide "Phase-Fair Readers-Writer lock", that does not cause writer starvation nor reader starvation.
+That shared mutex has FIFO queue of waiting threads to acquire its lock, and switch two phases which is reader prefer or writer prefer.
+For example, 5 threads try to acquire lock in W1 -> R2 -> R3 -> W4 -> R5 order (W=writer lock / R=reader lock), each threads will acquire the lock in that order.
+In this example, 2 reader threads can concurrently acquire R2 and R3.
 
 Sample code:
 ```cpp
