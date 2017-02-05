@@ -172,11 +172,12 @@ protected:
             // Phase-marging: If previous node represents current shared-lock,
             // mark subsequent 'waiting' shared-lock nodes as 'lockable'.
             //
-            node* p = queue_.next;
+            node* p = request.next;
             while (p != &queue_ && (p->status & node_status_mask) == 1) {
               p->status |= 2;
               p = p->next;
             }
+            cv_.notify_all();
           }
           wq_erase(&request);
           return false;
