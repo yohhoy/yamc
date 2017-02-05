@@ -10,6 +10,7 @@
 #include "ttas_spin_mutex.hpp"
 #include "checked_mutex.hpp"
 #include "fair_mutex.hpp"
+#include "fair_shared_mutex.hpp"
 #include "alternate_mutex.hpp"
 #include "alternate_shared_mutex.hpp"
 #include "yamc_shared_lock.hpp"
@@ -39,6 +40,7 @@ using NormalMutexTypes = ::testing::Types<
   yamc::checked::timed_mutex,
   yamc::fair::mutex,
   yamc::fair::timed_mutex,
+  yamc::fair::shared_mutex,
   yamc::alternate::shared_mutex
 >;
 

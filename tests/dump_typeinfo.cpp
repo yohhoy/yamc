@@ -11,6 +11,7 @@
 #include "checked_mutex.hpp"
 #include "checked_shared_mutex.hpp"
 #include "fair_mutex.hpp"
+#include "fair_shared_mutex.hpp"
 #include "alternate_mutex.hpp"
 #include "alternate_shared_mutex.hpp"
 
@@ -51,6 +52,8 @@ int main()
   DUMP(yamc::fair::recursive_mutex);
   DUMP(yamc::fair::timed_mutex);
   DUMP(yamc::fair::recursive_timed_mutex);
+  DUMP(yamc::fair::shared_mutex);
+  DUMP(yamc::fair::shared_timed_mutex);
 
   DUMP(yamc::alternate::recursive_mutex);
   DUMP(yamc::alternate::timed_mutex);
