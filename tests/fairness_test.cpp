@@ -1,6 +1,7 @@
 /*
  * fairness_test.cpp
  */
+#include <atomic>
 #include <chrono>
 #include <iostream>
 #include <mutex>
