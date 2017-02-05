@@ -383,7 +383,6 @@ public:
   }
 };
 
-
 } // namespace fair
 } // namespace yamc
 

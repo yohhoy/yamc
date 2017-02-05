@@ -36,6 +36,14 @@
 
 namespace yamc {
 
+/*
+ * alternate implementation of shared mutex variants
+ *
+ * - yamc::alternate::shared_mutex
+ * - yamc::alternate::shared_timed_mutex
+ * - yamc::alternate::basic_shared_mutex<RwLockPolicy>
+ * - yamc::alternate::basic_shared_timed_mutex<RwLockPolicy>
+ */
 namespace alternate {
 
 namespace detail {

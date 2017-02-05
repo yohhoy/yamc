@@ -38,7 +38,7 @@ namespace yamc {
  * phase-fairness (FIFO locking) shared mutex
  *
  * - yamc::fair::shared_mutex
- * - yamc::fair::shared_timd_mutex
+ * - yamc::fair::shared_timed_mutex
  */
 namespace fair {
 

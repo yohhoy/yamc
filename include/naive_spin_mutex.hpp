@@ -34,6 +34,9 @@ namespace yamc {
 
 /*
  * naive Test-And-Swap(TAS) spinlock implementation (with memory_order_seq_cst)
+ *
+ * - yamc::spin::mutex
+ * - yamc::spin::basic_mutex<BackoffPolicy>
  */
 namespace spin {
 
@@ -77,6 +80,9 @@ using mutex = basic_mutex<YAMC_BACKOFF_SPIN_DEFAULT>;
 
 /*
  * naive Test-And-Swap(TAS) spinlock implementation for weak hardware memory model
+ *
+ * - yamc::spin_weak::mutex
+ * - yamc::spin_weak::basic_mutex<BackoffPolicy>
  */
 namespace spin_weak {
 

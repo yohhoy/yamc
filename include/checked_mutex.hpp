@@ -44,7 +44,12 @@
 namespace yamc {
 
 /*
- * strict requirements checking for debug
+ * strict requirements checking mutex for debug
+ *
+ * - yamc::checked::mutex
+ * - yamc::checked::timed_mutex
+ * - yamc::checked::recursive_mutex
+ * - yamc::checked::recursive_timed_mutex
  */
 namespace checked {
 
@@ -345,7 +350,6 @@ public:
     return do_try_lockwait(tp);
   }
 };
-
 
 } // namespace checked
 } // namespace yamc

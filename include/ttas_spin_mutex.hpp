@@ -34,6 +34,9 @@ namespace yamc {
 
 /*
  * Test-and-Test-And-Swap(TTAS) spinlock implementation
+ *
+ * - yamc::spin_ttas::mutex
+ * - yamc::spin_ttas::basic_mutex<BackoffPolicy>
  */
 namespace spin_ttas {
 

@@ -33,11 +33,13 @@
 #include <utility>  // std::swap
 
 
-namespace yamc {
-
 /*
  * std::shared_lock in C++14 Standard Library
+ *
+ * - yamc::shared_lock<Mutex>
  */
+namespace yamc {
+
 template <typename Mutex>
 class shared_lock {
   void locking_precondition(const char* emsg)

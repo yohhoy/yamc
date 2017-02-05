@@ -46,6 +46,14 @@
 
 namespace yamc {
 
+/*
+ * strict requirements checking shared mutex for debug
+ *
+ * - yamc::checked::shared_mutex
+ * - yamc::checked::shared_timed_mutex
+ * - yamc::checked::basic_shared_mutex<RwLockPolicy>
+ * - yamc::checked::basic_shared_timed_mutex<RwLockPolicy>
+ */
 namespace checked {
 
 namespace detail {

@@ -43,8 +43,14 @@
 
 namespace yamc {
 
+/*
+ * backoff algorithm for spinlock basic_mutex<BackoffPolicy>
+ *
+ * - yamc::backoff::exponential<InitCount>
+ * - yamc::backoff::yield
+ * - yamc::backoff::busy
+ */
 namespace backoff {
-
 
 /// exponential backoff spin policy
 template <
@@ -89,7 +95,6 @@ struct busy {
   struct state {};
   static void wait(state&) {}
 };
-
 
 } // namespace backoff
 } // namespace yamc

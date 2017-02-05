@@ -35,6 +35,12 @@
 
 namespace yamc {
 
+/*
+ * readers-writer locking policy for basic_shared_(timed)_mutex<RwLockPolicy>
+ *
+ * - yamc::rwlock::ReaderPrefer
+ * - yamc::rwlock::WriterPrefer
+ */
 namespace rwlock {
 
 /// Reader prefer scheduling

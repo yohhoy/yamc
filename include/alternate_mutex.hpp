@@ -38,6 +38,10 @@ namespace yamc {
 
 /*
  * alternate implementation of mutex variants
+ *
+ * - yamc::alternate::recursive_mutex
+ * - yamc::alternate::timed_mutex
+ * - yamc::alternate::recursive_timed_mutex
  */
 namespace alternate {
 
