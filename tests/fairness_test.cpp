@@ -7,6 +7,7 @@
 #include <thread>
 #include "gtest/gtest.h"
 #include "fair_mutex.hpp"
+#include "fair_shared_mutex.hpp"
 #include "yamc_testutil.hpp"
 
 
@@ -24,7 +25,9 @@ std::mutex g_guard;
 
 #define TEST_EXPECT_TIMEOUT std::chrono::milliseconds(10)
 #define TEST_NOT_TIMEOUT std::chrono::minutes(3)
+
 #define TEST_TICKS std::chrono::milliseconds(200)
+#define WAIT_TICKS std::this_thread::sleep_for(TEST_TICKS)
 
 #define EXPECT_STEP(n_) \
   { TRACE("STEP"#n_); EXPECT_EQ(n_, ++step); std::this_thread::sleep_for(TEST_TICKS); }
@@ -34,7 +37,9 @@ using FairMutexTypes = ::testing::Types<
   yamc::fair::mutex,
   yamc::fair::timed_mutex,
   yamc::fair::recursive_mutex,
-  yamc::fair::recursive_timed_mutex
+  yamc::fair::recursive_timed_mutex,
+  yamc::fair::shared_mutex,
+  yamc::fair::shared_timed_mutex
 >;
 
 template <typename Mutex>
@@ -100,7 +105,8 @@ TYPED_TEST(FairMutexTest, FifoSched)
 
 using FairTimedMutexTypes = ::testing::Types<
   yamc::fair::timed_mutex,
-  yamc::fair::recursive_timed_mutex
+  yamc::fair::recursive_timed_mutex,
+  yamc::fair::shared_timed_mutex
 >;
 
 template <typename Mutex>
@@ -108,13 +114,13 @@ struct FairTimedMutexTest : ::testing::Test {};
 
 TYPED_TEST_CASE(FairTimedMutexTest, FairTimedMutexTypes);
 
-// FIFO scheduling with try_lock_for()
+// FIFO scheduling with try_lock_for() timeout
 //
-// T0: T=1=a=====a=====w=4=U........
-//         |      \   /    |
-// T1: ....w.......w.a.t---T=5=U....
-//         |       |  \        |
-// T2: ....w.t-2-*.w.3.a.t-----T=6=U
+// T0: T=a=0=a=======w=3=U.t-----T=6=U
+//       |  /        |   |       |
+// T1: ..w.a.t-1-2-*-a-t-|---T=5=U....
+//       |  \   /---/    |   |
+// T2: ..a...w.a.t-------T=4=U........
 //
 //   t/T=try_lock_for(request/acquired)
 //   U=unlock(), *=timeout
@@ -131,29 +137,32 @@ TYPED_TEST(FairTimedMutexTest, FifoTryLockFor)
     switch (id) {
     case 0:
       EXPECT_TRUE(mtx.try_lock_for(TEST_NOT_TIMEOUT));
-      EXPECT_STEP(1)
-      ph.advance(2);  // p1-2
+      ph.advance(1);  // p1
+      WAIT_TICKS;
+      ph.advance(1);  // p2
       ph.await();     // p3
-      EXPECT_STEP(4)
+      EXPECT_STEP(3)
+      mtx.unlock();
+      EXPECT_TRUE(mtx.try_lock_for(TEST_NOT_TIMEOUT));
+      EXPECT_STEP(6)
       mtx.unlock();
       break;
     case 1:
       ph.await();     // p1
-      ph.await();     // p2
+      ph.advance(1);  // p2
+      EXPECT_FALSE(mtx.try_lock_for(TEST_TICKS * 2));
+      step += 2;
       ph.advance(1);  // p3
       EXPECT_TRUE(mtx.try_lock_for(TEST_NOT_TIMEOUT));
       EXPECT_STEP(5)
       mtx.unlock();
       break;
     case 2:
-      ph.await();     // p1
-      EXPECT_EQ(2, ++step);
-      EXPECT_FALSE(mtx.try_lock_for(TEST_TICKS));
+      ph.advance(1);  // p1
       ph.await();     // p2
-      EXPECT_STEP(3)
       ph.advance(1);  // p3
       EXPECT_TRUE(mtx.try_lock_for(TEST_NOT_TIMEOUT));
-      EXPECT_STEP(6)
+      EXPECT_STEP(4)
       mtx.unlock();
       break;
     }
@@ -161,13 +170,13 @@ TYPED_TEST(FairTimedMutexTest, FifoTryLockFor)
   ASSERT_LE(TEST_TICKS * step, sw.elapsed());
 }
 
-// FIFO scheduling with try_lock_until()
+// FIFO scheduling with try_lock_until() timeout
 //
-// T0: T=1=a=====a=====w=4=U........
-//         |      \   /    |
-// T1: ....w.......w.a.t---L=5=U....
-//         |       |  \        |
-// T2: ....w.t-2-*.w.3.a.t-----L=6=U
+// T0: T=a=0=a=======w=3=U.t-----T=6=U
+//       |  /        |   |       |
+// T1: ..w.a.t-1-2-*-a-t-|---T=5=U....
+//       |  \   /---/    |   |
+// T2: ..a...w.a.t-------T=4=U........
 //
 //   t/T=try_lock_until(request/acquired)
 //   U=unlock(), *=timeout
@@ -185,29 +194,32 @@ TYPED_TEST(FairTimedMutexTest, FifoTryLockUntil)
     switch (id) {
     case 0:
       EXPECT_TRUE(mtx.try_lock_until(Clock::now() + TEST_NOT_TIMEOUT));
-      EXPECT_STEP(1)
-      ph.advance(2);  // p1-2
+      ph.advance(1);  // p1
+      WAIT_TICKS;
+      ph.advance(1);  // p2
       ph.await();     // p3
-      EXPECT_STEP(4)
+      EXPECT_STEP(3)
+      mtx.unlock();
+      EXPECT_TRUE(mtx.try_lock_until(Clock::now() + TEST_NOT_TIMEOUT));
+      EXPECT_STEP(6)
       mtx.unlock();
       break;
     case 1:
       ph.await();     // p1
-      ph.await();     // p2
+      ph.advance(1);  // p2
+      EXPECT_FALSE(mtx.try_lock_until(Clock::now() + TEST_TICKS * 2));
+      step += 2;
       ph.advance(1);  // p3
       EXPECT_TRUE(mtx.try_lock_until(Clock::now() + TEST_NOT_TIMEOUT));
       EXPECT_STEP(5)
       mtx.unlock();
       break;
     case 2:
-      ph.await();     // p1
-      EXPECT_EQ(2, ++step);
-      EXPECT_FALSE(mtx.try_lock_until(Clock::now() + TEST_TICKS));
+      ph.advance(1);  // p1
       ph.await();     // p2
-      EXPECT_STEP(3)
       ph.advance(1);  // p3
       EXPECT_TRUE(mtx.try_lock_until(Clock::now() + TEST_NOT_TIMEOUT));
-      EXPECT_STEP(6)
+      EXPECT_STEP(4)
       mtx.unlock();
       break;
     }

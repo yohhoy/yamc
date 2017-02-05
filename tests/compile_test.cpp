@@ -64,18 +64,8 @@ void test_requirements_timed()
 template <typename SharedMutex>
 void test_requirements_shared()
 {
+  test_requirements<SharedMutex>();
   SharedMutex mtx;
-  // SharedMutex::lock(), unlock()
-  {
-    std::lock_guard<SharedMutex> lk(mtx);
-  }
-  {
-    std::unique_lock<SharedMutex> lk(mtx);
-  }
-  // SharedMutex::try_lock()
-  {
-    std::unique_lock<SharedMutex> lk(mtx, std::try_to_lock);
-  }
   // SharedMutex::lock_shared(), unlock_shared()
   mtx.lock_shared();
   mtx.unlock_shared();
@@ -90,27 +80,8 @@ template <typename SharedTimedMutex>
 void test_requirements_shared_timed()
 {
   test_requirements_shared<SharedTimedMutex>();
+  test_requirements_timed<SharedTimedMutex>();
   SharedTimedMutex mtx;
-  // SharedTimedMutex::try_lock_for()
-  if (mtx.try_lock_for(std::chrono::nanoseconds(1))) {
-    mtx.unlock();
-  }
-  if (mtx.try_lock_for(std::chrono::seconds(1))) {
-    mtx.unlock();
-  }
-  if (mtx.try_lock_for(std::chrono::hours(1))) {  // shall immediately return 'true'...
-    mtx.unlock();
-  }
-  // SharedTimedMutex::try_lock_until()
-  if (mtx.try_lock_until(std::chrono::system_clock::now())) {
-    mtx.unlock();
-  }
-  if (mtx.try_lock_until(std::chrono::steady_clock::now())) {
-    mtx.unlock();
-  }
-  if (mtx.try_lock_until(std::chrono::high_resolution_clock::now())) {
-    mtx.unlock();
-  }
   // SharedTimedMutex::try_lock_shared_for()
   if (mtx.try_lock_shared_for(std::chrono::nanoseconds(1))) {
     mtx.unlock_shared();
