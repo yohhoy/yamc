@@ -31,6 +31,8 @@ std::mutex g_guard;
 
 #define EXPECT_STEP(n_) \
   { TRACE("STEP"#n_); EXPECT_EQ(n_, ++step); std::this_thread::sleep_for(TEST_TICKS); }
+#define EXPECT_STEP_RANGE(r0_, r1_) \
+  { TRACE("STEP"#r0_"-"#r1_); int s = ++step; EXPECT_TRUE(r0_ <= s && s <= r1_); WAIT_TICKS; }
 
 
 using FairMutexTypes = ::testing::Types<
@@ -225,4 +227,93 @@ TYPED_TEST(FairTimedMutexTest, FifoTryLockUntil)
     }
   });
   ASSERT_LE(TEST_TICKS * step, sw.elapsed());
+}
+
+
+using FairSharedMutexTypes = ::testing::Types<
+  yamc::fair::shared_mutex,
+  yamc::fair::shared_timed_mutex
+>;
+
+template <typename Mutex>
+struct FairSharedMutexTest : ::testing::Test {};
+
+TYPED_TEST_CASE(FairSharedMutexTest, FairSharedMutexTypes);
+
+// phase-fair readers-writer lock scheduling
+//
+// T0/W: L=a=1=a=2=a=3=a=a=U................
+//         |   |   |   |  \|--\
+// T1/R: ..w.s-|---|---|---S=4=w=6=V........
+//         |  /   /   /    |    \  |
+// T2/R: ..a.w.s-/---/-----S=5=V.a.|.s-S=9=V
+//         | |  /   /              |   |
+// T3/W: ..a.a.w.l-/---------------L=7=U....
+//         | | |  /                    |
+// T4/R: ..a.a.a.w.s-------------------S=8=V
+//
+//   l/L=lock(request/acquired), U=unlock()
+//   s/S=lock_shared(request/acquired), V=unlock_shared()
+//   a=phase advance, w=phase await
+//
+TYPED_TEST(FairSharedMutexTest, PhaseFifoSched)
+{
+  yamc::test::phaser phaser(5);
+  int step = 0;
+  TypeParam mtx;
+  yamc::test::stopwatch<> sw;
+  yamc::test::task_runner(5, [&](std::size_t id) {
+    auto ph = phaser.get(id);
+    switch (id) {
+    case 0:
+      mtx.lock();
+      ph.advance(1);  // p1
+      EXPECT_STEP(1);
+      ph.advance(1);  // p2
+      EXPECT_STEP(2);
+      ph.advance(1);  // p3
+      EXPECT_STEP(3);
+      ph.advance(2);  // p4-5
+      mtx.unlock();
+      break;
+    case 1:
+      ph.await();     // p1
+      ph.advance(3);  // p2-4
+      mtx.lock_shared();
+      EXPECT_STEP_RANGE(4, 5);
+      ph.await();     // p5
+      EXPECT_STEP(6);
+      mtx.unlock_shared();
+      break;
+    case 2:
+      ph.advance(1);  // p1
+      ph.await();     // p2
+      ph.advance(2);  // p3-4
+      mtx.lock_shared();
+      EXPECT_STEP_RANGE(4, 5);
+      mtx.unlock_shared();
+      ph.advance(1);  // p5
+      mtx.lock_shared();
+      EXPECT_STEP_RANGE(8, 9);
+      mtx.unlock_shared();
+      break;
+    case 3:
+      ph.advance(2);  // p1-2
+      ph.await();     // p3
+      ph.advance(2);  // p4-5
+      mtx.lock();
+      EXPECT_STEP(7);
+      mtx.unlock();
+      break;
+    case 4:
+      ph.advance(3);  // p1-3
+      ph.await();     // p4
+      ph.advance(1);  // p5
+      mtx.lock_shared();
+      EXPECT_STEP_RANGE(8, 9);
+      mtx.unlock_shared();
+      break;
+    }
+  });
+  ASSERT_LE(TEST_TICKS * 7, sw.elapsed());
 }
