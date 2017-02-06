@@ -58,7 +58,7 @@ TYPED_TEST(NormalMutexTest, BasicLock)
     TEST_THREADS,
     [&](std::size_t /*id*/) {
       for (std::size_t n = 0; n < TEST_ITERATION; ++n) {
-        std::lock_guard<decltype(mtx)> lk(mtx);
+        std::lock_guard<TypeParam> lk(mtx);
         counter = counter + 1;
       }
     });
@@ -77,7 +77,7 @@ TYPED_TEST(NormalMutexTest, TryLock)
         while (!mtx.try_lock()) {
           std::this_thread::yield();
         }
-        std::lock_guard<decltype(mtx)> lk(mtx, std::adopt_lock);
+        std::lock_guard<TypeParam> lk(mtx, std::adopt_lock);
         counter = counter + 1;
       }
     });
@@ -90,14 +90,14 @@ TYPED_TEST(NormalMutexTest, TryLockFail)
   yamc::test::barrier step(2);
   TypeParam mtx;
   yamc::test::join_thread thd([&]{
-    ASSERT_NO_THROW(mtx.lock());
+    EXPECT_NO_THROW(mtx.lock());
     step.await();  // b1
     step.await();  // b2
-    ASSERT_NO_THROW(mtx.unlock());
+    EXPECT_NO_THROW(mtx.unlock());
   });
   {
     step.await();  // b1
-    ASSERT_EQ(false, mtx.try_lock());
+    EXPECT_FALSE(mtx.try_lock());
     step.await();  // b2
   }
 }
@@ -126,10 +126,10 @@ TYPED_TEST(RecursiveMutexTest, BasicLock)
     TEST_THREADS,
     [&](std::size_t /*id*/) {
       for (std::size_t n = 0; n < TEST_ITERATION; ++n) {
-        std::lock_guard<decltype(mtx)> lk1(mtx);
+        std::lock_guard<TypeParam> lk1(mtx);
         auto before_cnt = ++c1;
         {
-          std::lock_guard<decltype(mtx)> lk2(mtx);
+          std::lock_guard<TypeParam> lk2(mtx);
           ++c2;
         }
         auto after_cnt = ++c3;
@@ -153,11 +153,11 @@ TYPED_TEST(RecursiveMutexTest, TryLock)
         while (!mtx.try_lock()) {
           std::this_thread::yield();
         }
-        std::lock_guard<decltype(mtx)> lk1(mtx, std::adopt_lock);
+        std::lock_guard<TypeParam> lk1(mtx, std::adopt_lock);
         ++c1;
         {
-          ASSERT_EQ(true, mtx.try_lock());
-          std::lock_guard<decltype(mtx)> lk2(mtx, std::adopt_lock);
+          ASSERT_TRUE(mtx.try_lock());
+          std::lock_guard<TypeParam> lk2(mtx, std::adopt_lock);
           ++c2;
         }
         ++c3;
@@ -174,26 +174,26 @@ TYPED_TEST(RecursiveMutexTest, TryLockFail)
   yamc::test::barrier step(2);
   TypeParam mtx;
   yamc::test::join_thread thd([&]{
-    ASSERT_NO_THROW(mtx.lock());
+    EXPECT_NO_THROW(mtx.lock());
     step.await();  // b1
     step.await();  // b2
-    ASSERT_NO_THROW(mtx.lock());
+    EXPECT_NO_THROW(mtx.lock());
     step.await();  // b3
     step.await();  // b4
-    ASSERT_NO_THROW(mtx.unlock());
+    EXPECT_NO_THROW(mtx.unlock());
     step.await();  // b5
     step.await();  // b6
-    ASSERT_NO_THROW(mtx.unlock());
+    EXPECT_NO_THROW(mtx.unlock());
   });
   {
     step.await();  // b1
-    ASSERT_EQ(false, mtx.try_lock());  // lockcnt = 1
+    EXPECT_FALSE(mtx.try_lock());  // lockcnt = 1
     step.await();  // b2
     step.await();  // b3
-    ASSERT_EQ(false, mtx.try_lock());  // lockcnt = 2
+    EXPECT_FALSE(mtx.try_lock());  // lockcnt = 2
     step.await();  // b4
     step.await();  // b5
-    ASSERT_EQ(false, mtx.try_lock());  // lockcnt = 3
+    EXPECT_FALSE(mtx.try_lock());  // lockcnt = 3
     step.await();  // b6
   }
 }
@@ -226,7 +226,7 @@ TYPED_TEST(TimedMutexTest, TryLockFor)
         while (!mtx.try_lock_for(TEST_NOT_TIMEOUT)) {
           std::this_thread::yield();
         }
-        std::lock_guard<decltype(mtx)> lk(mtx, std::adopt_lock);
+        std::lock_guard<TypeParam> lk(mtx, std::adopt_lock);
         counter = counter + 1;
       }
     });
@@ -242,11 +242,10 @@ TYPED_TEST(TimedMutexTest, TryLockUntil)
     TEST_THREADS,
     [&](std::size_t /*id*/) {
       for (std::size_t n = 0; n < TEST_ITERATION; ++n) {
-        const auto tp = std::chrono::system_clock::now() + TEST_NOT_TIMEOUT;
-        while (!mtx.try_lock_until(tp)) {
+        while (!mtx.try_lock_until(std::chrono::system_clock::now() + TEST_NOT_TIMEOUT)) {
           std::this_thread::yield();
         }
-        std::lock_guard<decltype(mtx)> lk(mtx, std::adopt_lock);
+        std::lock_guard<TypeParam> lk(mtx, std::adopt_lock);
         counter = counter + 1;
       }
     });
@@ -259,18 +258,16 @@ TYPED_TEST(TimedMutexTest, TryLockForTimeout)
   yamc::test::barrier step(2);
   TypeParam mtx;
   yamc::test::join_thread thd([&]{
-    ASSERT_NO_THROW(mtx.lock());
+    EXPECT_NO_THROW(mtx.lock());
     step.await();  // b1
     step.await();  // b2
-    ASSERT_NO_THROW(mtx.unlock());
+    EXPECT_NO_THROW(mtx.unlock());
   });
   {
     step.await();  // b1
     yamc::test::stopwatch<> sw;
-    bool result = mtx.try_lock_for(TEST_EXPECT_TIMEOUT);
-    auto elapsed = sw.elapsed();
-    ASSERT_EQ(false, result);
-    EXPECT_LE(TEST_EXPECT_TIMEOUT, elapsed);
+    EXPECT_FALSE(mtx.try_lock_for(TEST_EXPECT_TIMEOUT));
+    EXPECT_LE(TEST_EXPECT_TIMEOUT, sw.elapsed());
     step.await();  // b2
   }
 }
@@ -281,19 +278,16 @@ TYPED_TEST(TimedMutexTest, TryLockUntilTimeout)
   yamc::test::barrier step(2);
   TypeParam mtx;
   yamc::test::join_thread thd([&]{
-    ASSERT_NO_THROW(mtx.lock());
+    EXPECT_NO_THROW(mtx.lock());
     step.await();  // b1
     step.await();  // b2
-    ASSERT_NO_THROW(mtx.unlock());
+    EXPECT_NO_THROW(mtx.unlock());
   });
   {
     step.await();  // b1
-    const auto tp = std::chrono::system_clock::now() + TEST_EXPECT_TIMEOUT;
     yamc::test::stopwatch<> sw;
-    bool result = mtx.try_lock_until(tp);
-    auto elapsed = sw.elapsed();
-    ASSERT_EQ(false, result);
-    EXPECT_LE(TEST_EXPECT_TIMEOUT, elapsed);
+    EXPECT_FALSE(mtx.try_lock_until(std::chrono::system_clock::now() + TEST_EXPECT_TIMEOUT));
+    EXPECT_LE(TEST_EXPECT_TIMEOUT, sw.elapsed());
     step.await();  // b2
   }
 }
@@ -322,11 +316,11 @@ TYPED_TEST(RecursiveTimedMutexTest, TryLockFor)
         while (!mtx.try_lock_for(TEST_NOT_TIMEOUT)) {
           std::this_thread::yield();
         }
-        std::lock_guard<decltype(mtx)> lk1(mtx, std::adopt_lock);
+        std::lock_guard<TypeParam> lk1(mtx, std::adopt_lock);
         ++c1;
         {
-          ASSERT_EQ(true, mtx.try_lock_for(TEST_NOT_TIMEOUT));
-          std::lock_guard<decltype(mtx)> lk2(mtx, std::adopt_lock);
+          ASSERT_TRUE(mtx.try_lock_for(TEST_NOT_TIMEOUT));
+          std::lock_guard<TypeParam> lk2(mtx, std::adopt_lock);
           ++c2;
         }
         ++c3;
@@ -346,16 +340,14 @@ TYPED_TEST(RecursiveTimedMutexTest, TryLockUntil)
     TEST_THREADS,
     [&](std::size_t /*id*/) {
       for (std::size_t n = 0; n < TEST_ITERATION; ++n) {
-        const auto tp = std::chrono::system_clock::now() + TEST_NOT_TIMEOUT;
-        while (!mtx.try_lock_until(tp)) {
+        while (!mtx.try_lock_until(std::chrono::system_clock::now() + TEST_NOT_TIMEOUT)) {
           std::this_thread::yield();
         }
-        std::lock_guard<decltype(mtx)> lk1(mtx, std::adopt_lock);
+        std::lock_guard<TypeParam> lk1(mtx, std::adopt_lock);
         ++c1;
         {
-          const auto tp = std::chrono::system_clock::now() + TEST_NOT_TIMEOUT;
-          ASSERT_EQ(true, mtx.try_lock_until(tp));
-          std::lock_guard<decltype(mtx)> lk2(mtx, std::adopt_lock);
+          ASSERT_TRUE(mtx.try_lock_until(std::chrono::system_clock::now() + TEST_NOT_TIMEOUT));
+          std::lock_guard<TypeParam> lk2(mtx, std::adopt_lock);
           ++c2;
         }
         ++c3;

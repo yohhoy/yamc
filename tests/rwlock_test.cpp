@@ -305,10 +305,8 @@ TYPED_TEST(SharedTimedMutexTest, TryLockForTimeout)
   {
     step.await();  // b1
     yamc::test::stopwatch<> sw;
-    bool result = mtx.try_lock_for(TEST_EXPECT_TIMEOUT);
-    auto elapsed = sw.elapsed();
-    ASSERT_EQ(false, result);
-    EXPECT_LE(TEST_EXPECT_TIMEOUT, elapsed);
+    EXPECT_FALSE(mtx.try_lock_for(TEST_EXPECT_TIMEOUT));
+    EXPECT_LE(TEST_EXPECT_TIMEOUT, sw.elapsed());
     step.await();  // b2
   }
 }
@@ -328,12 +326,9 @@ TYPED_TEST(SharedTimedMutexTest, TryLockUntilTimeout)
   // writer-thread
   {
     step.await();  // b1
-    const auto tp = std::chrono::system_clock::now() + TEST_EXPECT_TIMEOUT;
     yamc::test::stopwatch<> sw;
-    bool result = mtx.try_lock_until(tp);
-    auto elapsed = sw.elapsed();
-    ASSERT_EQ(false, result);
-    EXPECT_LE(TEST_EXPECT_TIMEOUT, elapsed);
+    EXPECT_FALSE(mtx.try_lock_until(std::chrono::system_clock::now() + TEST_EXPECT_TIMEOUT));
+    EXPECT_LE(TEST_EXPECT_TIMEOUT, sw.elapsed());
     step.await();  // b2
   }
 }
@@ -408,10 +403,8 @@ TYPED_TEST(SharedTimedMutexTest, TryLockSharedForTimeout)
         // reader-threads
         step.await();  // b1
         yamc::test::stopwatch<> sw;
-        bool result = mtx.try_lock_shared_for(TEST_EXPECT_TIMEOUT);
-        auto elapsed = sw.elapsed();
-        ASSERT_EQ(false, result);
-        EXPECT_LE(TEST_EXPECT_TIMEOUT, elapsed);
+        EXPECT_FALSE(mtx.try_lock_shared_for(TEST_EXPECT_TIMEOUT));
+        EXPECT_LE(TEST_EXPECT_TIMEOUT, sw.elapsed());
         step.await();  // b2
       }
     });
@@ -434,12 +427,9 @@ TYPED_TEST(SharedTimedMutexTest, TryLockSharedUntilTimeout)
       } else {
         // reader-threads
         step.await();  // b1
-        const auto tp = std::chrono::system_clock::now() + TEST_EXPECT_TIMEOUT;
         yamc::test::stopwatch<> sw;
-        bool result = mtx.try_lock_shared_until(tp);
-        auto elapsed = sw.elapsed();
-        ASSERT_EQ(false, result);
-        EXPECT_LE(TEST_EXPECT_TIMEOUT, elapsed);
+        EXPECT_FALSE(mtx.try_lock_shared_until(std::chrono::system_clock::now() + TEST_EXPECT_TIMEOUT));
+        EXPECT_LE(TEST_EXPECT_TIMEOUT, sw.elapsed());
         step.await();  // b2
       }
     });
@@ -515,15 +505,15 @@ TYPED_TEST(RWLockReaderPreferTest, LockOrder)
 }
 
 
-using RWLockWriterPreferTypes = ::testing::Types<
+using RwLockWriterPreferTypes = ::testing::Types<
   yamc::alternate::basic_shared_mutex<yamc::rwlock::WriterPrefer>,
   yamc::alternate::basic_shared_timed_mutex<yamc::rwlock::WriterPrefer>
 >;
 
 template <typename Mutex>
-struct RWLockWriterPreferTest : ::testing::Test {};
+struct RwLockWriterPreferTest : ::testing::Test {};
 
-TYPED_TEST_CASE(RWLockWriterPreferTest, RWLockWriterPreferTypes);
+TYPED_TEST_CASE(RwLockWriterPreferTest, RwLockWriterPreferTypes);
 
 // Writer prefer lock
 //
@@ -537,7 +527,7 @@ TYPED_TEST_CASE(RWLockWriterPreferTest, RWLockWriterPreferTypes);
 //  s/S=lock_shared(request/acquire), V=unlock_shared()
 //  a=phase advance, w=phase await
 //
-TYPED_TEST(RWLockWriterPreferTest, LockOrder)
+TYPED_TEST(RwLockWriterPreferTest, LockOrder)
 {
   yamc::test::phaser phaser(3);
   std::atomic<int> step = {};
