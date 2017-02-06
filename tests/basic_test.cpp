@@ -299,6 +299,74 @@ TYPED_TEST(TimedMutexTest, TryLockUntilTimeout)
 }
 
 
+using RecursiveTimedMutexTypes = ::testing::Types<
+  yamc::checked::recursive_timed_mutex,
+  yamc::fair::recursive_timed_mutex,
+  yamc::alternate::recursive_timed_mutex
+>;
+
+template <typename Mutex>
+struct RecursiveTimedMutexTest : ::testing::Test {};
+
+TYPED_TEST_CASE(RecursiveTimedMutexTest, RecursiveTimedMutexTypes);
+
+// recursive_timed_mutex::try_lock_for()
+TYPED_TEST(RecursiveTimedMutexTest, TryLockFor)
+{
+  TypeParam mtx;
+  std::size_t c1 = 0, c2 = 0, c3 = 0;
+  yamc::test::task_runner(
+    TEST_THREADS,
+    [&](std::size_t /*id*/) {
+      for (std::size_t n = 0; n < TEST_ITERATION; ++n) {
+        while (!mtx.try_lock_for(TEST_NOT_TIMEOUT)) {
+          std::this_thread::yield();
+        }
+        std::lock_guard<decltype(mtx)> lk1(mtx, std::adopt_lock);
+        ++c1;
+        {
+          ASSERT_EQ(true, mtx.try_lock_for(TEST_NOT_TIMEOUT));
+          std::lock_guard<decltype(mtx)> lk2(mtx, std::adopt_lock);
+          ++c2;
+        }
+        ++c3;
+      }
+    });
+  ASSERT_EQ(TEST_ITERATION * TEST_THREADS, c1);
+  ASSERT_EQ(TEST_ITERATION * TEST_THREADS, c2);
+  ASSERT_EQ(TEST_ITERATION * TEST_THREADS, c3);
+}
+
+// recursive_timed_mutex::try_lock_until()
+TYPED_TEST(RecursiveTimedMutexTest, TryLockUntil)
+{
+  TypeParam mtx;
+  std::size_t c1 = 0, c2 = 0, c3 = 0;
+  yamc::test::task_runner(
+    TEST_THREADS,
+    [&](std::size_t /*id*/) {
+      for (std::size_t n = 0; n < TEST_ITERATION; ++n) {
+        const auto tp = std::chrono::system_clock::now() + TEST_NOT_TIMEOUT;
+        while (!mtx.try_lock_until(tp)) {
+          std::this_thread::yield();
+        }
+        std::lock_guard<decltype(mtx)> lk1(mtx, std::adopt_lock);
+        ++c1;
+        {
+          const auto tp = std::chrono::system_clock::now() + TEST_NOT_TIMEOUT;
+          ASSERT_EQ(true, mtx.try_lock_until(tp));
+          std::lock_guard<decltype(mtx)> lk2(mtx, std::adopt_lock);
+          ++c2;
+        }
+        ++c3;
+      }
+    });
+  ASSERT_EQ(TEST_ITERATION * TEST_THREADS, c1);
+  ASSERT_EQ(TEST_ITERATION * TEST_THREADS, c2);
+  ASSERT_EQ(TEST_ITERATION * TEST_THREADS, c3);
+}
+
+
 // lockfree property of atomic<int>
 TEST(AtomicTest, Lockfree)
 {
