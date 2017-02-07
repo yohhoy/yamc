@@ -9,6 +9,7 @@
 #include "naive_spin_mutex.hpp"
 #include "ttas_spin_mutex.hpp"
 #include "checked_mutex.hpp"
+#include "checked_shared_mutex.hpp"
 #include "fair_mutex.hpp"
 #include "fair_shared_mutex.hpp"
 #include "alternate_mutex.hpp"
@@ -41,6 +42,8 @@ using NormalMutexTypes = ::testing::Types<
   yamc::fair::mutex,
   yamc::fair::timed_mutex,
   yamc::fair::shared_mutex,
+  yamc::alternate::mutex,
+  yamc::alternate::timed_mutex,
   yamc::alternate::shared_mutex
 >;
 
@@ -202,8 +205,10 @@ TYPED_TEST(RecursiveMutexTest, TryLockFail)
 using TimedMutexTypes = ::testing::Types<
   yamc::checked::timed_mutex,
   yamc::checked::recursive_timed_mutex,
+  yamc::checked::shared_timed_mutex,
   yamc::fair::timed_mutex,
   yamc::fair::recursive_timed_mutex,
+  yamc::fair::shared_timed_mutex,
   yamc::alternate::timed_mutex,
   yamc::alternate::recursive_timed_mutex,
   yamc::alternate::shared_timed_mutex
@@ -214,7 +219,7 @@ struct TimedMutexTest : ::testing::Test {};
 
 TYPED_TEST_CASE(TimedMutexTest, TimedMutexTypes);
 
-// (recursive_)timed_mutex::try_lock_for()
+// timed_mutex::try_lock_for()
 TYPED_TEST(TimedMutexTest, TryLockFor)
 {
   TypeParam mtx;
@@ -233,7 +238,7 @@ TYPED_TEST(TimedMutexTest, TryLockFor)
   ASSERT_EQ(TEST_ITERATION * TEST_THREADS, counter);
 }
 
-// (recursive_)timed_mutex::try_lock_until()
+// timed_mutex::try_lock_until()
 TYPED_TEST(TimedMutexTest, TryLockUntil)
 {
   TypeParam mtx;
@@ -252,7 +257,7 @@ TYPED_TEST(TimedMutexTest, TryLockUntil)
   ASSERT_EQ(TEST_ITERATION * TEST_THREADS, counter);
 }
 
-// (recursive_)timed_mutex::try_lock_for() timeout
+// timed_mutex::try_lock_for() timeout
 TYPED_TEST(TimedMutexTest, TryLockForTimeout)
 {
   yamc::test::barrier step(2);
@@ -272,7 +277,7 @@ TYPED_TEST(TimedMutexTest, TryLockForTimeout)
   }
 }
 
-// (recursive_)timed_mutex::try_lock_until() timeout
+// timed_mutex::try_lock_until() timeout
 TYPED_TEST(TimedMutexTest, TryLockUntilTimeout)
 {
   yamc::test::barrier step(2);
