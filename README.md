@@ -3,19 +3,20 @@
 [![Build status](https://ci.appveyor.com/api/projects/status/omke97drkdcmntfh/branch/master?svg=true)](https://ci.appveyor.com/project/yohhoy/yamc/branch/master)
 
 C++ mutex (mutual exclusion primitive for multi-threading) collections.
-This is header-only, cross-platform, no external dependency C++ library.
-A compiler which support C++11 are required.
-
-CI building and unit-testing with C++ compilers:
-- Linux/G++ 5.4
-- Linux/Clang 3.7
-- OSX/Clang (Xcode 8.2)
-- Windows/MSVC 14.0 (Visual Studio 2015)
+This is header-only, cross-platform, no external dependency C++11 library.
 
 "yamc" is an acronym for Yet Another (or Yohhoy's Ad-hoc) Mutex Collections ;)
 
 
 # Description
+This library includes:
+- Spinlock mutex, support configurable backoff algorithm.
+- Shared mutex for readers-writer locking in C++11, support reader-prefer/writer-prefer scheduling.
+- Checked mutex for debugging, compatible with requirements in C++11/14/17 Standard.
+- Fair mutex and phase-fair shared mutex, which prevent from starvation.
+- `shared_lock<Mutex>` utility in C++11, whcih is defined in C++14 or later.
+
+
 ## Example
 All mutex types in this library are compatible with corresponding mutex types in C++ Standard Library.
 The following toy example use spinlock mutex (`yamc::spin_ttas::mutex`) and scoped locking by [`std::lock_guard<>`][std_lockguard]. 
@@ -91,9 +92,6 @@ C++11/14/17 Standard Library define variable mutex types:
 - [`std::shared_mutex`][std_smutex]: RW locking, non-recursive (C++17 or later)
 - [`std::shared_timed_mutex`][std_stmutex]: RW locking, non-recursive, support timeout (C++14 or later)
 
-The implementation of this library depends on C++11 Standard threading primitives only `std::mutex`, [`std::condition_variable`][std_condvar] and [`std::atomic<T>`][std_atomic].
-This means that you can use shared mutex variants (`shared_mutex`, `shared_timed_mutex`) with C++11 compiler which doesn't not support C++14/17 yet.
-
 [mutex_ctor]: http://en.cppreference.com/w/cpp/thread/mutex/mutex
 [standardlayout]: http://en.cppreference.com/w/cpp/concept/StandardLayoutType
 [std_mutex]: http://en.cppreference.com/w/cpp/thread/mutex
@@ -102,8 +100,6 @@ This means that you can use shared mutex variants (`shared_mutex`, `shared_timed
 [std_rtmutex]: http://en.cppreference.com/w/cpp/thread/recursive_timed_mutex
 [std_smutex]: http://en.cppreference.com/w/cpp/thread/shared_mutex
 [std_stmutex]: http://en.cppreference.com/w/cpp/thread/shared_timed_mutex
-[std_condvar]: http://en.cppreference.com/w/cpp/thread/condition_variable
-[std_atomic]: http://en.cppreference.com/w/cpp/atomic/atomic
 
 
 ## Which mutex should I use?
@@ -117,6 +113,23 @@ Period.
  - When your compiler doesn't support C++14/17 Standard Library, shared mutex in `yamc::alternate::*` and `yamc::shared_lock<Mutex>` which emulate C++14 [`std::shared_lock<Mutex>`][std_sharedlock] are useful.
 
 [std_sharedlock]: http://en.cppreference.com/w/cpp/thread/shared_lock
+
+
+## Requirements
+A C++ compiler and standard library support C++11.
+No need for external library.
+
+NOTE: The implementation of this library depends on C++11 Standard threading primitives only `std::mutex`, [`std::condition_variable`][std_condvar] and [`std::atomic<T>`][std_atomic].
+This means that you can use shared mutex variants (`shared_mutex`, `shared_timed_mutex`) with C++11 compiler which doesn't not support C++14/17 yet.
+
+CI building and unit-testing on the following environments:
+- Linux/G++ 5.4
+- Linux/Clang 3.7
+- OSX/Clang (Xcode 8.2)
+- Windows/MSVC 14.0 (Visual Studio 2015)
+
+[std_condvar]: http://en.cppreference.com/w/cpp/thread/condition_variable
+[std_atomic]: http://en.cppreference.com/w/cpp/atomic/atomic
 
 
 # Tweaks
@@ -172,8 +185,8 @@ Pre-defined RwLockPolicy classes:
   This policy might introduce "Reader Starvation" if writer threads continuously try to acquire exclusive lock.
 
 Shared mutex types in `yamc::fair` namespace provide "Phase-Fair Readers-Writer lock", that does not cause writer starvation nor reader starvation.
-That shared mutex has FIFO queue of waiting threads to acquire its lock, and switch two phases which is reader prefer or writer prefer.
-For example, 5 threads try to acquire lock in W1 -> R2 -> R3 -> W4 -> R5 order (W=writer lock / R=reader lock), each threads will acquire the lock in that order.
+That shared mutex has FIFO queue of threads wait for lock acquisition, and switch two phases which is reader prefer or writer prefer.
+For example, 5 threads try to acquire lock in W1 -> R2 -> R3 -> W4 -> R5 order (W=exclusive lock / R=shared lock), each threads will acquire the lock in that order.
 In this example, 2 reader threads can concurrently acquire R2 and R3.
 
 Sample code:
