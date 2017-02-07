@@ -55,6 +55,7 @@ int main()
   DUMP(yamc::fair::shared_mutex);
   DUMP(yamc::fair::shared_timed_mutex);
 
+  DUMP(yamc::alternate::mutex);
   DUMP(yamc::alternate::recursive_mutex);
   DUMP(yamc::alternate::timed_mutex);
   DUMP(yamc::alternate::recursive_timed_mutex);

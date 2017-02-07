@@ -107,7 +107,6 @@ void test_requirements_shared_timed()
 
 int main()
 {
-  test_requirements<std::mutex>();
 
   test_requirements<yamc::spin::mutex>();
   test_requirements<yamc::spin_weak::mutex>();
@@ -137,6 +136,7 @@ int main()
   test_requirements_shared<yamc::fair::shared_mutex>();
   test_requirements_shared_timed<yamc::fair::shared_timed_mutex>();
 
+  test_requirements<yamc::alternate::mutex>();
   test_requirements<yamc::alternate::recursive_mutex>();
   test_requirements_timed<yamc::alternate::timed_mutex>();
   test_requirements_timed<yamc::alternate::recursive_timed_mutex>();

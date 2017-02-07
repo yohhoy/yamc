@@ -39,11 +39,16 @@ namespace yamc {
 /*
  * alternate implementation of mutex variants
  *
+ * - yamc::alternate::mutex (alias of std::mutex)
  * - yamc::alternate::recursive_mutex
  * - yamc::alternate::timed_mutex
  * - yamc::alternate::recursive_timed_mutex
  */
 namespace alternate {
+
+// declare for consistency
+using mutex = std::mutex;
+
 
 class recursive_mutex {
   std::size_t ncount_ = 0;
