@@ -1,6 +1,7 @@
 /*
  * perf_rwlock.cpp
  */
+#include <cmath>
 #include <atomic>
 #include <chrono>
 #include <iostream>
