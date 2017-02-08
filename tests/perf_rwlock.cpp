@@ -94,10 +94,23 @@ void perform_rwlock_contention(const config& cfg)
   std::size_t nwissue = std::accumulate(counters.begin(), pivot, 0u);
   std::size_t nrissue = std::accumulate(pivot, counters.end(), 0u);
 
+  // average [count/sec/thread]
+  double wavg = (double)nwissue / cfg.nwriter / elapsed;
+  double ravg = (double)nrissue / cfg.nreader / elapsed;
+  // SD(standard deviation) [count/sec/thread]
+  double wsd = std::sqrt(std::accumulate(counters.begin(), pivot, 0.,
+                                          [wavg, elapsed](double acc, std::size_t v) {
+                                            return acc + (v / elapsed - wavg) * (v / elapsed - wavg);
+                                          }) / cfg.nwriter);
+  double rsd = std::sqrt(std::accumulate(pivot, counters.end(), 0.,
+                                          [ravg, elapsed](double acc, std::size_t v) {
+                                            return acc + (v / elapsed - ravg) * (v / elapsed - ravg);
+                                          }) / cfg.nreader);
+
   // print result
   std::cout
-    << cfg.nwriter << '\t' << nwissue << '\t' << ((double)nwissue / elapsed / cfg.nwriter) << '\t'
-    << cfg.nreader << '\t' << nrissue << '\t' << ((double)nrissue / elapsed / cfg.nreader) << std::endl;
+    << cfg.nwriter << '\t' << nwissue << '\t' << wavg << '\t' << wsd << '\t'
+    << cfg.nreader << '\t' << nrissue << '\t' << ravg << '\t' << rsd << std::endl;
 }
 
 
@@ -111,7 +124,7 @@ void perf_run(const char* title, unsigned nthread)
     << " task/wait=" << PERF_WEIGHT_TASK << "/" << PERF_WEIGHT_WAIT
     << " duration=" << PERF_DURATION.count() << std::endl;
 
-  std::cout << "# Write\t[raw]\t[ops]\tRead\t[raw]\t[ops]" << std::endl;
+  std::cout << "# Write\t[raw]\t[ops]\t[sd]\tRead\t[raw]\t[ops]\t[sd]" << std::endl;
   for (unsigned nwt = 1; nwt < nthread; nwt++) {
     config cfg = { nwt, nthread - nwt };
     perform_rwlock_contention<SharedMutex>(cfg);
