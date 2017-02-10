@@ -3,29 +3,36 @@
  */
 #include <atomic>
 #include <mutex>
+#include <type_traits>
 #include "gtest/gtest.h"
 #include "naive_spin_mutex.hpp"
 #include "ttas_spin_mutex.hpp"
 #include "yamc_testutil.hpp"
 
 
-#define TEST_THREADS   8
-#define TEST_ITERATION 10000u
+#define TEST_THREADS   20
+#define TEST_ITERATION 100000u
 
 
-using NormalMutexTypes = ::testing::Types<
-  yamc::spin::mutex,
-  yamc::spin_weak::mutex,
-  yamc::spin_ttas::mutex
+using SpinMutexTypes = ::testing::Types<
+  yamc::spin::basic_mutex<yamc::backoff::exponential<>>,
+  yamc::spin_weak::basic_mutex<yamc::backoff::exponential<>>,
+  yamc::spin_ttas::basic_mutex<yamc::backoff::exponential<>>,
+  yamc::spin::basic_mutex<yamc::backoff::yield>,
+  yamc::spin_weak::basic_mutex<yamc::backoff::yield>,
+  yamc::spin_ttas::basic_mutex<yamc::backoff::yield>,
+  yamc::spin::basic_mutex<yamc::backoff::busy>,
+  yamc::spin_weak::basic_mutex<yamc::backoff::busy>,
+  yamc::spin_ttas::basic_mutex<yamc::backoff::busy>
 >;
 
 template <typename Mutex>
-struct NormalMutexTest : ::testing::Test {};
+struct SpinMutexTest : ::testing::Test {};
 
-TYPED_TEST_CASE(NormalMutexTest, NormalMutexTypes);
+TYPED_TEST_CASE(SpinMutexTest, SpinMutexTypes);
 
 // mutex::lock()
-TYPED_TEST(NormalMutexTest, BasicLock)
+TYPED_TEST(SpinMutexTest, BasicLock)
 {
   TypeParam mtx;
   std::size_t counter = 0;
@@ -41,7 +48,7 @@ TYPED_TEST(NormalMutexTest, BasicLock)
 }
 
 // mutex::try_lock()
-TYPED_TEST(NormalMutexTest, TryLock)
+TYPED_TEST(SpinMutexTest, TryLock)
 {
   TypeParam mtx;
   std::size_t counter = 0;
@@ -60,7 +67,7 @@ TYPED_TEST(NormalMutexTest, TryLock)
 }
 
 // mutex::try_lock() failure
-TYPED_TEST(NormalMutexTest, TryLockFail)
+TYPED_TEST(SpinMutexTest, TryLockFail)
 {
   yamc::test::barrier step(2);
   TypeParam mtx;
@@ -88,6 +95,14 @@ TEST(AtomicTest, Lockfree)
   ASSERT_TRUE(i.is_lock_free());
 }
 
+
+// YAMC_BACKOFF_* macros
+TEST(BackoffTest, Macro)
+{
+  bool yamc_backoff_spin_default = std::is_same<YAMC_BACKOFF_SPIN_DEFAULT, yamc::backoff::exponential<>>::value;
+  ASSERT_TRUE(yamc_backoff_spin_default);
+  ASSERT_EQ(4000, YAMC_BACKOFF_EXPONENTIAL_INITCOUNT);
+}
 
 // backoff::exponential<100>
 TEST(BackoffTest, Exponential100)
@@ -120,4 +135,22 @@ TEST(BackoffTest, Exponential1)
   BackoffPolicy::wait(state);
   ASSERT_EQ(1u, state.initcount);
   ASSERT_EQ(0u, state.counter);
+}
+
+// backoff::yield
+TEST(BackoffTest, Yield)
+{
+  using BackoffPolicy = yamc::backoff::yield;
+  // NOTE: backoff::yield class has no observable behavior nor state
+  BackoffPolicy::state state;
+  BackoffPolicy::wait(state);
+}
+
+// backoff::busy
+TEST(BackoffTest, Busy)
+{
+  using BackoffPolicy = yamc::backoff::busy;
+  // NOTE: backoff::busy class has no observable behavior nor state
+  BackoffPolicy::state state;
+  BackoffPolicy::wait(state);
 }
