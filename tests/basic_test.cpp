@@ -1,13 +1,10 @@
 /*
  * basic_test.cpp
  */
-#include <atomic>
 #include <chrono>
 #include <mutex>
 #include <type_traits>
 #include "gtest/gtest.h"
-#include "naive_spin_mutex.hpp"
-#include "ttas_spin_mutex.hpp"
 #include "checked_mutex.hpp"
 #include "checked_shared_mutex.hpp"
 #include "fair_mutex.hpp"
@@ -34,9 +31,6 @@
 
 
 using NormalMutexTypes = ::testing::Types<
-  yamc::spin::mutex,
-  yamc::spin_weak::mutex,
-  yamc::spin_ttas::mutex,
   yamc::checked::mutex,
   yamc::checked::timed_mutex,
   yamc::fair::mutex,
@@ -361,51 +355,6 @@ TYPED_TEST(RecursiveTimedMutexTest, TryLockUntil)
   ASSERT_EQ(TEST_ITERATION * TEST_THREADS, c1);
   ASSERT_EQ(TEST_ITERATION * TEST_THREADS, c2);
   ASSERT_EQ(TEST_ITERATION * TEST_THREADS, c3);
-}
-
-
-// lockfree property of atomic<int>
-TEST(AtomicTest, Lockfree)
-{
-  // std::atomic<int> type is always lock-free
-  ASSERT_EQ(2, ATOMIC_INT_LOCK_FREE);
-  // std::atomic<int> is lock-free
-  std::atomic<int> i;
-  ASSERT_TRUE(i.is_lock_free());
-}
-
-
-// backoff::exponential<100>
-TEST(BackoffTest, Exponential100)
-{
-  using BackoffPolicy = yamc::backoff::exponential<100>;
-  BackoffPolicy::state state;
-  ASSERT_EQ(100u, state.initcount);
-  ASSERT_EQ(100u, state.counter);
-  for (int i = 0; i < 100; ++i) {
-    BackoffPolicy::wait(state);  // wait 100
-  }
-  ASSERT_EQ(0u, state.counter);
-  for (int i = 0; i < 2000; ++i) {
-    BackoffPolicy::wait(state);
-  }
-  ASSERT_EQ(1u, state.initcount);
-  ASSERT_EQ(0u, state.counter);
-  BackoffPolicy::wait(state);
-  ASSERT_EQ(1u, state.initcount);
-  ASSERT_EQ(0u, state.counter);
-}
-
-// backoff::exponential<1>
-TEST(BackoffTest, Exponential1)
-{
-  using BackoffPolicy = yamc::backoff::exponential<1>;
-  BackoffPolicy::state state;
-  ASSERT_EQ(1u, state.initcount);
-  ASSERT_EQ(1u, state.counter);
-  BackoffPolicy::wait(state);
-  ASSERT_EQ(1u, state.initcount);
-  ASSERT_EQ(0u, state.counter);
 }
 
 

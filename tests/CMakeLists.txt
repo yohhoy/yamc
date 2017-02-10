@@ -43,6 +43,7 @@ macro (do_test name srcfile)
 endmacro (do_test)
 
 do_test(basic basic_test)
+do_test(spinlock spinlock_test)
 do_test(checked0 checked_test)
 do_test(checked1 checked_test)
 set_target_properties(checked0_test PROPERTIES COMPILE_DEFINITIONS "YAMC_CHECKED_CALL_ABORT=0")
