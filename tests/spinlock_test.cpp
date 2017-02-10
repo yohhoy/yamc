@@ -1,5 +1,5 @@
 /*
- * basic_test.cpp
+ * spinlock_test.cpp
  */
 #include <atomic>
 #include <mutex>
@@ -86,15 +86,11 @@ TYPED_TEST(SpinMutexTest, TryLockFail)
 
 
 // lockfree property of atomic<int>
-TEST(AtomicTest, Lockfree)
+TEST(AtomicTest, LockfreeInt)
 {
   // std::atomic<int> type is always lock-free
   ASSERT_EQ(2, ATOMIC_INT_LOCK_FREE);
-  // std::atomic<int> is lock-free
-  std::atomic<int> i;
-  ASSERT_TRUE(i.is_lock_free());
 }
-
 
 // YAMC_BACKOFF_* macros
 TEST(BackoffTest, Macro)
