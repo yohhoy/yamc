@@ -57,6 +57,7 @@ TYPED_TEST(NormalMutexTest, BasicLock)
       for (std::size_t n = 0; n < TEST_ITERATION; ++n) {
         std::lock_guard<TypeParam> lk(mtx);
         counter = counter + 1;
+        std::this_thread::yield();  // provoke lock contention
       }
     });
   ASSERT_EQ(TEST_ITERATION * TEST_THREADS, counter);
@@ -76,6 +77,7 @@ TYPED_TEST(NormalMutexTest, TryLock)
         }
         std::lock_guard<TypeParam> lk(mtx, std::adopt_lock);
         counter = counter + 1;
+        std::this_thread::yield();  // provoke lock contention
       }
     });
   ASSERT_EQ(TEST_ITERATION * TEST_THREADS, counter);
