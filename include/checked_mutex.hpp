@@ -100,7 +100,7 @@ protected:
 #endif
     }
     while (owner_ != std::thread::id()) {
-      if (!validator::enqueue(reinterpret_cast<uintptr_t>(this), tid)) {
+      if (!validator::enqueue(reinterpret_cast<uintptr_t>(this), tid, false)) {
         // deadlock detection
 #if YAMC_CHECKED_CALL_ABORT
         std::abort();
@@ -112,7 +112,7 @@ protected:
       validator::dequeue(reinterpret_cast<uintptr_t>(this), tid);
     }
     owner_ = tid;
-    validator::locked(reinterpret_cast<uintptr_t>(this), tid);
+    validator::locked(reinterpret_cast<uintptr_t>(this), tid, false);
   }
 
   bool try_lock()
@@ -131,7 +131,7 @@ protected:
       return false;
     }
     owner_ = tid;
-    validator::locked(reinterpret_cast<uintptr_t>(this), tid);
+    validator::locked(reinterpret_cast<uintptr_t>(this), tid, false);
     return true;
   }
 
@@ -148,7 +148,7 @@ protected:
 #endif
     }
     owner_ = std::thread::id();
-    validator::unlocked(reinterpret_cast<uintptr_t>(this), tid);
+    validator::unlocked(reinterpret_cast<uintptr_t>(this), tid, false);
     cv_.notify_all();
   }
 };
@@ -183,7 +183,7 @@ protected:
       return;
     }
     while (ncount_ != 0) {
-      if (!validator::enqueue(reinterpret_cast<uintptr_t>(this), tid)) {
+      if (!validator::enqueue(reinterpret_cast<uintptr_t>(this), tid, false)) {
         // deadlock detection
 #if YAMC_CHECKED_CALL_ABORT
         std::abort();
@@ -197,7 +197,7 @@ protected:
     assert(owner_ == std::thread::id());
     ncount_ = 1;
     owner_ = tid;
-    validator::locked(reinterpret_cast<uintptr_t>(this), tid);
+    validator::locked(reinterpret_cast<uintptr_t>(this), tid, false);
   }
 
   bool try_lock()
@@ -212,7 +212,7 @@ protected:
       assert(owner_ == std::thread::id());
       ncount_ = 1;
       owner_ = tid;
-      validator::locked(reinterpret_cast<uintptr_t>(this), tid);
+      validator::locked(reinterpret_cast<uintptr_t>(this), tid, false);
       return true;
     }
     return false;
@@ -233,7 +233,7 @@ protected:
     assert(0 < ncount_);
     if (--ncount_ == 0) {
       owner_ = std::thread::id();
-      validator::unlocked(reinterpret_cast<uintptr_t>(this), tid);
+      validator::unlocked(reinterpret_cast<uintptr_t>(this), tid, false);
       cv_.notify_all();
     }
   }
@@ -291,7 +291,7 @@ class timed_mutex : private detail::mutex_base {
       }
     }
     owner_ = tid;
-    detail::validator::locked(reinterpret_cast<uintptr_t>(this), tid);
+    detail::validator::locked(reinterpret_cast<uintptr_t>(this), tid, false);
     return true;
   }
 
@@ -375,7 +375,7 @@ class recursive_timed_mutex : private detail::recursive_mutex_base {
     assert(owner_ == std::thread::id());
     ncount_ = 1;
     owner_ = tid;
-    detail::validator::locked(reinterpret_cast<uintptr_t>(this), tid);
+    detail::validator::locked(reinterpret_cast<uintptr_t>(this), tid, false);
     return true;
   }
 

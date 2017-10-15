@@ -101,12 +101,12 @@ private:
       os << "  Mutex#" << e.second.mid << ": owners={";
       int i = 0;
       for (const auto& id : e.second.owners) {
-        os << (i ? "," : "") << id;
+        os << (i++ ? "," : "") << id;
       }
       os << "} waiters={";
       i = 0;
       for (const auto& id : e.second.waiters) {
-        os << (i ? "," : "") << id;
+        os << (i++ ? "," : "") << id;
       }
       os << "}\n";
     }
@@ -126,39 +126,47 @@ public:
     table.mutexmap.erase(mkey);
   }
 
-  static void locked(uintptr_t mkey, std::thread::id tid)
+  static void locked(uintptr_t mkey, std::thread::id tid, bool shared)
   {
     auto&& table = global_table();
     table.mutexmap[mkey].owners.push_back(tid);
 #if YAMC_CHECK_VERBOSE
-    std::cout << "Thread#" << tid << " acquired Mutex#" << table.mutexmap[mkey].mid << " lock\n";
+    std::cout << "Thread#" << tid << " acquired Mutex#" << table.mutexmap[mkey].mid
+      << " " << (shared ? "shared-lock" : "lock") << '\n';
     dump_mutexmap(std::cout, table.mutexmap);
+#else
+    (void)shared;  // suppress "unused variable" warning
 #endif
   }
 
-  static void unlocked(uintptr_t mkey, std::thread::id tid)
+  static void unlocked(uintptr_t mkey, std::thread::id tid, bool shared)
   {
     auto&& table = global_table();
     remove_elem(table.mutexmap[mkey].owners, tid);
 #if YAMC_CHECK_VERBOSE
-    std::cout << "Thread#" << tid << " released Mutex#" << table.mutexmap[mkey].mid << " lock\n";
+    std::cout << "Thread#" << tid << " released Mutex#" << table.mutexmap[mkey].mid
+      << " " << (shared ? "shared-lock" : "lock") << '\n';
     dump_mutexmap(std::cout, table.mutexmap);
+#else
+    (void)shared;  // suppress "unused variable" warning
 #endif
   }
 
-  static bool enqueue(uintptr_t mkey, std::thread::id tid)
+  static bool enqueue(uintptr_t mkey, std::thread::id tid, bool shared)
   {
     auto&& table = global_table();
     table.mutexmap[mkey].waiters.push_back(tid);
     if (find_closepath(table.mutexmap, mkey, tid)) {
       // detect deadlock
-      std::cout << "Thread#" << tid << " wait for Mutex#" << table.mutexmap[mkey].mid << " lock\n";
+      std::cout << "Thread#" << tid << " wait for Mutex#" << table.mutexmap[mkey].mid
+        << " " << (shared ? "shared-lock" : "lock") << '\n';
       dump_mutexmap(std::cout, table.mutexmap);
       std::cout << "==== DEADLOCK DETECTED ====" << std::endl;
       return false;
     }
 #if YAMC_CHECK_VERBOSE
-    std::cout << "Thread#" << tid << " wait for Mutex#" << table.mutexmap[mkey].mid << " lock\n";
+    std::cout << "Thread#" << tid << " wait for Mutex#" << table.mutexmap[mkey].mid
+      << " " << (shared ? "shared-lock" : "lock") << '\n';
     dump_mutexmap(std::cout, table.mutexmap);
 #endif
     return true;
@@ -176,9 +184,9 @@ class null {
 public:
   static void ctor(uintptr_t) {}
   static void dtor(uintptr_t) {}
-  static void locked(uintptr_t, std::thread::id) {}
-  static void unlocked(uintptr_t, std::thread::id) {}
-  static bool enqueue(uintptr_t, std::thread::id) { return true; }
+  static void locked(uintptr_t, std::thread::id, bool) {}
+  static void unlocked(uintptr_t, std::thread::id, bool) {}
+  static bool enqueue(uintptr_t, std::thread::id, bool) { return true; }
   static void dequeue(uintptr_t, std::thread::id) {}
 };
 
