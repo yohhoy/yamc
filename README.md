@@ -231,7 +231,7 @@ To disable deadlock detection, `#define YAMC_CHECKED_DETECT_DEADLOCK 0` before `
 CAVEAT:
 This feature depends on the intrinsic mechanism of `yamc::checked::*` mutexes.
 The deadlock detector CAN NOT detect any deadlock come from other mutex types.
-If you need to detect general deadlock, consider [Valgrind/Helgrind][helgrind] and [Clang/Therad Sanitizer][clang-tsan], etc.
+If you need to detect general deadlock, consider [Valgrind/Helgrind][helgrind] and [Clang/ThreadSanitizer][clang-tsan], etc.
 
 [deadlock]: https://en.wikipedia.org/wiki/Deadlock
 [helgrind]: http://valgrind.org/docs/manual/hg-manual.html
