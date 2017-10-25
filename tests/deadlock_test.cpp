@@ -156,8 +156,8 @@ TYPED_TEST(CheckedMutexTest, CyclicDeadlock)
 // simultaneous deadlocks with multiple thread-pairs
 TYPED_TEST(CheckedMutexTest, SimultaneousDeadlock)
 {
-  constexpr size_t NPAIRS = 4;
   auto test_body = []{
+    constexpr size_t NPAIRS = 4;
     yamc::test::barrier step(NPAIRS * 2);
     TypeParam mtx[NPAIRS * 2];
     yamc::test::task_runner(NPAIRS * 2, [&](std::size_t id) {
