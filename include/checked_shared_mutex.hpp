@@ -36,11 +36,17 @@
 #include <thread>
 #include <vector>
 #include "yamc_rwlock_sched.hpp"
+#include "yamc_lock_validator.hpp"
 
 
 // call std::abort() when requirements violation
 #ifndef YAMC_CHECKED_CALL_ABORT
 #define YAMC_CHECKED_CALL_ABORT 0
+#endif
+
+// default deadlock detection mode
+#ifndef YAMC_CHECKED_DETECT_DEADLOCK
+#define YAMC_CHECKED_DETECT_DEADLOCK 1
 #endif
 
 
@@ -57,6 +63,13 @@ namespace yamc {
 namespace checked {
 
 namespace detail {
+
+#if YAMC_CHECKED_DETECT_DEADLOCK
+using validator = yamc::validator::deadlock;
+#else
+using validator = yamc::validator::null;
+#endif
+
 
 template <typename RwLockPolicy>
 class shared_mutex_base {
@@ -99,11 +112,21 @@ protected:
     }
     RwLockPolicy::before_wait_wlock(state_);
     while (RwLockPolicy::wait_wlock(state_)) {
+      if (!validator::enqueue(reinterpret_cast<uintptr_t>(this), tid, false)) {
+        // deadlock detection
+#if YAMC_CHECKED_CALL_ABORT
+        std::abort();
+#else
+        throw std::system_error(std::make_error_code(std::errc::resource_deadlock_would_occur), "deadlock");
+#endif
+      }
       cv_.wait(lk);
+      validator::dequeue(reinterpret_cast<uintptr_t>(this), tid);
     }
     RwLockPolicy::after_wait_wlock(state_);
     RwLockPolicy::acquire_wlock(state_);
     e_owner_ = tid;
+    validator::locked(reinterpret_cast<uintptr_t>(this), tid, false);
   }
 
   bool try_lock()
@@ -122,13 +145,15 @@ protected:
       return false;
     RwLockPolicy::acquire_wlock(state_);
     e_owner_ = tid;
+    validator::locked(reinterpret_cast<uintptr_t>(this), tid, false);
     return true;
   }
 
   void unlock()
   {
+    const auto tid = std::this_thread::get_id();
     std::lock_guard<decltype(mtx_)> lk(mtx_);
-    if (e_owner_ != std::this_thread::get_id()) {
+    if (e_owner_ != tid) {
       // owner thread
 #if YAMC_CHECKED_CALL_ABORT
       std::abort();
@@ -138,6 +163,7 @@ protected:
     }
     e_owner_ = {};
     RwLockPolicy::release_wlock(state_);
+    validator::unlocked(reinterpret_cast<uintptr_t>(this), tid, false);
     cv_.notify_all();
   }
 
@@ -154,10 +180,20 @@ protected:
 #endif
     }
     while (RwLockPolicy::wait_rlock(state_)) {
+      if (!validator::enqueue(reinterpret_cast<uintptr_t>(this), tid, true)) {
+        // deadlock detection
+#if YAMC_CHECKED_CALL_ABORT
+        std::abort();
+#else
+        throw std::system_error(std::make_error_code(std::errc::resource_deadlock_would_occur), "deadlock");
+#endif
+      }
       cv_.wait(lk);
+      validator::dequeue(reinterpret_cast<uintptr_t>(this), tid);
     }
     RwLockPolicy::acquire_rlock(state_);
     s_owner_.push_back(tid);
+    validator::locked(reinterpret_cast<uintptr_t>(this), tid, true);
   }
 
   bool try_lock_shared()
@@ -176,6 +212,7 @@ protected:
       return false;
     RwLockPolicy::acquire_rlock(state_);
     s_owner_.push_back(tid);
+    validator::locked(reinterpret_cast<uintptr_t>(this), tid, true);
     return true;
   }
 
@@ -196,6 +233,7 @@ protected:
     }
     auto result = std::remove(s_owner_.begin(), s_owner_.end(), tid);
     s_owner_.erase(result, s_owner_.end());
+    validator::unlocked(reinterpret_cast<uintptr_t>(this), tid, true);
   }
 };
 
@@ -207,9 +245,14 @@ class basic_shared_mutex : private detail::shared_mutex_base<RwLockPolicy> {
   using base = detail::shared_mutex_base<RwLockPolicy>;
 
 public:
-  basic_shared_mutex() = default;
+  basic_shared_mutex()
+  {
+    detail::validator::ctor(reinterpret_cast<uintptr_t>(this));
+  }
+
   ~basic_shared_mutex() noexcept(false)
   {
+    detail::validator::dtor(reinterpret_cast<uintptr_t>(this));
     base::dtor_precondition("abandoned shared_mutex");
   }
 
@@ -264,6 +307,7 @@ class basic_shared_timed_mutex : private detail::shared_mutex_base<RwLockPolicy>
     RwLockPolicy::after_wait_wlock(state_);
     RwLockPolicy::acquire_wlock(state_);
     e_owner_ = tid;
+    detail::validator::locked(reinterpret_cast<uintptr_t>(this), tid, false);
     return true;
   }
 
@@ -290,13 +334,19 @@ class basic_shared_timed_mutex : private detail::shared_mutex_base<RwLockPolicy>
     }
     RwLockPolicy::acquire_rlock(state_);
     s_owner_.push_back(tid);
+    detail::validator::locked(reinterpret_cast<uintptr_t>(this), tid, true);
     return true;
   }
 
 public:
-  basic_shared_timed_mutex() = default;
+  basic_shared_timed_mutex()
+  {
+    detail::validator::ctor(reinterpret_cast<uintptr_t>(this));
+  }
+
   ~basic_shared_timed_mutex() noexcept(false)
   {
+    detail::validator::dtor(reinterpret_cast<uintptr_t>(this));
     base::dtor_precondition("abandoned shared_timed_mutex");
   }
 

@@ -215,10 +215,27 @@ Checked mutex types which are defined in `yamc::checked::*` validate the followi
 
 Checked mutexes are designed for debugging purpose, so the operation on checked mutex have some overhead.
 The default behavior is throwing [`std::system_error`][system_error] exception when checked mutex detect any violation.
-If you `#define YAMC_CHECKED_CALL_ABORT 1` before `#include "checked_mutex.hpp"`, checked mutex will call [`std::abort()`][abort] instead of throwing exception and the program immediately terminate.
+If you `#define YAMC_CHECKED_CALL_ABORT 1` before `#include "checked_(shared_)mutex.hpp"`, checked mutex will call [`std::abort()`][abort] instead of throwing exception and the program immediately terminate.
 
 [system_error]: http://en.cppreference.com/w/cpp/error/system_error
 [abort]: http://en.cppreference.com/w/cpp/utility/program/abort
+
+
+## Deadlock detection
+Checked mutex types (`yamc::checked::*`) also provide "[Deadlock][deadlock] detection" by default.
+The runtime deadlock detector tracks all lock ownership and waiting thread on checked mutexes, `lock()` and `lock_lock()` which cause deadlock methods will throw exception or abort the program (described in above section).
+
+Such tracking increase additional runtime overhead, and will affect whole program progress.
+To disable deadlock detection, `#define YAMC_CHECKED_DETECT_DEADLOCK 0` before `#include "checked_(shared_)mutex.hpp"`.
+
+CAVEAT:
+This feature depends on the intrinsic mechanism of `yamc::checked::*` mutexes.
+The deadlock detector CAN NOT detect any deadlock come from other mutex types.
+If you need to detect general deadlock, consider [Valgrind/Helgrind][helgrind] and [Clang/ThreadSanitizer][clang-tsan], etc.
+
+[deadlock]: https://en.wikipedia.org/wiki/Deadlock
+[helgrind]: http://valgrind.org/docs/manual/hg-manual.html
+[clang-tsan]: https://clang.llvm.org/docs/ThreadSanitizer.html
 
 
 # Licence

@@ -33,11 +33,17 @@
 #include <mutex>
 #include <system_error>
 #include <thread>
+#include "yamc_lock_validator.hpp"
 
 
 // call std::abort() when requirements violation
 #ifndef YAMC_CHECKED_CALL_ABORT
 #define YAMC_CHECKED_CALL_ABORT 0
+#endif
+
+// default deadlock detection mode
+#ifndef YAMC_CHECKED_DETECT_DEADLOCK
+#define YAMC_CHECKED_DETECT_DEADLOCK 1
 #endif
 
 
@@ -54,6 +60,13 @@ namespace yamc {
 namespace checked {
 
 namespace detail {
+
+#if YAMC_CHECKED_DETECT_DEADLOCK
+using validator = yamc::validator::deadlock;
+#else
+using validator = yamc::validator::null;
+#endif
+
 
 class mutex_base {
 protected:
@@ -87,9 +100,19 @@ protected:
 #endif
     }
     while (owner_ != std::thread::id()) {
+      if (!validator::enqueue(reinterpret_cast<uintptr_t>(this), tid, false)) {
+        // deadlock detection
+#if YAMC_CHECKED_CALL_ABORT
+        std::abort();
+#else
+        throw std::system_error(std::make_error_code(std::errc::resource_deadlock_would_occur), "deadlock");
+#endif
+      }
       cv_.wait(lk);
+      validator::dequeue(reinterpret_cast<uintptr_t>(this), tid);
     }
     owner_ = tid;
+    validator::locked(reinterpret_cast<uintptr_t>(this), tid, false);
   }
 
   bool try_lock()
@@ -108,13 +131,15 @@ protected:
       return false;
     }
     owner_ = tid;
+    validator::locked(reinterpret_cast<uintptr_t>(this), tid, false);
     return true;
   }
 
   void unlock()
   {
+    const auto tid = std::this_thread::get_id();
     std::lock_guard<std::mutex> lk(mtx_);
-    if (owner_ != std::this_thread::get_id()) {
+    if (owner_ != tid) {
       // owner thread
 #if YAMC_CHECKED_CALL_ABORT
       std::abort();
@@ -123,6 +148,7 @@ protected:
 #endif
     }
     owner_ = std::thread::id();
+    validator::unlocked(reinterpret_cast<uintptr_t>(this), tid, false);
     cv_.notify_all();
   }
 };
@@ -157,11 +183,21 @@ protected:
       return;
     }
     while (ncount_ != 0) {
+      if (!validator::enqueue(reinterpret_cast<uintptr_t>(this), tid, false)) {
+        // deadlock detection
+#if YAMC_CHECKED_CALL_ABORT
+        std::abort();
+#else
+        throw std::system_error(std::make_error_code(std::errc::resource_deadlock_would_occur), "deadlock");
+#endif
+      }
       cv_.wait(lk);
+      validator::dequeue(reinterpret_cast<uintptr_t>(this), tid);
     }
     assert(owner_ == std::thread::id());
     ncount_ = 1;
     owner_ = tid;
+    validator::locked(reinterpret_cast<uintptr_t>(this), tid, false);
   }
 
   bool try_lock()
@@ -176,6 +212,7 @@ protected:
       assert(owner_ == std::thread::id());
       ncount_ = 1;
       owner_ = tid;
+      validator::locked(reinterpret_cast<uintptr_t>(this), tid, false);
       return true;
     }
     return false;
@@ -183,8 +220,9 @@ protected:
 
   void unlock()
   {
+    const auto tid = std::this_thread::get_id();
     std::lock_guard<std::mutex> lk(mtx_);
-    if (owner_ != std::this_thread::get_id()) {
+    if (owner_ != tid) {
       // owner thread
 #if YAMC_CHECKED_CALL_ABORT
       std::abort();
@@ -195,6 +233,7 @@ protected:
     assert(0 < ncount_);
     if (--ncount_ == 0) {
       owner_ = std::thread::id();
+      validator::unlocked(reinterpret_cast<uintptr_t>(this), tid, false);
       cv_.notify_all();
     }
   }
@@ -207,9 +246,14 @@ class mutex : private detail::mutex_base {
   using base = detail::mutex_base;
 
 public:
-  mutex() = default;
+  mutex()
+  {
+    detail::validator::ctor(reinterpret_cast<uintptr_t>(this));
+  }
+
   ~mutex() noexcept(false)
   {
+    detail::validator::dtor(reinterpret_cast<uintptr_t>(this));
     dtor_precondition("abandoned mutex");
   }
 
@@ -247,13 +291,19 @@ class timed_mutex : private detail::mutex_base {
       }
     }
     owner_ = tid;
+    detail::validator::locked(reinterpret_cast<uintptr_t>(this), tid, false);
     return true;
   }
 
 public:
-  timed_mutex() = default;
+  timed_mutex()
+  {
+    detail::validator::ctor(reinterpret_cast<uintptr_t>(this));
+  }
+
   ~timed_mutex() noexcept(false)
   {
+    detail::validator::dtor(reinterpret_cast<uintptr_t>(this));
     dtor_precondition("abandoned timed_mutex");
   }
 
@@ -283,9 +333,14 @@ class recursive_mutex : private detail::recursive_mutex_base {
   using base = detail::recursive_mutex_base;
 
 public:
-  recursive_mutex() = default;
+  recursive_mutex()
+  {
+    detail::validator::ctor(reinterpret_cast<uintptr_t>(this));
+  }
+
   ~recursive_mutex() noexcept(false)
   {
+    detail::validator::dtor(reinterpret_cast<uintptr_t>(this));
     dtor_precondition("abandoned recursive_mutex");
   }
 
@@ -320,13 +375,19 @@ class recursive_timed_mutex : private detail::recursive_mutex_base {
     assert(owner_ == std::thread::id());
     ncount_ = 1;
     owner_ = tid;
+    detail::validator::locked(reinterpret_cast<uintptr_t>(this), tid, false);
     return true;
   }
 
 public:
-  recursive_timed_mutex() = default;
+  recursive_timed_mutex()
+  {
+    detail::validator::ctor(reinterpret_cast<uintptr_t>(this));
+  }
+
   ~recursive_timed_mutex() noexcept(false)
   {
+    detail::validator::dtor(reinterpret_cast<uintptr_t>(this));
     dtor_precondition("abandoned recursive_timed_mutex");
   }
 
