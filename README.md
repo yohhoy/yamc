@@ -223,7 +223,7 @@ If you `#define YAMC_CHECKED_CALL_ABORT 1` before `#include "checked_(shared_)mu
 
 ## Deadlock detection
 Checked mutex types (`yamc::checked::*`) also provide "[Deadlock][deadlock] detection" by default.
-The runtime deadlock detector tracks all lock ownership and waiting thread on checked mutexes, `lock()` and `lock_lock()` which cause deadlock methods will throw exception or abort the program (described in above section).
+The runtime deadlock detector tracks all lock ownership and waiting thread on checked mutexes, `lock()` and `lock_shared()` which cause deadlock methods will throw exception or abort the program (described in above section).
 
 Such tracking increase additional runtime overhead, and will affect whole program progress.
 To disable deadlock detection, `#define YAMC_CHECKED_DETECT_DEADLOCK 0` before `#include "checked_(shared_)mutex.hpp"`.
