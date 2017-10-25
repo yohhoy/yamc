@@ -83,6 +83,37 @@ TYPED_TEST(CheckedMutexTest, BasicDeadlock)
   EXPECT_CHECK_FAILURE_OUTER(test_body());
 }
 
+// deadlock with try_lock
+TYPED_TEST(CheckedMutexTest, TryLockDeadlock)
+{
+  auto test_body = []{
+    yamc::test::barrier step(2);
+    TypeParam mtx1;
+    TypeParam mtx2;
+    yamc::test::task_runner(2, [&](std::size_t id) {
+      switch (id) {
+      case 0:
+        ASSERT_TRUE(mtx1.try_lock());
+        step.await();
+        EXPECT_NO_THROW(mtx2.lock());
+        EXPECT_NO_THROW(mtx2.unlock());
+        EXPECT_NO_THROW(mtx1.unlock());
+        break;
+      case 1:
+        ASSERT_TRUE(mtx2.try_lock());
+        step.await();
+        WAIT_TICKS;
+        EXPECT_CHECK_FAILURE_INNER({
+          mtx1.lock();
+        });
+        EXPECT_NO_THROW(mtx2.unlock());
+        break;
+      }
+    });
+  };
+  EXPECT_CHECK_FAILURE_OUTER(test_body());
+}
+
 // cyclic deadlock with 3-threads/3-mutex
 TYPED_TEST(CheckedMutexTest, CyclicDeadlock)
 {
@@ -122,31 +153,30 @@ TYPED_TEST(CheckedMutexTest, CyclicDeadlock)
   EXPECT_CHECK_FAILURE_OUTER(test_body());
 }
 
-// deadlock with try_lock
-TYPED_TEST(CheckedMutexTest, TryLockDeadlock)
+// simultaneous deadlocks with multiple thread-pairs
+TYPED_TEST(CheckedMutexTest, SimultaneousDeadlock)
 {
+  constexpr size_t NPAIRS = 4;
   auto test_body = []{
-    yamc::test::barrier step(2);
-    TypeParam mtx1;
-    TypeParam mtx2;
-    yamc::test::task_runner(2, [&](std::size_t id) {
-      switch (id) {
-      case 0:
-        ASSERT_TRUE(mtx1.try_lock());
+    yamc::test::barrier step(NPAIRS * 2);
+    TypeParam mtx[NPAIRS * 2];
+    yamc::test::task_runner(NPAIRS * 2, [&](std::size_t id) {
+      TypeParam& mtx1 = mtx[id % NPAIRS];
+      TypeParam& mtx2 = mtx[id % NPAIRS + NPAIRS];
+      if (id < NPAIRS) {
+        ASSERT_NO_THROW(mtx1.lock());
         step.await();
         EXPECT_NO_THROW(mtx2.lock());
         EXPECT_NO_THROW(mtx2.unlock());
         EXPECT_NO_THROW(mtx1.unlock());
-        break;
-      case 1:
-        ASSERT_TRUE(mtx2.try_lock());
+      } else {
+        ASSERT_NO_THROW(mtx2.lock());
         step.await();
         WAIT_TICKS;
         EXPECT_CHECK_FAILURE_INNER({
           mtx1.lock();
         });
         EXPECT_NO_THROW(mtx2.unlock());
-        break;
       }
     });
   };
