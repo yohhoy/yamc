@@ -76,6 +76,7 @@ protected:
 
   void dtor_precondition(const char* emsg)
   {
+    std::lock_guard<std::mutex> lk(mtx_);
     if (owner_ != std::thread::id()) {
       // object liveness
 #if YAMC_CHECKED_CALL_ABORT
@@ -163,6 +164,7 @@ protected:
 
   void dtor_precondition(const char* emsg)
   {
+    std::lock_guard<std::mutex> lk(mtx_);
     if (ncount_ != 0 || owner_ != std::thread::id()) {
       // object liveness
 #if YAMC_CHECKED_CALL_ABORT

@@ -87,6 +87,7 @@ protected:
 
   void dtor_precondition(const char* emsg)
   {
+    std::lock_guard<decltype(mtx_)> lk(mtx_);
     if (e_owner_ != std::thread::id() || !s_owner_.empty()) {
       // object liveness
 #if YAMC_CHECKED_CALL_ABORT
