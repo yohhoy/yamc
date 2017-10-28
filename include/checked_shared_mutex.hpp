@@ -286,7 +286,7 @@ class basic_shared_timed_mutex : private detail::shared_mutex_base<RwLockPolicy>
   bool do_try_lockwait(const std::chrono::time_point<Clock, Duration>& tp, const char* emsg)
   {
     const auto tid = std::this_thread::get_id();
-    std::unique_lock<std::mutex> lk(mtx_);
+    std::unique_lock<decltype(mtx_)> lk(mtx_);
     if (e_owner_ == tid || base::is_shared_owner(tid)) {
       // non-recursive semantics
 #if YAMC_CHECKED_CALL_ABORT
@@ -316,7 +316,7 @@ class basic_shared_timed_mutex : private detail::shared_mutex_base<RwLockPolicy>
   bool do_try_lock_sharedwait(const std::chrono::time_point<Clock, Duration>& tp, const char* emsg)
   {
     const auto tid = std::this_thread::get_id();
-    std::unique_lock<std::mutex> lk(mtx_);
+    std::unique_lock<decltype(mtx_)> lk(mtx_);
     if (e_owner_ == tid || base::is_shared_owner(tid)) {
       // non-recursive semantics
 #if YAMC_CHECKED_CALL_ABORT

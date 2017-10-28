@@ -76,7 +76,7 @@ protected:
 
   void dtor_precondition(const char* emsg)
   {
-    std::lock_guard<std::mutex> lk(mtx_);
+    std::lock_guard<decltype(mtx_)> lk(mtx_);
     if (owner_ != std::thread::id()) {
       // object liveness
 #if YAMC_CHECKED_CALL_ABORT
@@ -91,7 +91,7 @@ protected:
   void lock()
   {
     const auto tid = std::this_thread::get_id();
-    std::unique_lock<std::mutex> lk(mtx_);
+    std::unique_lock<decltype(mtx_)> lk(mtx_);
     if (owner_ == tid) {
       // non-recursive semantics
 #if YAMC_CHECKED_CALL_ABORT
@@ -119,7 +119,7 @@ protected:
   bool try_lock()
   {
     const auto tid = std::this_thread::get_id();
-    std::lock_guard<std::mutex> lk(mtx_);
+    std::lock_guard<decltype(mtx_)> lk(mtx_);
     if (owner_ == tid) {
       // non-recursive semantics
 #if YAMC_CHECKED_CALL_ABORT
@@ -139,7 +139,7 @@ protected:
   void unlock()
   {
     const auto tid = std::this_thread::get_id();
-    std::lock_guard<std::mutex> lk(mtx_);
+    std::lock_guard<decltype(mtx_)> lk(mtx_);
     if (owner_ != tid) {
       // owner thread
 #if YAMC_CHECKED_CALL_ABORT
@@ -164,7 +164,7 @@ protected:
 
   void dtor_precondition(const char* emsg)
   {
-    std::lock_guard<std::mutex> lk(mtx_);
+    std::lock_guard<decltype(mtx_)> lk(mtx_);
     if (ncount_ != 0 || owner_ != std::thread::id()) {
       // object liveness
 #if YAMC_CHECKED_CALL_ABORT
@@ -179,7 +179,7 @@ protected:
   void lock()
   {
     const auto tid = std::this_thread::get_id();
-    std::unique_lock<std::mutex> lk(mtx_);
+    std::unique_lock<decltype(mtx_)> lk(mtx_);
     if (owner_ == tid) {
       ++ncount_;
       return;
@@ -205,7 +205,7 @@ protected:
   bool try_lock()
   {
     const auto tid = std::this_thread::get_id();
-    std::lock_guard<std::mutex> lk(mtx_);
+    std::lock_guard<decltype(mtx_)> lk(mtx_);
     if (owner_ == tid) {
       ++ncount_;
       return true;
@@ -223,7 +223,7 @@ protected:
   void unlock()
   {
     const auto tid = std::this_thread::get_id();
-    std::lock_guard<std::mutex> lk(mtx_);
+    std::lock_guard<decltype(mtx_)> lk(mtx_);
     if (owner_ != tid) {
       // owner thread
 #if YAMC_CHECKED_CALL_ABORT
@@ -275,7 +275,7 @@ class timed_mutex : private detail::mutex_base {
   bool do_try_lockwait(const std::chrono::time_point<Clock, Duration>& tp, const char* emsg)
   {
     const auto tid = std::this_thread::get_id();
-    std::unique_lock<std::mutex> lk(mtx_);
+    std::unique_lock<decltype(mtx_)> lk(mtx_);
     if (owner_ == tid) {
       // non-recursive semantics
 #if YAMC_CHECKED_CALL_ABORT
@@ -362,7 +362,7 @@ class recursive_timed_mutex : private detail::recursive_mutex_base {
   bool do_try_lockwait(const std::chrono::time_point<Clock, Duration>& tp)
   {
     const auto tid = std::this_thread::get_id();
-    std::unique_lock<std::mutex> lk(mtx_);
+    std::unique_lock<decltype(mtx_)> lk(mtx_);
     if (owner_ == tid) {
       ++ncount_;
       return true;

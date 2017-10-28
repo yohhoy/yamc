@@ -146,7 +146,7 @@ class basic_shared_timed_mutex : private detail::shared_mutex_base<RwLockPolicy>
   template<typename Clock, typename Duration>
   bool do_try_lockwait(const std::chrono::time_point<Clock, Duration>& tp)
   {
-    std::unique_lock<std::mutex> lk(mtx_);
+    std::unique_lock<decltype(mtx_)> lk(mtx_);
     RwLockPolicy::before_wait_wlock(state_);
     while (RwLockPolicy::wait_wlock(state_)) {
       if (cv_.wait_until(lk, tp) == std::cv_status::timeout) {
@@ -164,7 +164,7 @@ class basic_shared_timed_mutex : private detail::shared_mutex_base<RwLockPolicy>
   template<typename Clock, typename Duration>
   bool do_try_lock_sharedwait(const std::chrono::time_point<Clock, Duration>& tp)
   {
-    std::unique_lock<std::mutex> lk(mtx_);
+    std::unique_lock<decltype(mtx_)> lk(mtx_);
     while (RwLockPolicy::wait_rlock(state_)) {
       if (cv_.wait_until(lk, tp) == std::cv_status::timeout) {
         if (!RwLockPolicy::wait_rlock(state_))  // re-check predicate

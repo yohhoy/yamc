@@ -110,7 +110,7 @@ class timed_mutex {
   template<typename Clock, typename Duration>
   bool do_try_lockwait(const std::chrono::time_point<Clock, Duration>& tp)
   {
-    std::unique_lock<std::mutex> lk(mtx_);
+    std::unique_lock<decltype(mtx_)> lk(mtx_);
     while (state_ != 0) {
       if (cv_.wait_until(lk, tp) == std::cv_status::timeout) {
         if (state_ == 0)  // re-check predicate
@@ -183,7 +183,7 @@ class recursive_timed_mutex {
   bool do_try_lockwait(const std::chrono::time_point<Clock, Duration>& tp)
   {
     const auto tid = std::this_thread::get_id();
-    std::unique_lock<std::mutex> lk(mtx_);
+    std::unique_lock<decltype(mtx_)> lk(mtx_);
     if (owner_ == tid) {
       ++ncount_;
       return true;
@@ -230,7 +230,7 @@ public:
   bool try_lock()
   {
     const auto tid = std::this_thread::get_id();
-    std::lock_guard<std::mutex> lk(mtx_);
+    std::lock_guard<decltype(mtx_)> lk(mtx_);
     if (owner_ == tid) {
       ++ncount_;
       return true;
