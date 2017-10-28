@@ -81,7 +81,7 @@ TYPED_TEST(SharedMutexTest, Lock)
         WAIT_TICKS;
       }
     });
-  ASSERT_LE(TEST_TICKS * 2, sw.elapsed());
+  EXPECT_LE(TEST_TICKS * 2, sw.elapsed());
 }
 
 // shared_mutex::try_lock()
@@ -112,7 +112,7 @@ TYPED_TEST(SharedMutexTest, TryLock)
         WAIT_TICKS;
       }
     });
-  ASSERT_LE(TEST_TICKS * 2, sw.elapsed());
+  EXPECT_LE(TEST_TICKS * 2, sw.elapsed());
 }
 
 // shared_mutex::try_lock() failure
@@ -122,10 +122,10 @@ TYPED_TEST(SharedMutexTest, TryLockFail)
   TypeParam mtx;
   // reader-thread
   yamc::test::join_thread thd([&]{
-    EXPECT_NO_THROW(mtx.lock_shared());
+    ASSERT_NO_THROW(mtx.lock_shared());
     step.await();  // b1
     step.await();  // b2
-    EXPECT_NO_THROW(mtx.unlock_shared());
+    ASSERT_NO_THROW(mtx.unlock_shared());
   });
   // writer-thread
   {
@@ -161,7 +161,7 @@ TYPED_TEST(SharedMutexTest, LockShared)
         EXPECT_NO_THROW(mtx.unlock_shared());
       }
     });
-  ASSERT_LE(TEST_TICKS * 2, sw.elapsed());
+  EXPECT_LE(TEST_TICKS * 2, sw.elapsed());
 }
 
 // shared_mutex::try_lock_shared()
@@ -192,7 +192,7 @@ TYPED_TEST(SharedMutexTest, TryLockShared)
         EXPECT_NO_THROW(mtx.unlock_shared());
       }
     });
-  ASSERT_LE(TEST_TICKS * 2, sw.elapsed());
+  EXPECT_LE(TEST_TICKS * 2, sw.elapsed());
 }
 
 // shared_mutex::try_lock_shared() failure
@@ -205,10 +205,10 @@ TYPED_TEST(SharedMutexTest, TryLockSharedFail)
     [&](std::size_t id) {
       if (id == 0) {
         // writer-threads
-        EXPECT_NO_THROW(mtx.lock());
+        ASSERT_NO_THROW(mtx.lock());
         step.await();  // b1
         step.await();  // b2
-        EXPECT_NO_THROW(mtx.unlock());
+        ASSERT_NO_THROW(mtx.unlock());
       } else {
         // reader-threads
         step.await();  // b1
@@ -257,7 +257,7 @@ TYPED_TEST(SharedTimedMutexTest, TryLockFor)
         WAIT_TICKS;
       }
     });
-  ASSERT_LE(TEST_TICKS * 2, sw.elapsed());
+  EXPECT_LE(TEST_TICKS * 2, sw.elapsed());
 }
 
 // shared_timed_mutex::try_lock_until()
@@ -286,7 +286,7 @@ TYPED_TEST(SharedTimedMutexTest, TryLockUntil)
         WAIT_TICKS;
       }
     });
-  ASSERT_LE(TEST_TICKS * 2, sw.elapsed());
+  EXPECT_LE(TEST_TICKS * 2, sw.elapsed());
 }
 
 // shared_timed_mutex::try_lock_for() timeout
@@ -296,10 +296,10 @@ TYPED_TEST(SharedTimedMutexTest, TryLockForTimeout)
   TypeParam mtx;
   // reader-thread
   yamc::test::join_thread thd([&]{
-    EXPECT_NO_THROW(mtx.lock_shared());
+    ASSERT_NO_THROW(mtx.lock_shared());
     step.await();  // b1
     step.await();  // b2
-    EXPECT_NO_THROW(mtx.unlock_shared());
+    ASSERT_NO_THROW(mtx.unlock_shared());
   });
   // writer-thread
   {
@@ -318,10 +318,10 @@ TYPED_TEST(SharedTimedMutexTest, TryLockUntilTimeout)
   TypeParam mtx;
   // reader-thread
   yamc::test::join_thread thd([&]{
-    EXPECT_NO_THROW(mtx.lock_shared());
+    ASSERT_NO_THROW(mtx.lock_shared());
     step.await();  // b1
     step.await();  // b2
-    EXPECT_NO_THROW(mtx.unlock_shared());
+    ASSERT_NO_THROW(mtx.unlock_shared());
   });
   // writer-thread
   {
@@ -356,7 +356,7 @@ TYPED_TEST(SharedTimedMutexTest, TryLockSharedFor)
         mtx.unlock_shared();
       }
     });
-  ASSERT_LE(TEST_TICKS * 2, sw.elapsed());
+  EXPECT_LE(TEST_TICKS * 2, sw.elapsed());
 }
 
 // shared_timed_mutex::try_lock_shared_until()
@@ -382,7 +382,7 @@ TYPED_TEST(SharedTimedMutexTest, TryLockSharedUntil)
         mtx.unlock_shared();
       }
     });
-  ASSERT_LE(TEST_TICKS * 2, sw.elapsed());
+  EXPECT_LE(TEST_TICKS * 2, sw.elapsed());
 }
 
 // shared_timed_mutex::try_lock_shared_for() timeout
@@ -395,10 +395,10 @@ TYPED_TEST(SharedTimedMutexTest, TryLockSharedForTimeout)
     [&](std::size_t id) {
       if (id == 0) {
         // writer-thread
-        EXPECT_NO_THROW(mtx.lock());
+        ASSERT_NO_THROW(mtx.lock());
         step.await();  // b1
         step.await();  // b2
-        EXPECT_NO_THROW(mtx.unlock());
+        ASSERT_NO_THROW(mtx.unlock());
       } else {
         // reader-threads
         step.await();  // b1
@@ -420,10 +420,10 @@ TYPED_TEST(SharedTimedMutexTest, TryLockSharedUntilTimeout)
     [&](std::size_t id) {
       if (id == 0) {
         // writer-thread
-        EXPECT_NO_THROW(mtx.lock());
+        ASSERT_NO_THROW(mtx.lock());
         step.await();  // b1
         step.await();  // b2
-        EXPECT_NO_THROW(mtx.unlock());
+        ASSERT_NO_THROW(mtx.unlock());
       } else {
         // reader-threads
         step.await();  // b1
@@ -501,7 +501,7 @@ TYPED_TEST(RWLockReaderPreferTest, LockOrder)
       break;
     }
   });
-  ASSERT_LE(TEST_TICKS * 5, sw.elapsed());
+  EXPECT_LE(TEST_TICKS * 5, sw.elapsed());
 }
 
 
@@ -566,5 +566,5 @@ TYPED_TEST(RwLockWriterPreferTest, LockOrder)
       break;
     }
   });
-  ASSERT_LE(TEST_TICKS * 6, sw.elapsed());
+  EXPECT_LE(TEST_TICKS * 6, sw.elapsed());
 }

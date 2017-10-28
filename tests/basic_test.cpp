@@ -22,11 +22,12 @@
 #define TEST_EXPECT_TIMEOUT std::chrono::milliseconds(300)
 
 
-#define ASSERT_THORW_SYSTEM_ERROR(errorcode_, block_) \
+#define EXPECT_THORW_SYSTEM_ERROR(errorcode_, block_) \
   try { \
     block_ \
+    FAIL(); \
   } catch (const std::system_error& e) { \
-    ASSERT_EQ(std::make_error_code(errorcode_), e.code()); \
+    EXPECT_EQ(std::make_error_code(errorcode_), e.code()); \
   }
 
 
@@ -60,7 +61,7 @@ TYPED_TEST(NormalMutexTest, BasicLock)
         std::this_thread::yield();  // provoke lock contention
       }
     });
-  ASSERT_EQ(TEST_ITERATION * TEST_THREADS, counter);
+  EXPECT_EQ(TEST_ITERATION * TEST_THREADS, counter);
 }
 
 // mutex::try_lock()
@@ -80,7 +81,7 @@ TYPED_TEST(NormalMutexTest, TryLock)
         std::this_thread::yield();  // provoke lock contention
       }
     });
-  ASSERT_EQ(TEST_ITERATION * TEST_THREADS, counter);
+  EXPECT_EQ(TEST_ITERATION * TEST_THREADS, counter);
 }
 
 // mutex::try_lock() failure
@@ -89,10 +90,10 @@ TYPED_TEST(NormalMutexTest, TryLockFail)
   yamc::test::barrier step(2);
   TypeParam mtx;
   yamc::test::join_thread thd([&]{
-    EXPECT_NO_THROW(mtx.lock());
+    ASSERT_NO_THROW(mtx.lock());
     step.await();  // b1
     step.await();  // b2
-    EXPECT_NO_THROW(mtx.unlock());
+    ASSERT_NO_THROW(mtx.unlock());
   });
   {
     step.await();  // b1
@@ -135,9 +136,9 @@ TYPED_TEST(RecursiveMutexTest, BasicLock)
         ASSERT_TRUE(before_cnt == after_cnt);
       }
     });
-  ASSERT_EQ(TEST_ITERATION * TEST_THREADS, c1);
-  ASSERT_EQ(TEST_ITERATION * TEST_THREADS, c2);
-  ASSERT_EQ(TEST_ITERATION * TEST_THREADS, c3);
+  EXPECT_EQ(TEST_ITERATION * TEST_THREADS, c1);
+  EXPECT_EQ(TEST_ITERATION * TEST_THREADS, c2);
+  EXPECT_EQ(TEST_ITERATION * TEST_THREADS, c3);
 }
 
 // recursive_mutex::try_lock()
@@ -162,9 +163,9 @@ TYPED_TEST(RecursiveMutexTest, TryLock)
         ++c3;
       }
     });
-  ASSERT_EQ(TEST_ITERATION * TEST_THREADS, c1);
-  ASSERT_EQ(TEST_ITERATION * TEST_THREADS, c2);
-  ASSERT_EQ(TEST_ITERATION * TEST_THREADS, c3);
+  EXPECT_EQ(TEST_ITERATION * TEST_THREADS, c1);
+  EXPECT_EQ(TEST_ITERATION * TEST_THREADS, c2);
+  EXPECT_EQ(TEST_ITERATION * TEST_THREADS, c3);
 }
 
 // recursive_mutex::try_lock() failure
@@ -173,16 +174,16 @@ TYPED_TEST(RecursiveMutexTest, TryLockFail)
   yamc::test::barrier step(2);
   TypeParam mtx;
   yamc::test::join_thread thd([&]{
-    EXPECT_NO_THROW(mtx.lock());
+    ASSERT_NO_THROW(mtx.lock());
     step.await();  // b1
     step.await();  // b2
-    EXPECT_NO_THROW(mtx.lock());
+    ASSERT_NO_THROW(mtx.lock());
     step.await();  // b3
     step.await();  // b4
-    EXPECT_NO_THROW(mtx.unlock());
+    ASSERT_NO_THROW(mtx.unlock());
     step.await();  // b5
     step.await();  // b6
-    EXPECT_NO_THROW(mtx.unlock());
+    ASSERT_NO_THROW(mtx.unlock());
   });
   {
     step.await();  // b1
@@ -192,7 +193,7 @@ TYPED_TEST(RecursiveMutexTest, TryLockFail)
     EXPECT_FALSE(mtx.try_lock());  // lockcnt = 2
     step.await();  // b4
     step.await();  // b5
-    EXPECT_FALSE(mtx.try_lock());  // lockcnt = 3
+    EXPECT_FALSE(mtx.try_lock());  // lockcnt = 1
     step.await();  // b6
   }
 }
@@ -231,7 +232,7 @@ TYPED_TEST(TimedMutexTest, TryLockFor)
         counter = counter + 1;
       }
     });
-  ASSERT_EQ(TEST_ITERATION * TEST_THREADS, counter);
+  EXPECT_EQ(TEST_ITERATION * TEST_THREADS, counter);
 }
 
 // timed_mutex::try_lock_until()
@@ -250,7 +251,7 @@ TYPED_TEST(TimedMutexTest, TryLockUntil)
         counter = counter + 1;
       }
     });
-  ASSERT_EQ(TEST_ITERATION * TEST_THREADS, counter);
+  EXPECT_EQ(TEST_ITERATION * TEST_THREADS, counter);
 }
 
 // timed_mutex::try_lock_for() timeout
@@ -259,10 +260,10 @@ TYPED_TEST(TimedMutexTest, TryLockForTimeout)
   yamc::test::barrier step(2);
   TypeParam mtx;
   yamc::test::join_thread thd([&]{
-    EXPECT_NO_THROW(mtx.lock());
+    ASSERT_NO_THROW(mtx.lock());
     step.await();  // b1
     step.await();  // b2
-    EXPECT_NO_THROW(mtx.unlock());
+    ASSERT_NO_THROW(mtx.unlock());
   });
   {
     step.await();  // b1
@@ -279,10 +280,10 @@ TYPED_TEST(TimedMutexTest, TryLockUntilTimeout)
   yamc::test::barrier step(2);
   TypeParam mtx;
   yamc::test::join_thread thd([&]{
-    EXPECT_NO_THROW(mtx.lock());
+    ASSERT_NO_THROW(mtx.lock());
     step.await();  // b1
     step.await();  // b2
-    EXPECT_NO_THROW(mtx.unlock());
+    ASSERT_NO_THROW(mtx.unlock());
   });
   {
     step.await();  // b1
@@ -327,9 +328,9 @@ TYPED_TEST(RecursiveTimedMutexTest, TryLockFor)
         ++c3;
       }
     });
-  ASSERT_EQ(TEST_ITERATION * TEST_THREADS, c1);
-  ASSERT_EQ(TEST_ITERATION * TEST_THREADS, c2);
-  ASSERT_EQ(TEST_ITERATION * TEST_THREADS, c3);
+  EXPECT_EQ(TEST_ITERATION * TEST_THREADS, c1);
+  EXPECT_EQ(TEST_ITERATION * TEST_THREADS, c2);
+  EXPECT_EQ(TEST_ITERATION * TEST_THREADS, c3);
 }
 
 // recursive_timed_mutex::try_lock_until()
@@ -354,9 +355,9 @@ TYPED_TEST(RecursiveTimedMutexTest, TryLockUntil)
         ++c3;
       }
     });
-  ASSERT_EQ(TEST_ITERATION * TEST_THREADS, c1);
-  ASSERT_EQ(TEST_ITERATION * TEST_THREADS, c2);
-  ASSERT_EQ(TEST_ITERATION * TEST_THREADS, c3);
+  EXPECT_EQ(TEST_ITERATION * TEST_THREADS, c1);
+  EXPECT_EQ(TEST_ITERATION * TEST_THREADS, c2);
+  EXPECT_EQ(TEST_ITERATION * TEST_THREADS, c3);
 }
 
 
@@ -367,16 +368,16 @@ using MockSharedTimedMutex = yamc::mock::shared_timed_mutex;
 TEST(SharedLockTest, MutexType)
 {
   bool shall_be_true = std::is_same<MockSharedMutex, yamc::shared_lock<MockSharedMutex>::mutex_type>::value;
-  ASSERT_TRUE(shall_be_true);
+  EXPECT_TRUE(shall_be_true);
 }
 
 // shared_lock() noexcept
 TEST(SharedLockTest, CtorDefault)
 {
   yamc::shared_lock<MockSharedMutex> lk;
-  ASSERT_EQ(nullptr, lk.mutex());
-  ASSERT_FALSE(lk.owns_lock());
-  ASSERT_TRUE(noexcept(yamc::shared_lock<MockSharedMutex>{}));
+  EXPECT_EQ(nullptr, lk.mutex());
+  EXPECT_FALSE(lk.owns_lock());
+  EXPECT_TRUE(noexcept(yamc::shared_lock<MockSharedMutex>{}));
 }
 
 // explicit shared_lock(mutex_type&)
@@ -384,8 +385,8 @@ TEST(SharedLockTest, CtorMutex)
 {
   MockSharedMutex mtx;
   yamc::shared_lock<MockSharedMutex> lk(mtx);
-  ASSERT_EQ(&mtx, lk.mutex());
-  ASSERT_TRUE(lk.owns_lock());
+  EXPECT_EQ(&mtx, lk.mutex());
+  EXPECT_TRUE(lk.owns_lock());
 }
 
 // shared_lock(mutex_type&, defer_lock_t) noexcept
@@ -393,9 +394,9 @@ TEST(SharedLockTest, CtorDeferLock)
 {
   MockSharedMutex mtx;
   yamc::shared_lock<MockSharedMutex> lk(mtx, std::defer_lock);
-  ASSERT_EQ(&mtx, lk.mutex());
-  ASSERT_FALSE(lk.owns_lock());
-  ASSERT_TRUE(noexcept(yamc::shared_lock<MockSharedMutex>(mtx, std::defer_lock)));
+  EXPECT_EQ(&mtx, lk.mutex());
+  EXPECT_FALSE(lk.owns_lock());
+  EXPECT_TRUE(noexcept(yamc::shared_lock<MockSharedMutex>(mtx, std::defer_lock)));
 }
 
 // shared_lock(mutex_type&, try_to_lock_t)
@@ -403,8 +404,8 @@ TEST(SharedLockTest, CtorTryToLock)
 {
   MockSharedMutex mtx;
   yamc::shared_lock<MockSharedMutex> lk(mtx, std::try_to_lock);
-  ASSERT_EQ(&mtx, lk.mutex());
-  ASSERT_TRUE(lk.owns_lock());
+  EXPECT_EQ(&mtx, lk.mutex());
+  EXPECT_TRUE(lk.owns_lock());
 }
 
 // shared_lock(mutex_type&, try_to_lock_t) failure
@@ -413,8 +414,8 @@ TEST(SharedLockTest, CtorTryToLockFail)
   MockSharedMutex mtx;
   mtx.retval_on_trylock = false;
   yamc::shared_lock<MockSharedMutex> lk(mtx, std::try_to_lock);
-  ASSERT_EQ(&mtx, lk.mutex());
-  ASSERT_FALSE(lk.owns_lock());
+  EXPECT_EQ(&mtx, lk.mutex());
+  EXPECT_FALSE(lk.owns_lock());
 }
 
 // shared_lock(mutex_type&, adopt_lock_t)
@@ -423,8 +424,8 @@ TEST(SharedLockTest, CtorAdoptLock)
   MockSharedMutex mtx;
   mtx.lock_shared();
   yamc::shared_lock<MockSharedMutex> lk(mtx, std::adopt_lock);
-  ASSERT_EQ(&mtx, lk.mutex());
-  ASSERT_TRUE(lk.owns_lock());
+  EXPECT_EQ(&mtx, lk.mutex());
+  EXPECT_TRUE(lk.owns_lock());
 }
 
 // shared_lock(mutex_type&, const chrono::time_point&)
@@ -432,8 +433,8 @@ TEST(SharedLockTest, CtorTimePoint)
 {
   MockSharedTimedMutex mtx;
   yamc::shared_lock<MockSharedTimedMutex> lk(mtx, std::chrono::system_clock::now());
-  ASSERT_EQ(&mtx, lk.mutex());
-  ASSERT_TRUE(lk.owns_lock());
+  EXPECT_EQ(&mtx, lk.mutex());
+  EXPECT_TRUE(lk.owns_lock());
 }
 
 // shared_lock(mutex_type&, const chrono::time_point&) failure
@@ -442,8 +443,8 @@ TEST(SharedLockTest, CtorTimePointFail)
   MockSharedTimedMutex mtx;
   mtx.retval_on_trylock = false;
   yamc::shared_lock<MockSharedTimedMutex> lk(mtx, std::chrono::system_clock::now());
-  ASSERT_EQ(&mtx, lk.mutex());
-  ASSERT_FALSE(lk.owns_lock());
+  EXPECT_EQ(&mtx, lk.mutex());
+  EXPECT_FALSE(lk.owns_lock());
 }
 
 // shared_lock(mutex_type&, const chrono::duration&)
@@ -451,8 +452,8 @@ TEST(SharedLockTest, CtorRelTime)
 {
   MockSharedTimedMutex mtx;
   yamc::shared_lock<MockSharedTimedMutex> lk(mtx, std::chrono::milliseconds(1));
-  ASSERT_EQ(&mtx, lk.mutex());
-  ASSERT_TRUE(lk.owns_lock());
+  EXPECT_EQ(&mtx, lk.mutex());
+  EXPECT_TRUE(lk.owns_lock());
 }
 
 // shared_lock(mutex_type&, const chrono::duration&) failure
@@ -461,8 +462,8 @@ TEST(SharedLockTest, CtorRelTimeFail)
   MockSharedTimedMutex mtx;
   mtx.retval_on_trylock = false;
   yamc::shared_lock<MockSharedTimedMutex> lk(mtx, std::chrono::milliseconds(1));
-  ASSERT_EQ(&mtx, lk.mutex());
-  ASSERT_FALSE(lk.owns_lock());
+  EXPECT_EQ(&mtx, lk.mutex());
+  EXPECT_FALSE(lk.owns_lock());
 }
 
 // shared_lock(shared_lock&&) noexcept
@@ -471,11 +472,11 @@ TEST(SharedLockTest, MoveCtor)
   MockSharedMutex mtx;
   yamc::shared_lock<MockSharedMutex> lk1(mtx);
   yamc::shared_lock<MockSharedMutex> lk2(std::move(lk1));  // move-constructor
-  ASSERT_EQ(nullptr, lk1.mutex());
-  ASSERT_FALSE(lk1.owns_lock());
-  ASSERT_EQ(&mtx, lk2.mutex());
-  ASSERT_TRUE(lk2.owns_lock());
-  ASSERT_TRUE(noexcept(yamc::shared_lock<MockSharedMutex>(std::move(lk2))));
+  EXPECT_EQ(nullptr, lk1.mutex());
+  EXPECT_FALSE(lk1.owns_lock());
+  EXPECT_EQ(&mtx, lk2.mutex());
+  EXPECT_TRUE(lk2.owns_lock());
+  EXPECT_TRUE(noexcept(yamc::shared_lock<MockSharedMutex>(std::move(lk2))));
 }
 
 // shared_lock& operator=(shared_lock&&) noexcept
@@ -485,11 +486,11 @@ TEST(SharedLockTest, MoveAssign)
   yamc::shared_lock<MockSharedMutex> lk1(mtx);
   yamc::shared_lock<MockSharedMutex> lk2;
   lk2 = std::move(lk1);  // move-assignment
-  ASSERT_EQ(nullptr, lk1.mutex());
-  ASSERT_FALSE(lk1.owns_lock());
-  ASSERT_EQ(&mtx, lk2.mutex());
-  ASSERT_TRUE(lk2.owns_lock());
-  ASSERT_TRUE(noexcept(lk1 = std::move(lk2)));
+  EXPECT_EQ(nullptr, lk1.mutex());
+  EXPECT_FALSE(lk1.owns_lock());
+  EXPECT_EQ(&mtx, lk2.mutex());
+  EXPECT_TRUE(lk2.owns_lock());
+  EXPECT_TRUE(noexcept(lk1 = std::move(lk2)));
 }
 
 // lock()
@@ -497,8 +498,8 @@ TEST(SharedLockTest, Lock)
 {
   MockSharedMutex mtx;
   yamc::shared_lock<MockSharedMutex> lk(mtx, std::defer_lock);
-  ASSERT_NO_THROW(lk.lock());
-  ASSERT_TRUE(lk.owns_lock());
+  EXPECT_NO_THROW(lk.lock());
+  EXPECT_TRUE(lk.owns_lock());
 }
 
 // lock() throw exception/operation_not_permitted
@@ -506,11 +507,11 @@ TEST(SharedLockTest, LockThrowEPERM)
 {
   {
     yamc::shared_lock<MockSharedMutex> lk;
-    ASSERT_THROW(lk.lock(), std::system_error);
+    EXPECT_THROW(lk.lock(), std::system_error);
   }
   {
     yamc::shared_lock<MockSharedMutex> lk;
-    ASSERT_THORW_SYSTEM_ERROR(std::errc::operation_not_permitted, {
+    EXPECT_THORW_SYSTEM_ERROR(std::errc::operation_not_permitted, {
       lk.lock();
     });
   }
@@ -521,12 +522,12 @@ TEST(SharedLockTest, LockThrowEDEADLK)
 {
   {
     yamc::shared_lock<MockSharedMutex> lk;
-    ASSERT_THROW(lk.lock(), std::system_error);
+    EXPECT_THROW(lk.lock(), std::system_error);
   }
   {
     MockSharedMutex mtx;
     yamc::shared_lock<MockSharedMutex> lk(mtx);
-    ASSERT_THORW_SYSTEM_ERROR(std::errc::resource_deadlock_would_occur, {
+    EXPECT_THORW_SYSTEM_ERROR(std::errc::resource_deadlock_would_occur, {
       lk.lock();
     });
   }
@@ -537,8 +538,8 @@ TEST(SharedLockTest, TryLock)
 {
   MockSharedMutex mtx;
   yamc::shared_lock<MockSharedMutex> lk(mtx, std::defer_lock);
-  ASSERT_TRUE(lk.try_lock());
-  ASSERT_TRUE(lk.owns_lock());
+  EXPECT_TRUE(lk.try_lock());
+  EXPECT_TRUE(lk.owns_lock());
 }
 
 // try_lock() failure
@@ -547,8 +548,8 @@ TEST(SharedLockTest, TryLockFail)
   MockSharedMutex mtx;
   mtx.retval_on_trylock = false;
   yamc::shared_lock<MockSharedMutex> lk(mtx, std::defer_lock);
-  ASSERT_FALSE(lk.try_lock());
-  ASSERT_FALSE(lk.owns_lock());
+  EXPECT_FALSE(lk.try_lock());
+  EXPECT_FALSE(lk.owns_lock());
 }
 
 // try_lock() throw exception/operation_not_permitted
@@ -556,11 +557,11 @@ TEST(SharedLockTest, TryLockThrowEPERM)
 {
   {
     yamc::shared_lock<MockSharedMutex> lk;
-    ASSERT_THROW(lk.try_lock(), std::system_error);
+    EXPECT_THROW(lk.try_lock(), std::system_error);
   }
   {
     yamc::shared_lock<MockSharedMutex> lk;
-    ASSERT_THORW_SYSTEM_ERROR(std::errc::operation_not_permitted, {
+    EXPECT_THORW_SYSTEM_ERROR(std::errc::operation_not_permitted, {
       lk.try_lock();
     });
   }
@@ -572,12 +573,12 @@ TEST(SharedLockTest, TryLockThrowEDEADLK)
   {
     MockSharedMutex mtx;
     yamc::shared_lock<MockSharedMutex> lk(mtx);
-    ASSERT_THROW(lk.try_lock(), std::system_error);
+    EXPECT_THROW(lk.try_lock(), std::system_error);
   }
   {
     MockSharedMutex mtx;
     yamc::shared_lock<MockSharedMutex> lk(mtx);
-    ASSERT_THORW_SYSTEM_ERROR(std::errc::resource_deadlock_would_occur, {
+    EXPECT_THORW_SYSTEM_ERROR(std::errc::resource_deadlock_would_occur, {
       lk.try_lock();
     });
   }
@@ -588,8 +589,8 @@ TEST(SharedLockTest, Unlock)
 {
   MockSharedMutex mtx;
   yamc::shared_lock<MockSharedMutex> lk(mtx);
-  ASSERT_NO_THROW(lk.unlock());
-  ASSERT_FALSE(lk.owns_lock());
+  EXPECT_NO_THROW(lk.unlock());
+  EXPECT_FALSE(lk.owns_lock());
 }
 
 // unlock() throw system_error/operation_not_permitted
@@ -598,12 +599,12 @@ TEST(SharedLockTest, UnlockThrowEPERM)
   {
     MockSharedMutex mtx;
     yamc::shared_lock<MockSharedMutex> lk(mtx, std::defer_lock);
-    ASSERT_THROW(lk.unlock(), std::system_error);
+    EXPECT_THROW(lk.unlock(), std::system_error);
   }
   {
     MockSharedMutex mtx;
     yamc::shared_lock<MockSharedMutex> lk(mtx, std::defer_lock);
-    ASSERT_THORW_SYSTEM_ERROR(std::errc::operation_not_permitted, {
+    EXPECT_THORW_SYSTEM_ERROR(std::errc::operation_not_permitted, {
       lk.unlock();
     });
   }
@@ -616,11 +617,11 @@ TEST(SharedLockTest, Swap)
   yamc::shared_lock<MockSharedMutex> lk1(mtx1);                   // {&mtx1, true}
   yamc::shared_lock<MockSharedMutex> lk2(mtx2, std::defer_lock);  // {&mtx2, false}
   lk1.swap(lk2);
-  ASSERT_EQ(&mtx2, lk1.mutex());
-  ASSERT_FALSE(lk1.owns_lock());
-  ASSERT_EQ(&mtx1, lk2.mutex());
-  ASSERT_TRUE(lk2.owns_lock());
-  ASSERT_TRUE(noexcept(lk1.swap(lk2)));
+  EXPECT_EQ(&mtx2, lk1.mutex());
+  EXPECT_FALSE(lk1.owns_lock());
+  EXPECT_EQ(&mtx1, lk2.mutex());
+  EXPECT_TRUE(lk2.owns_lock());
+  EXPECT_TRUE(noexcept(lk1.swap(lk2)));
 }
 
 // void swap(shared_lock&, shared_lock&) noexcept
@@ -630,11 +631,11 @@ TEST(SharedLockTest, SwapNonMember)
   yamc::shared_lock<MockSharedMutex> lk1(mtx1);                   // {&mtx1, true}
   yamc::shared_lock<MockSharedMutex> lk2(mtx2, std::defer_lock);  // {&mtx2, false}
   std::swap(lk1, lk2);
-  ASSERT_EQ(&mtx2, lk1.mutex());
-  ASSERT_FALSE(lk1.owns_lock());
-  ASSERT_EQ(&mtx1, lk2.mutex());
-  ASSERT_TRUE(lk2.owns_lock());
-  ASSERT_TRUE(noexcept(std::swap(lk1, lk2)));
+  EXPECT_EQ(&mtx2, lk1.mutex());
+  EXPECT_FALSE(lk1.owns_lock());
+  EXPECT_EQ(&mtx1, lk2.mutex());
+  EXPECT_TRUE(lk2.owns_lock());
+  EXPECT_TRUE(noexcept(std::swap(lk1, lk2)));
 }
 
 // mutex_type* release() noexcept
@@ -642,10 +643,10 @@ TEST(SharedLockTest, Release)
 {
   MockSharedMutex mtx;
   yamc::shared_lock<MockSharedMutex> lk(mtx);
-  ASSERT_EQ(&mtx, lk.release());
-  ASSERT_EQ(nullptr, lk.mutex());
-  ASSERT_FALSE(lk.owns_lock());
-  ASSERT_TRUE(noexcept(lk.release()));
+  EXPECT_EQ(&mtx, lk.release());
+  EXPECT_EQ(nullptr, lk.mutex());
+  EXPECT_FALSE(lk.owns_lock());
+  EXPECT_TRUE(noexcept(lk.release()));
 }
 
 // bool owns_lock() const noexcept
@@ -653,8 +654,8 @@ TEST(SharedLockTest, OwnsLock)
 {
   MockSharedMutex mtx;
   const yamc::shared_lock<MockSharedMutex> lk(mtx);
-  ASSERT_TRUE(lk.owns_lock());
-  ASSERT_TRUE(noexcept(lk.owns_lock()));
+  EXPECT_TRUE(lk.owns_lock());
+  EXPECT_TRUE(noexcept(lk.owns_lock()));
 }
 
 // explicit operator bool () const noexcept
@@ -685,6 +686,6 @@ TEST(SharedLockTest, Mutex)
 {
   MockSharedMutex mtx;
   const yamc::shared_lock<MockSharedMutex> lk(mtx);
-  ASSERT_EQ(&mtx, lk.mutex());
-  ASSERT_TRUE(noexcept(lk.mutex()));
+  EXPECT_EQ(&mtx, lk.mutex());
+  EXPECT_TRUE(noexcept(lk.mutex()));
 }

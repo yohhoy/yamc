@@ -102,7 +102,7 @@ TYPED_TEST(FairMutexTest, FifoSched)
       break;
     }
   });
-  ASSERT_LE(TEST_TICKS * step, sw.elapsed());
+  EXPECT_LE(TEST_TICKS * step, sw.elapsed());
 }
 
 
@@ -171,7 +171,7 @@ TYPED_TEST(FairTimedMutexTest, FifoTryLockFor)
       break;
     }
   });
-  ASSERT_LE(TEST_TICKS * step, sw.elapsed());
+  EXPECT_LE(TEST_TICKS * step, sw.elapsed());
 }
 
 // FIFO scheduling with try_lock_until() timeout
@@ -229,7 +229,7 @@ TYPED_TEST(FairTimedMutexTest, FifoTryLockUntil)
       break;
     }
   });
-  ASSERT_LE(TEST_TICKS * step, sw.elapsed());
+  EXPECT_LE(TEST_TICKS * step, sw.elapsed());
 }
 
 
@@ -318,7 +318,7 @@ TYPED_TEST(FairSharedMutexTest, PhaseFifoSched)
       break;
     }
   });
-  ASSERT_LE(TEST_TICKS * 7, sw.elapsed());
+  EXPECT_LE(TEST_TICKS * 7, sw.elapsed());
 }
 
 
@@ -394,7 +394,7 @@ TEST(FairSharedTimedMutexTest, PhaseFifoTryLockFor)
       break;
     }
   });
-  ASSERT_LE(TEST_TICKS * 5, sw.elapsed());
+  EXPECT_LE(TEST_TICKS * 5, sw.elapsed());
 }
 
 // phase-fair RW lock scheduling try_lock_until() timeout
@@ -470,7 +470,7 @@ TEST(FairSharedTimedMutexTest, PhaseFifoTryLockUntil)
       break;
     }
   });
-  ASSERT_LE(TEST_TICKS * 5, sw.elapsed());
+  EXPECT_LE(TEST_TICKS * 5, sw.elapsed());
 }
 
 // phase-fair RW lock scheduling try_lock_shared_for() timeout
@@ -534,7 +534,7 @@ TEST(FairSharedTimedMutexTest, PhaseFifoTryLockSharedFor)
       break;
     }
   });
-  ASSERT_LE(TEST_TICKS * 6, sw.elapsed());
+  EXPECT_LE(TEST_TICKS * 6, sw.elapsed());
 }
 
 // phase-fair RW lock scheduling try_lock_shared_until() timeout
@@ -599,5 +599,5 @@ TEST(FairSharedTimedMutexTest, PhaseFifoTryLockSharedUntil)
       break;
     }
   });
-  ASSERT_LE(TEST_TICKS * 6, sw.elapsed());
+  EXPECT_LE(TEST_TICKS * 6, sw.elapsed());
 }
