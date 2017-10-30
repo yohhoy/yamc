@@ -58,6 +58,8 @@ TYPED_TEST_CASE(FairMutexTest, FairMutexTypes);
 //         |   |  \        |   |
 // T2: ....w.t.w.3.a.l-----L=6=U....
 //
+//   CriticalPath = 1-2-3-4-5-6-7
+//
 //   l/L=lock(request/acquired), U=unlock()
 //   T=try_lock(true), t=try_lock(false)
 //   a=phase advance, w=phase await
@@ -125,6 +127,8 @@ TYPED_TEST_CASE(FairTimedMutexTest, FairTimedMutexTypes);
 //       |  \   /---/    |   |
 // T2: ..a...w.a.t-------T=4=U........
 //
+//   CriticalPath = 1-2-3-4-5-6
+//
 //   t/T=try_lock_for(request/acquired)
 //   U=unlock(), *=timeout
 //   a=phase advance, w=phase await
@@ -181,6 +185,8 @@ TYPED_TEST(FairTimedMutexTest, FifoTryLockFor)
 // T1: ..w.a.t-1-2-*-a-t-|---T=5=U....
 //       |  \   /---/    |   |
 // T2: ..a...w.a.t-------T=4=U........
+//
+//   CriticalPath = 1-2-3-4-5-6
 //
 //   t/T=try_lock_until(request/acquired)
 //   U=unlock(), *=timeout
@@ -254,6 +260,8 @@ TYPED_TEST_CASE(FairSharedMutexTest, FairSharedMutexTypes);
 // T3/W: ..a.a.....w.l-|-----------L=7=U....
 //         | |    /    |               |
 // T4/R: ..a.a...a.....w.s-------------S=8=V
+//
+//   CriticalPath = 1-2-3-4-6-7-{8|9}
 //
 //   l/L=lock(request/acquired), U=unlock()
 //   s/S=lock_shared(request/acquired), V=unlock_shared()
@@ -332,7 +340,9 @@ TYPED_TEST(FairSharedMutexTest, PhaseFifoSched)
 //         |  /    |   |         |
 // T3/W: ..a.a.....w.t-|-4---5-*.a....
 //         | |    /    |       | |
-// T4/R: ..a.a...a.....w.s-----S=w~8=V
+// T4/R: ..a.a...a.....w.s-----S=w=8=V
+//
+//   CriticalPath = 1-2-{3-6|4-5}-{7|8}
 //
 //   t/T=try_lock_for(request/acquired), U=unlock(), *=timeout
 //   s/S=lock_shared(request/acquired), V=unlock_shared()
@@ -407,7 +417,9 @@ TEST(FairSharedTimedMutexTest, PhaseFifoTryLockFor)
 //         |  /    |   |         |
 // T3/W: ..a.a.....w.t-|-4---5-*.a....
 //         | |    /    |       | |
-// T4/R: ..a.a...a.....w.s-----S=w~8=V
+// T4/R: ..a.a...a.....w.s-----S=w=8=V
+//
+//   CriticalPath = 1-2-{3-6|4-5}-{7|8}
 //
 //   t/T=try_lock_until(request/acquired), U=unlock(), *=timeout
 //   s/S=lock_shared(request/acquired), V=unlock_shared()
@@ -483,6 +495,8 @@ TEST(FairSharedTimedMutexTest, PhaseFifoTryLockUntil)
 //         |   |   |  \        |
 // T3/R: ..a...a...w.4.a.s-----S=7=V
 //
+//   CriticalPath = 1-3-4-5-6-7
+//
 //   l/L=lock(request/acquired), U=unlock()
 //   s/S=try_lock_shared_for(request/acquired)
 //   V=unlock_shared(), *=timeout
@@ -546,6 +560,8 @@ TEST(FairSharedTimedMutexTest, PhaseFifoTryLockSharedFor)
 // T2/W: ..a...w.3.a.a.l---L=6=U....
 //         |   |   |  \        |
 // T3/R: ..a...a...w.4.a.s-----S=7=V
+//
+//   CriticalPath = 1-3-4-5-6-7
 //
 //   l/L=lock(request/acquired), U=unlock()
 //   s/S=try_lock_shared_until(request/acquired)

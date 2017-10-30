@@ -75,10 +75,11 @@ TYPED_TEST(SharedMutexTest, Lock)
         EXPECT_NO_THROW(mtx.unlock());
       } else {
         // reader-threads
-        yamc::shared_lock<TypeParam> read_lk(mtx);
+        ASSERT_NO_THROW(mtx.lock_shared());
         ph.advance(1);  // p1
         ++nread;
         WAIT_TICKS;
+        ASSERT_NO_THROW(mtx.unlock_shared());
       }
     });
   EXPECT_LE(TEST_TICKS * 2, sw.elapsed());
@@ -106,10 +107,11 @@ TYPED_TEST(SharedMutexTest, TryLock)
         EXPECT_NO_THROW(mtx.unlock());
       } else {
         // reader-threads
-        yamc::shared_lock<TypeParam> read_lk(mtx);
+        ASSERT_NO_THROW(mtx.lock_shared());
         ph.advance(1);  // p1
         ++nread;
         WAIT_TICKS;
+        ASSERT_NO_THROW(mtx.unlock_shared());
       }
     });
   EXPECT_LE(TEST_TICKS * 2, sw.elapsed());
@@ -148,10 +150,11 @@ TYPED_TEST(SharedMutexTest, LockShared)
       auto ph = phaser.get(id);
       if (id == 0) {
         // writer-thread
-        std::lock_guard<TypeParam> write_lk(mtx);
+        ASSERT_NO_THROW(mtx.lock());
         ph.advance(1);  // p1
         data = 42;
         WAIT_TICKS;
+        ASSERT_NO_THROW(mtx.unlock());
       } else {
         // reader-threads
         ph.await();     // p1
@@ -177,10 +180,11 @@ TYPED_TEST(SharedMutexTest, TryLockShared)
       auto ph = phaser.get(id);
       if (id == 0) {
         // writer-thread
-        std::lock_guard<TypeParam> write_lk(mtx);
+        ASSERT_NO_THROW(mtx.lock());
         ph.advance(1);  // p1
         data = 42;
         WAIT_TICKS;
+        ASSERT_NO_THROW(mtx.unlock());
       } else {
         // reader-threads
         ph.await();     // p1
@@ -251,10 +255,11 @@ TYPED_TEST(SharedTimedMutexTest, TryLockFor)
         EXPECT_NO_THROW(mtx.unlock());
       } else {
         // reader-threads
-        yamc::shared_lock<TypeParam> read_lk(mtx);
+        ASSERT_NO_THROW(mtx.lock_shared());
         ph.advance(1);  // p1
         ++nread;
         WAIT_TICKS;
+        ASSERT_NO_THROW(mtx.unlock_shared());
       }
     });
   EXPECT_LE(TEST_TICKS * 2, sw.elapsed());
@@ -280,10 +285,11 @@ TYPED_TEST(SharedTimedMutexTest, TryLockUntil)
         EXPECT_NO_THROW(mtx.unlock());
       } else {
         // reader-threads
-        yamc::shared_lock<TypeParam> read_lk(mtx);
+        ASSERT_NO_THROW(mtx.lock_shared());
         ph.advance(1);  // p1
         ++nread;
         WAIT_TICKS;
+        ASSERT_NO_THROW(mtx.unlock_shared());
       }
     });
   EXPECT_LE(TEST_TICKS * 2, sw.elapsed());
@@ -345,15 +351,16 @@ TYPED_TEST(SharedTimedMutexTest, TryLockSharedFor)
       auto ph = phaser.get(id);
       if (id == 0) {
         // writer-threads
-        std::lock_guard<TypeParam> write_lk(mtx);
-        WAIT_TICKS;
+        ASSERT_NO_THROW(mtx.lock());
         ph.advance(1);  // p1
+        WAIT_TICKS;
+        ASSERT_NO_THROW(mtx.unlock());
       } else {
         // reader-threads
         ph.await();     // p1
         EXPECT_TRUE(mtx.try_lock_shared_for(TEST_NOT_TIMEOUT));
         WAIT_TICKS;
-        mtx.unlock_shared();
+        EXPECT_NO_THROW(mtx.unlock_shared());
       }
     });
   EXPECT_LE(TEST_TICKS * 2, sw.elapsed());
@@ -371,15 +378,16 @@ TYPED_TEST(SharedTimedMutexTest, TryLockSharedUntil)
       auto ph = phaser.get(id);
       if (id == 0) {
         // writer-threads
-        std::lock_guard<TypeParam> write_lk(mtx);
-        WAIT_TICKS;
+        ASSERT_NO_THROW(mtx.lock());
         ph.advance(1);  // p1
+        WAIT_TICKS;
+        ASSERT_NO_THROW(mtx.unlock());
       } else {
         // reader-threads
-        ph.await();     // p2
+        ph.await();     // p1
         EXPECT_TRUE(mtx.try_lock_shared_until(std::chrono::system_clock::now() + TEST_NOT_TIMEOUT));
         WAIT_TICKS;
-        mtx.unlock_shared();
+        EXPECT_NO_THROW(mtx.unlock_shared());
       }
     });
   EXPECT_LE(TEST_TICKS * 2, sw.elapsed());
@@ -454,9 +462,11 @@ TYPED_TEST_CASE(RWLockReaderPreferTest, RWLockReaderPreferTypes);
 //       |       |     |
 // T2: ..a.......w.S=4=a=5=V......
 //
-//  l/L=lock(request/acquire), U=unlock()
-//  s/S=lock_shared(request/acquire), V=unlock_shared()
-//  a=phase advance, w=phase await
+//   CriticalPath = 1-2-{3|4}-6-7
+//
+//   l/L=lock(request/acquire), U=unlock()
+//   s/S=lock_shared(request/acquire), V=unlock_shared()
+//   a=phase advance, w=phase await
 //
 TYPED_TEST(RWLockReaderPreferTest, LockOrder)
 {
@@ -523,9 +533,11 @@ TYPED_TEST_CASE(RwLockWriterPreferTest, RwLockWriterPreferTypes);
 //       |       |   |       |
 // T2: ..a.......a...w.s-----S=6=V
 //
-//  l/L=lock(request/acquire), U=unlock()
-//  s/S=lock_shared(request/acquire), V=unlock_shared()
-//  a=phase advance, w=phase await
+//   CriticalPath = 1-2-3-4-5-6
+//
+//   l/L=lock(request/acquire), U=unlock()
+//   s/S=lock_shared(request/acquire), V=unlock_shared()
+//   a=phase advance, w=phase await
 //
 TYPED_TEST(RwLockWriterPreferTest, LockOrder)
 {
