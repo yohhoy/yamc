@@ -15,7 +15,7 @@ This library includes:
 - Shared mutex for readers-writer locking in C++11, support reader-prefer/writer-prefer scheduling.
 - Checked mutex for debugging, compatible with requirements in C++11/14/17 Standard.
 - Fair mutex and phase-fair shared mutex, which prevent from starvation.
-- `shared_lock<Mutex>` utility in C++11, whcih is defined in C++14 or later.
+- `shared_lock<Mutex>`, `scoped_lock<Mutexes...>` utilities in C++11, whcih are defined in C++14/17.
 
 
 ## Example
