@@ -224,12 +224,18 @@ public:
 namespace cxx {
 
 /// C++14 std::make_unique()
-template<typename T, typename... Args>
+template <typename T, typename... Args>
 inline
 std::unique_ptr<T> make_unique(Args&&... args)
 {
   return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
 }
+
+/// C++17 std::void_t<Ts...>
+template <typename... Ts>
+struct make_void { using type = void; };
+template <typename... Ts>
+using void_t = typename make_void<Ts...>::type;
 
 } // namespace cxx
 
@@ -238,6 +244,7 @@ std::unique_ptr<T> make_unique(Args&&... args)
 namespace mock {
 
 struct mutex {
+  bool locked = false;
   bool retval_on_trylock = true;
 
   mutex() = default;
@@ -246,9 +253,9 @@ struct mutex {
   mutex(const mutex&) = delete;
   mutex& operator=(const mutex&) = delete;
 
-  void lock() {}
-  bool try_lock() { return retval_on_trylock; }
-  void unlock() {}
+  void lock() { locked = true; }
+  bool try_lock() { return (locked = retval_on_trylock); }
+  void unlock() { locked = false; }
 };
 
 struct recursive_mutex {

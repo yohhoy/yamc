@@ -56,3 +56,4 @@ set_target_properties(deadlock0_test PROPERTIES COMPILE_DEFINITIONS "YAMC_CHECKE
 set_target_properties(deadlock1_test PROPERTIES COMPILE_DEFINITIONS "YAMC_CHECKED_CALL_ABORT=1")
 do_test(fairness fairness_test)
 do_test(rwlock rwlock_test)
+do_test(lock lock_test)
