@@ -15,7 +15,7 @@ This library includes:
 - Shared mutex for readers-writer locking in C++11, support reader-prefer/writer-prefer scheduling.
 - Checked mutex for debugging, compatible with requirements in C++11/14/17 Standard.
 - Fair mutex and phase-fair shared mutex, which prevent from starvation.
-- `shared_lock<Mutex>`, `scoped_lock<Mutexes...>` utilities in C++11, whcih are defined in C++14/17.
+- `shared_lock<Mutex>`, `scoped_lock<Mutexes...>` utilities which are added in C++14/17.
 
 
 ## Example
@@ -111,7 +111,7 @@ Period.
 - When you _really_ need spinlock mutex, I suppose `yamc::spin_ttas::mutex` may be best choice.
 - When you _actually_ need fairness of locking order, try to use fair mutex in `yamc::fair::*`.
 - Mutex in `yamc::alternate::*` has the same semantics of C++ Standard mutex, no additional features.
- - When your compiler doesn't support C++14/17 Standard Library, shared mutex in `yamc::alternate::*` and `yamc::shared_lock<Mutex>` which emulate C++14 [`std::shared_lock<Mutex>`][std_sharedlock] are useful.
+- When your compiler doesn't support C++14/17 Standard Library, shared mutex in `yamc::alternate::*` and `yamc::shared_lock<Mutex>` which emulate C++14 [`std::shared_lock<Mutex>`][std_sharedlock] are useful.
 
 [std_sharedlock]: http://en.cppreference.com/w/cpp/thread/shared_lock
 
