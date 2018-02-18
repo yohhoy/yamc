@@ -211,9 +211,9 @@ protected:
     assert(queue_.next == &locked_ && (locked_.status & node_status_mask) == 2);
     wq_pop_locknode();
     if (!wq_empty()) {
-      // mark subsequent 'waiting' shared-lock nodes as 'lockable'
+      // mark subsequent shared-lock nodes as 'lockable'
       if (RwLockFairness::phased) {
-        // PhaseFairness: mark all queued shared-lock nodes
+        // PhaseFairness: mark all queued shared-lock nodes if the next is (waiting) shared-lock.
         if ((queue_.next->status & node_status_mask) == 1) {
           for (node* p = queue_.next; p != &queue_; p = p->next) {
             if ((p->status & node_status_mask) == 1) {
@@ -222,7 +222,7 @@ protected:
           }
         }
       } else {
-        // TaskFairness: mark immediately subsequent shared-lock nodes
+        // TaskFairness: mark directly subsequent shared-lock nodes group.
         node* p = queue_.next;
         while (p != &queue_ && (p->status & node_status_mask) == 1) {
           p->status |= 2;
@@ -246,25 +246,15 @@ protected:
         if (cv_.wait_until(lk, tp) == std::cv_status::timeout) {
           if (queue_.next == &request)  // re-check predicate
             break;
-          if (request.prev == &locked_ && (locked_.status & node_status_mask) == 3) {
+          if ((request.prev->status & node_status_mask) == 3) {
             //
-            // When exclusive-lock are timeouted and previous shared-lock own lock,
-            // mark subsequent 'waiting' shared-lock nodes as 'lockable'.
+            // When exclusive-lock timeout and previous shared-lock is 'lockable(-ing)',
+            // mark directly subsequent 'waiting' shared-lock nodes group as 'lockable'.
             //
-            if (RwLockFairness::phased) {
-              // PhaseFairness: mark all queued shared-lock nodes
-              for (node* p = request.next; p != &queue_; p = p->next) {
-                if ((p->status & node_status_mask) == 1) {
-                  p->status |= 2;
-                }
-              }
-            } else {
-              // TaskFairness: mark immediately subsequent shared-lock nodes group
-              node* p = request.next;
-              while (p != &queue_ && (p->status & node_status_mask) == 1) {
-                p->status |= 2;
-                p = p->next;
-              }
+            node* p = request.next;
+            while (p != &queue_ && (p->status & node_status_mask) == 1) {
+              p->status |= 2;
+              p = p->next;
             }
             cv_.notify_all();
           }
