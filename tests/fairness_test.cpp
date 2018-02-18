@@ -36,13 +36,19 @@ std::mutex g_guard;
   { TRACE("STEP"#r0_"-"#r1_); int s = ++step; EXPECT_TRUE(r0_ <= s && s <= r1_); WAIT_TICKS; }
 
 
+// debug for test case
+#define TESTCASE_EXPECT_FAILED 0
+
+
 using FairMutexTypes = ::testing::Types<
   yamc::fair::mutex,
   yamc::fair::timed_mutex,
   yamc::fair::recursive_mutex,
   yamc::fair::recursive_timed_mutex,
-  yamc::fair::shared_mutex,
-  yamc::fair::shared_timed_mutex
+  yamc::fair::basic_shared_mutex<yamc::rwlock::TaskFairness>,
+  yamc::fair::basic_shared_mutex<yamc::rwlock::PhaseFairness>,
+  yamc::fair::basic_shared_timed_mutex<yamc::rwlock::TaskFairness>,
+  yamc::fair::basic_shared_timed_mutex<yamc::rwlock::PhaseFairness>
 >;
 
 template <typename Mutex>
@@ -54,7 +60,7 @@ TYPED_TEST_CASE(FairMutexTest, FairMutexTypes);
 //
 // T0: T=1=a=a=====w=4=U.......L=7=U
 //         |  \   /    |       |
-// T1: ....w.2.a.a.l---L=5=U........
+// T1: ....w.2.a.a.l---L=5=U...|....
 //         |   |  \        |   |
 // T2: ....w.t.w.3.a.l-----L=6=U....
 //
@@ -111,7 +117,8 @@ TYPED_TEST(FairMutexTest, FifoSched)
 using FairTimedMutexTypes = ::testing::Types<
   yamc::fair::timed_mutex,
   yamc::fair::recursive_timed_mutex,
-  yamc::fair::shared_timed_mutex
+  yamc::fair::basic_shared_timed_mutex<yamc::rwlock::TaskFairness>,
+  yamc::fair::basic_shared_timed_mutex<yamc::rwlock::PhaseFairness>
 >;
 
 template <typename Mutex>
@@ -239,35 +246,39 @@ TYPED_TEST(FairTimedMutexTest, FifoTryLockUntil)
 }
 
 
-using FairSharedMutexTypes = ::testing::Types<
-  yamc::fair::shared_mutex,
-  yamc::fair::shared_timed_mutex
+using TaskFairSharedMutexTypes = ::testing::Types<
+#if TESTCASE_EXPECT_FAILED
+  yamc::fair::basic_shared_mutex<yamc::rwlock::PhaseFairness>,
+  yamc::fair::basic_shared_timed_mutex<yamc::rwlock::PhaseFairness>,
+#endif
+  yamc::fair::basic_shared_mutex<yamc::rwlock::TaskFairness>,
+  yamc::fair::basic_shared_timed_mutex<yamc::rwlock::TaskFairness>
 >;
 
 template <typename Mutex>
-struct FairSharedMutexTest : ::testing::Test {};
+struct TaskFairSharedMutexTest : ::testing::Test {};
 
-TYPED_TEST_CASE(FairSharedMutexTest, FairSharedMutexTypes);
+TYPED_TEST_CASE(TaskFairSharedMutexTest, TaskFairSharedMutexTypes);
 
-// phase-fair readers-writer lock scheduling
+// task-fairness RW lock scheduling
 //
-// T0/W: L=a=1=a=2=a=3=a=a=U................
-//         |   |   |   |  \|--\
-// T1/R: ..w.s-|---|---|---S=4=w=6=V........
-//         |   |   |   |   |    \  |
-// T2/R: ..a...w.s-|---|---S=5=V.a.|.s-S=9=V
-//         |  /    |   |           |   |
-// T3/W: ..a.a.....w.l-|-----------L=7=U....
-//         | |    /    |               |
-// T4/R: ..a.a...a.....w.s-------------S=8=V
+// T0/W: L=a=1=a=2=a=3=a=U..................
+//         |   |   |    \|----\
+// T1/R: ..w.s-|---|-----S=====w=5=V........
+//         |   |   |     |     |   |
+// T2/R: ..w.s-|---|-----S=4=V.w.s-|---S=7=V
+//         |   |   |               |   |
+// T3/W: ..a...w.l-|---------------L=6=U....
+//         |  /    |                   |
+// T4/R: ..a.a.....w.s-----------------S=8=V
 //
-//   CriticalPath = 1-2-3-4-6-7-{8|9}
+//   CriticalPath = 1-2-3-4-5-6-{7|8}
 //
 //   l/L=lock(request/acquired), U=unlock()
 //   s/S=lock_shared(request/acquired), V=unlock_shared()
 //   a=phase advance, w=phase await
 //
-TYPED_TEST(FairSharedMutexTest, PhaseFifoSched)
+TYPED_TEST(TaskFairSharedMutexTest, TaskFifoSched)
 {
   yamc::test::phaser phaser(5);
   std::atomic<int> step = {0};
@@ -284,44 +295,42 @@ TYPED_TEST(FairSharedMutexTest, PhaseFifoSched)
       EXPECT_STEP(2);
       ph.advance(1);  // p3
       EXPECT_STEP(3);
-      ph.advance(2);  // p4-5
+      ph.advance(1);  // p4
       mtx.unlock();
       break;
     case 1:
       ph.await();     // p1
-      ph.advance(3);  // p2-4
+      ph.advance(2);  // p2-3
       mtx.lock_shared();
-      EXPECT_STEP_RANGE(4, 5);
-      ph.await();     // p5
-      EXPECT_STEP(6);
+      ph.await();     // p4
+      EXPECT_STEP(5);
       mtx.unlock_shared();
       break;
     case 2:
-      ph.advance(1);  // p1
-      ph.await();     // p2
-      ph.advance(2);  // p3-4
+      ph.await();     // p1
+      ph.advance(2);  // p2-3
       mtx.lock_shared();
-      EXPECT_STEP_RANGE(4, 5);
+      EXPECT_STEP(4);
       mtx.unlock_shared();
-      ph.advance(1);  // p5
+      ph.await();     // p4
       mtx.lock_shared();
-      EXPECT_STEP_RANGE(8, 9);
+      EXPECT_STEP_RANGE(7, 8);
       mtx.unlock_shared();
       break;
     case 3:
-      ph.advance(2);  // p1-2
-      ph.await();     // p3
-      ph.advance(2);  // p4-5
+      ph.advance(1);  // p1
+      ph.await();     // p2
+      ph.advance(2);  // p3-4
       mtx.lock();
-      EXPECT_STEP(7);
+      EXPECT_STEP(6);
       mtx.unlock();
       break;
     case 4:
-      ph.advance(3);  // p1-3
-      ph.await();     // p4
-      ph.advance(1);  // p5
+      ph.advance(2);  // p1-2
+      ph.await();     // p3
+      ph.advance(1);  // p4
       mtx.lock_shared();
-      EXPECT_STEP_RANGE(8, 9);
+      EXPECT_STEP_RANGE(7, 8);
       mtx.unlock_shared();
       break;
     }
@@ -330,17 +339,120 @@ TYPED_TEST(FairSharedMutexTest, PhaseFifoSched)
 }
 
 
-// phase-fair RW lock scheduling try_lock_for() timeout
+using PhaseFairSharedMutexTypes = ::testing::Types<
+#if TESTCASE_EXPECT_FAILED
+  yamc::fair::basic_shared_mutex<yamc::rwlock::TaskFairness>,
+  yamc::fair::basic_shared_timed_mutex<yamc::rwlock::TaskFairness>,
+#endif
+  yamc::fair::basic_shared_mutex<yamc::rwlock::PhaseFairness>,
+  yamc::fair::basic_shared_timed_mutex<yamc::rwlock::PhaseFairness>
+>;
+
+template <typename Mutex>
+struct PhaseFairSharedMutexTest : ::testing::Test {};
+
+TYPED_TEST_CASE(PhaseFairSharedMutexTest, PhaseFairSharedMutexTypes);
+
+// phase-fair RW lock scheduling
 //
-// T0/W: T=a=1=a=2=a=3=a=a=U..........
-//         |   |   |   |  \|----\
-// T1/R: ..w.s-|---|---|---S=====w=7=V
-//         |   |   |   |   |     |
-// T2/R: ..a...w.s-|---|---S=6=V.a....
-//         |  /    |   |         |
-// T3/W: ..a.a.....w.t-|-4---5-*.a....
-//         | |    /    |       | |
-// T4/R: ..a.a...a.....w.s-----S=w=8=V
+// T0/W: L=a=1=a=2=a=3=a=U..................
+//         |   |   |    \|----\
+// T1/R: ..w.s-|---|-----S=====w=6=V........
+//         |   |   |     |     |   |
+// T2/R: ..w.s-|---|-----S=4=V.w.s-|---S=8=V
+//         |   |   |     |         |   |
+// T3/W: ..a...w.l-|-----|---------L=7=U....
+//         |  /    |     |
+// T4/R: ..a.a.....w.s---S=5=V..............
+//
+//   CriticalPath = 1-2-3-4-6-7-8
+//
+//   l/L=lock(request/acquired), U=unlock()
+//   s/S=lock_shared(request/acquired), V=unlock_shared()
+//   a=phase advance, w=phase await
+//
+TYPED_TEST(PhaseFairSharedMutexTest, PhaseFifoSched)
+{
+  yamc::test::phaser phaser(5);
+  std::atomic<int> step = {0};
+  TypeParam mtx;
+  yamc::test::stopwatch<> sw;
+  yamc::test::task_runner(5, [&](std::size_t id) {
+    auto ph = phaser.get(id);
+    switch (id) {
+    case 0:
+      mtx.lock();
+      ph.advance(1);  // p1
+      EXPECT_STEP(1);
+      ph.advance(1);  // p2
+      EXPECT_STEP(2);
+      ph.advance(1);  // p3
+      EXPECT_STEP(3);
+      ph.advance(1);  // p4
+      mtx.unlock();
+      break;
+    case 1:
+      ph.await();     // p1
+      ph.advance(2);  // p2-3
+      mtx.lock_shared();
+      ph.await();     // p4
+      EXPECT_STEP(6);
+      mtx.unlock_shared();
+      break;
+    case 2:
+      ph.await();     // p1
+      ph.advance(2);  // p2-3
+      mtx.lock_shared();
+      EXPECT_STEP_RANGE(4, 5);
+      mtx.unlock_shared();
+      ph.await();     // p4
+      mtx.lock_shared();
+      EXPECT_STEP(8);
+      mtx.unlock_shared();
+      break;
+    case 3:
+      ph.advance(1);  // p1
+      ph.await();     // p2
+      ph.advance(2);  // p3-4
+      mtx.lock();
+      EXPECT_STEP(7);
+      mtx.unlock();
+      break;
+    case 4:
+      ph.advance(2);  // p1-2
+      ph.await();     // p3
+      ph.advance(1);  // p4
+      mtx.lock_shared();
+      EXPECT_STEP_RANGE(4, 5);
+      mtx.unlock_shared();
+      break;
+    }
+  });
+  EXPECT_LE(TEST_TICKS * 7, sw.elapsed());
+}
+
+
+using FairSharedTimedMutexTypes = ::testing::Types<
+  yamc::fair::basic_shared_timed_mutex<yamc::rwlock::PhaseFairness>,
+  yamc::fair::basic_shared_timed_mutex<yamc::rwlock::TaskFairness>
+>;
+
+template <typename Mutex>
+struct FairSharedTimedMutexTest : ::testing::Test {};
+
+TYPED_TEST_CASE(FairSharedTimedMutexTest, FairSharedTimedMutexTypes);
+
+// task-fair RW lock scheduling try_lock_for() timeout
+//
+// T0/W: T=a=1=a=2=a=3=a=U..........
+//         |   |   |    \|----\
+// T1/R: ..w.s-|---|-----S=====w=7=V
+//         |   |   |     |     |
+// T2/R: ..w.s-|---|-----S=6=V.a....
+//         |   |   |           |
+// T3/W: ..a...w.t-|-----4-5-*.a....
+//         |  /    |         | |
+// T4/R: ..a.a.....w.s-------S=w=8=V
 //
 //   CriticalPath = 1-2-{3-6|4-5}-{7|8}
 //
@@ -348,11 +460,11 @@ TYPED_TEST(FairSharedMutexTest, PhaseFifoSched)
 //   s/S=lock_shared(request/acquired), V=unlock_shared()
 //   a=phase advance, w=phase await
 //
-TEST(FairSharedTimedMutexTest, PhaseFifoTryLockFor)
+TYPED_TEST(FairSharedTimedMutexTest, FifoTryLockFor)
 {
   yamc::test::phaser phaser(5);
   std::atomic<int> step = {0};
-  yamc::fair::shared_timed_mutex mtx;
+  TypeParam mtx;
   yamc::test::stopwatch<> sw;
   yamc::test::task_runner(5, [&](std::size_t id) {
     auto ph = phaser.get(id);
@@ -365,40 +477,39 @@ TEST(FairSharedTimedMutexTest, PhaseFifoTryLockFor)
       EXPECT_STEP(2);
       ph.advance(1);  // p3
       EXPECT_STEP(3);
-      ph.advance(2);  // p4-5
+      ph.advance(1);  // p4
       mtx.unlock();
       break;
     case 1:
       ph.await();     // p1
-      ph.advance(3);  // p2-4
+      ph.advance(2);  // p2-3
       mtx.lock_shared();
-      ph.await();     // p5
+      ph.await();     // p4
       EXPECT_STEP_RANGE(7, 8);
       mtx.unlock_shared();
       break;
     case 2:
-      ph.advance(1);  // p1
-      ph.await();     // p2
-      ph.advance(2);  // p3-4
+      ph.await();     // p1
+      ph.advance(2);  // p2-3
       mtx.lock_shared();
       EXPECT_STEP_RANGE(4, 6);
       mtx.unlock_shared();
-      ph.advance(1);  // p5
+      ph.advance(1);  // p4
       break;
     case 3:
-      ph.advance(2);  // p1-2
-      ph.await();     // p3
-      ph.advance(1);  // p4
+      ph.advance(1);  // p1
+      ph.await();     // p2
+      ph.advance(1);  // p3
       EXPECT_FALSE(mtx.try_lock_for(TEST_TICKS * 2));
       step += 2;
       TRACE("STEP4-5(timeout)");
-      ph.advance(1);  // p5
+      ph.advance(1);  // p4
       break;
     case 4:
-      ph.advance(3);  // p1-3
-      ph.await();     // p4
+      ph.advance(2);  // p1-2
+      ph.await();     // p3
       mtx.lock_shared();
-      ph.await();     // p5
+      ph.await();     // p4
       EXPECT_STEP_RANGE(7, 8);
       mtx.unlock_shared();
       break;
@@ -407,17 +518,17 @@ TEST(FairSharedTimedMutexTest, PhaseFifoTryLockFor)
   EXPECT_LE(TEST_TICKS * 5, sw.elapsed());
 }
 
-// phase-fair RW lock scheduling try_lock_until() timeout
+// fair RW lock scheduling try_lock_until() timeout
 //
-// T0/W: T=a=1=a=2=a=3=a=a=U..........
-//         |   |   |   |  \|----\
-// T1/R: ..w.s-|---|---|---S=====w=7=V
-//         |   |   |   |   |     |
-// T2/R: ..a...w.s-|---|---S=6=V.a....
-//         |  /    |   |         |
-// T3/W: ..a.a.....w.t-|-4---5-*.a....
-//         | |    /    |       | |
-// T4/R: ..a.a...a.....w.s-----S=w=8=V
+// T0/W: T=a=1=a=2=a=3=a=U..........
+//         |   |   |    \|----\
+// T1/R: ..w.s-|---|-----S=====w=7=V
+//         |   |   |     |     |
+// T2/R: ..w.s-|---|-----S=6=V.a....
+//         |   |   |           |
+// T3/W: ..a...w.t-|-----4-5-*.a....
+//         |  /    |         | |
+// T4/R: ..a.a.....w.s-------S=w=8=V
 //
 //   CriticalPath = 1-2-{3-6|4-5}-{7|8}
 //
@@ -425,11 +536,11 @@ TEST(FairSharedTimedMutexTest, PhaseFifoTryLockFor)
 //   s/S=lock_shared(request/acquired), V=unlock_shared()
 //   a=phase advance, w=phase await
 //
-TEST(FairSharedTimedMutexTest, PhaseFifoTryLockUntil)
+TYPED_TEST(FairSharedTimedMutexTest, FifoTryLockUntil)
 {
   yamc::test::phaser phaser(5);
   std::atomic<int> step = {0};
-  yamc::fair::shared_timed_mutex mtx;
+  TypeParam mtx;
   using Clock = std::chrono::steady_clock;
   yamc::test::stopwatch<> sw;
   yamc::test::task_runner(5, [&](std::size_t id) {
@@ -443,40 +554,39 @@ TEST(FairSharedTimedMutexTest, PhaseFifoTryLockUntil)
       EXPECT_STEP(2);
       ph.advance(1);  // p3
       EXPECT_STEP(3);
-      ph.advance(2);  // p4-5
+      ph.advance(1);  // p4
       mtx.unlock();
       break;
     case 1:
       ph.await();     // p1
-      ph.advance(3);  // p2-4
+      ph.advance(2);  // p2-3
       mtx.lock_shared();
-      ph.await();     // p5
+      ph.await();     // p4
       EXPECT_STEP_RANGE(7, 8);
       mtx.unlock_shared();
       break;
     case 2:
-      ph.advance(1);  // p1
-      ph.await();     // p2
-      ph.advance(2);  // p3-4
+      ph.await();     // p1
+      ph.advance(2);  // p2-3
       mtx.lock_shared();
       EXPECT_STEP_RANGE(4, 6);
       mtx.unlock_shared();
-      ph.advance(1);  // p5
+      ph.advance(1);  // p4
       break;
     case 3:
-      ph.advance(2);  // p1-2
-      ph.await();     // p3
-      ph.advance(1);  // p4
+      ph.advance(1);  // p1
+      ph.await();     // p2
+      ph.advance(1);  // p3
       EXPECT_FALSE(mtx.try_lock_until(Clock::now() + TEST_TICKS * 2));
       step += 2;
       TRACE("STEP4-5(timeout)");
-      ph.advance(1);  // p5
+      ph.advance(1);  // p4
       break;
     case 4:
-      ph.advance(3);  // p1-3
-      ph.await();     // p4
+      ph.advance(2);  // p1-2
+      ph.await();     // p3
       mtx.lock_shared();
-      ph.await();     // p5
+      ph.await();     // p4
       EXPECT_STEP_RANGE(7, 8);
       mtx.unlock_shared();
       break;
@@ -485,15 +595,15 @@ TEST(FairSharedTimedMutexTest, PhaseFifoTryLockUntil)
   EXPECT_LE(TEST_TICKS * 5, sw.elapsed());
 }
 
-// phase-fair RW lock scheduling try_lock_shared_for() timeout
+// fair RW lock scheduling try_lock_shared_for() timeout
 //
-// T0/W: L=a=1=a=====a=w=5=U........
-//         |  /      | |   |
-// T1/R: ..w.a.s-2-*.a.a...|........
-//         |  \     / /    |
-// T2/W: ..a...w.3.a.a.l---L=6=U....
-//         |   |   |  \        |
-// T3/R: ..a...a...w.4.a.s-----S=7=V
+// T0/W: L=a=1=a=====a===w=5=U........
+//         |  /      |  /    |
+// T1/R: ..w.a.s-2-*.a.a.....|........
+//         |  \      | |     |
+// T2/W: ..a...w.3...a.a.l---L=6=U....
+//         |   |     |  \        |
+// T3/R: ..a...a.....w.4.a.s-----S=7=V
 //
 //   CriticalPath = 1-3-4-5-6-7
 //
@@ -502,11 +612,11 @@ TEST(FairSharedTimedMutexTest, PhaseFifoTryLockUntil)
 //   V=unlock_shared(), *=timeout
 //   a=phase advance, w=phase await
 //
-TEST(FairSharedTimedMutexTest, PhaseFifoTryLockSharedFor)
+TYPED_TEST(FairSharedTimedMutexTest, FifoTryLockSharedFor)
 {
   yamc::test::phaser phaser(4);
   std::atomic<int> step = {0};
-  yamc::fair::shared_timed_mutex mtx;
+  TypeParam mtx;
   yamc::test::stopwatch<> sw;
   yamc::test::task_runner(4, [&](std::size_t id) {
     auto ph = phaser.get(id);
@@ -551,15 +661,15 @@ TEST(FairSharedTimedMutexTest, PhaseFifoTryLockSharedFor)
   EXPECT_LE(TEST_TICKS * 6, sw.elapsed());
 }
 
-// phase-fair RW lock scheduling try_lock_shared_until() timeout
+// fair RW lock scheduling try_lock_shared_until() timeout
 //
-// T0/W: L=a=1=a=====a=w=5=U........
-//         |  /      | |   |
-// T1/R: ..w.a.s-2-*.a.a...|........
-//         |  \     / /    |
-// T2/W: ..a...w.3.a.a.l---L=6=U....
-//         |   |   |  \        |
-// T3/R: ..a...a...w.4.a.s-----S=7=V
+// T0/W: L=a=1=a=====a===w=5=U........
+//         |  /      |  /    |
+// T1/R: ..w.a.s-2-*.a.a.....|........
+//         |  \      | |     |
+// T2/W: ..a...w.3...a.a.l---L=6=U....
+//         |   |     |  \       |
+// T3/R: ..a...a.....w.4.a.s-----S=7=V
 //
 //   CriticalPath = 1-3-4-5-6-7
 //
@@ -568,11 +678,11 @@ TEST(FairSharedTimedMutexTest, PhaseFifoTryLockSharedFor)
 //   V=unlock_shared(), *=timeout
 //   a=phase advance, w=phase await
 //
-TEST(FairSharedTimedMutexTest, PhaseFifoTryLockSharedUntil)
+TYPED_TEST(FairSharedTimedMutexTest, FifoTryLockSharedUntil)
 {
   yamc::test::phaser phaser(4);
   std::atomic<int> step = {0};
-  yamc::fair::shared_timed_mutex mtx;
+  TypeParam mtx;
   using Clock = std::chrono::steady_clock;
   yamc::test::stopwatch<> sw;
   yamc::test::task_runner(4, [&](std::size_t id) {
