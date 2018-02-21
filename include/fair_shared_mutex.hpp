@@ -44,11 +44,11 @@
 
 #if YAMC_DEBUG_TRACING
 #include <cstdio>
-#define YAMC_DEBUG_TRACE(...)   std::printf(__VA_ARGS__)
-#define YAMC_DEBUG_DUMPQ(msg_)  wq_dump(msg_)
+#define YAMC_DEBUG_TRACE(...)  std::printf(__VA_ARGS__)
+#define YAMC_DEBUG_DUMPQ(...)  wq_dump(__VA_ARGS__)
 #else
-#define YAMC_DEBUG_TRACE(...)   (void)0
-#define YAMC_DEBUG_DUMPQ(msg_)  (void)0
+#define YAMC_DEBUG_TRACE(...)  (void)0
+#define YAMC_DEBUG_DUMPQ(...)  (void)0
 #endif
 
 
@@ -106,16 +106,31 @@ protected:
 
 private:
 #if YAMC_DEBUG_TRACING
-  void wq_dump(const char* msg)
+  static unsigned wq_nodehash(node* p)
   {
+    // pointer to 16bits number
+    std::uintptr_t hash = reinterpret_cast<uintptr_t>(p);
+    return ((hash >> 4) ^ (hash >> 20) ^ (hash >> 30)) & 0xffffu;
+  }
+
+  void wq_dump(const char* msg, node* mark = nullptr, int ops = 0)
+  {
+    // lock := {+|-|}<lock_count>:{E|S}
+    //   '+' := acquition/count inc., '-' := release/count dec.
+    //   'E' := owned exclusive-lock, 'S' := owned shared-lock
+    // node := {+|-|}{E|S|e|s}#<node_hash>
+    //   '+' := enqueue, '-' := dequeue
+    //   'E' := lockable exclusive-lock, 'S' := lockable shared-lock
+    //   'e' := waiting exclusive-lock,  's' := waiting shared-lock
     YAMC_DEBUG_TRACE("%s [", msg);
     for (node* p = queue_.next; p != &queue_; p = p->next) {
+      const char* prefix = (p != mark || ops == 0) ? "" : (ops > 0 ? "+" : "-");
       const char* delim = (p->next != &queue_) ? ", " : "";
-      char sym = ((p->status & 1) ? 'S' : 'E') + ((p->status & 2) ? 0 : 'a'-'A');
+      const char sym = ((p->status & 1) ? 'S' : 'E') + ((p->status & 2) ? 0 : 'a'-'A');
       if (p == &locked_) {
-        YAMC_DEBUG_TRACE("L%lu:%c%s", (p->status >> 2), sym, delim);
+        YAMC_DEBUG_TRACE("%s%u:%c%s", prefix, (unsigned)(p->status >> 2), sym, delim);
       } else {
-        YAMC_DEBUG_TRACE("R:%c%s", sym, delim);
+        YAMC_DEBUG_TRACE("%s%c#%04x%s", prefix, sym, wq_nodehash(p), delim);
       }
     }
     YAMC_DEBUG_TRACE("]\n");
@@ -183,14 +198,15 @@ protected:
     if (!wq_empty()) {
       node request = {0, 0, 0};  // exclusive-lock
       wq_push_back(&request);
-      YAMC_DEBUG_DUMPQ("  lock/wait");
+      YAMC_DEBUG_DUMPQ("  lock/wait", &request, +1);
       while (queue_.next != &request) {
         cv_.wait(lk);
       }
+      YAMC_DEBUG_DUMPQ("  lock/wait", &request, -1);
       wq_erase(&request);
     }
     wq_push_locknode(0);
-    YAMC_DEBUG_DUMPQ("<<lock");
+    YAMC_DEBUG_DUMPQ("<<lock", &locked_, +1);
   }
 
   bool impl_try_lock()
@@ -201,13 +217,13 @@ protected:
       return false;
     }
     wq_push_locknode(0);
-    YAMC_DEBUG_DUMPQ("<<try_lock/true");
+    YAMC_DEBUG_DUMPQ("<<try_lock/true", &locked_, +1);
     return true;
   }
 
   void impl_unlock()
   {
-    YAMC_DEBUG_DUMPQ(">>unlock");
+    YAMC_DEBUG_DUMPQ(">>unlock", &locked_, -1);
     assert(queue_.next == &locked_ && (locked_.status & node_status_mask) == 2);
     wq_pop_locknode();
     if (!wq_empty()) {
@@ -241,7 +257,7 @@ protected:
     if (!wq_empty()) {
       node request = {0, 0, 0};  // exclusive-lock
       wq_push_back(&request);
-      YAMC_DEBUG_DUMPQ("  try_lockwait/wait");
+      YAMC_DEBUG_DUMPQ("  try_lockwait/wait", &request, +1);
       while (queue_.next != &request) {
         if (cv_.wait_until(lk, tp) == std::cv_status::timeout) {
           if (queue_.next == &request)  // re-check predicate
@@ -258,15 +274,16 @@ protected:
             }
             cv_.notify_all();
           }
+          YAMC_DEBUG_DUMPQ("<<try_lockwait/false", &request, -1);
           wq_erase(&request);
-          YAMC_DEBUG_DUMPQ("<<try_lockwait/false");
           return false;
         }
       }
+      YAMC_DEBUG_DUMPQ("  try_lockwait/wait", &request, -1);
       wq_erase(&request);
     }
     wq_push_locknode(0);
-    YAMC_DEBUG_DUMPQ("<<try_lockwait/true");
+    YAMC_DEBUG_DUMPQ("<<try_lockwait/true", &locked_, +1);
     return true;
   }
 
@@ -276,14 +293,15 @@ protected:
     if (!wq_shared_lockable()) {
       node request = {1, 0, 0};  // shared-lock
       wq_push_back(&request);
-      YAMC_DEBUG_DUMPQ("  lock_shared/wait");
+      YAMC_DEBUG_DUMPQ("  lock_shared/wait", &request, +1);
       while (request.status != 3) {
         cv_.wait(lk);
       }
+      YAMC_DEBUG_DUMPQ("  lock_shared/wait", &request, -1);
       wq_erase(&request);
     }
     wq_push_locknode(1);
-    YAMC_DEBUG_DUMPQ("<<lock_shared");
+    YAMC_DEBUG_DUMPQ("<<lock_shared", &locked_, +1);
   }
 
   bool impl_try_lock_shared()
@@ -294,14 +312,15 @@ protected:
       return false;
     }
     wq_push_locknode(1);
-    YAMC_DEBUG_DUMPQ("<<try_lock_shared/true");
+    YAMC_DEBUG_DUMPQ("<<try_lock_shared/true", &locked_, +1);
     return true;
   }
 
   void impl_unlock_shared()
   {
-    YAMC_DEBUG_DUMPQ(">>unlock_shared");
-    assert(queue_.next == &locked_ && (locked_.status & node_status_mask) == 3);
+    YAMC_DEBUG_DUMPQ(">>unlock_shared", &locked_, -1);
+    assert(queue_.next == &locked_);
+    assert((locked_.status & node_status_mask) == 3 && locked_.status >= node_nthread_inc);
     locked_.status -= node_nthread_inc;
     if (locked_.status < node_nthread_inc) {
       // all current shared-locks was unlocked
@@ -318,20 +337,21 @@ protected:
     if (!wq_shared_lockable()) {
       node request = {1, 0, 0};  // shared-lock
       wq_push_back(&request);
-      YAMC_DEBUG_DUMPQ("  try_lockwait_shared/wait");
+      YAMC_DEBUG_DUMPQ("  try_lockwait_shared/wait", &request, +1);
       while (request.status != 3) {
         if (cv_.wait_until(lk, tp) == std::cv_status::timeout) {
           if (request.status == 3)  // re-check predicate
             break;
+          YAMC_DEBUG_DUMPQ("<<try_lockwait_shared/false", &request, -1);
           wq_erase(&request);
-          YAMC_DEBUG_DUMPQ("<<try_lockwait_shared/false");
           return false;
         }
       }
+      YAMC_DEBUG_DUMPQ("  try_lockwait_shared/wait", &request, -1);
       wq_erase(&request);
     }
     wq_push_locknode(1);
-    YAMC_DEBUG_DUMPQ("<<try_lockwait_shared/true");
+    YAMC_DEBUG_DUMPQ("<<try_lockwait_shared/true", &locked_, +1);
     return true;
   }
 };
