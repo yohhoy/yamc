@@ -246,6 +246,81 @@ TYPED_TEST(FairTimedMutexTest, FifoTryLockUntil)
 }
 
 
+using FairSharedMutexTypes = ::testing::Types<
+  yamc::fair::basic_shared_mutex<yamc::rwlock::PhaseFairness>,
+  yamc::fair::basic_shared_mutex<yamc::rwlock::TaskFairness>,
+  yamc::fair::basic_shared_timed_mutex<yamc::rwlock::PhaseFairness>,
+  yamc::fair::basic_shared_timed_mutex<yamc::rwlock::TaskFairness>
+>;
+
+template <typename Mutex>
+struct FairSharedMutexTest : ::testing::Test {};
+
+TYPED_TEST_CASE(FairSharedMutexTest, FairSharedMutexTypes);
+
+// fair RW lock FIFO scheduling
+//
+// T0/R: S=a=1=a=2=a=3=V............
+//         |   |   |   |
+// T1/W: ..w.l-|---|---L=4=U..,.....
+//         |   |   |       |
+// T2/R: ..a...w.s-|-------S=5=V....
+//         |  /    |           |
+// T3/W: ..a.a.....w.l---------L=6=U
+//
+//   CriticalPath = 1-2-3-4-5-6
+//
+//   l/L=lock(request/acquired), U=unlock()
+//   s/S=lock_shared(request/acquired), V=unlock_shared()
+//   a=phase advance, w=phase await
+//
+TYPED_TEST(FairSharedMutexTest, FifoSched)
+{
+  yamc::test::phaser phaser(4);
+  int step = 0;
+  TypeParam mtx;
+  yamc::test::stopwatch<> sw;
+  yamc::test::task_runner(4, [&](std::size_t id) {
+    auto ph = phaser.get(id);
+    switch (id) {
+    case 0:
+      mtx.lock_shared();
+      ph.advance(1);  // p1
+      EXPECT_STEP(1);
+      ph.advance(1);  // p2
+      EXPECT_STEP(2);
+      ph.advance(1);  // p3
+      EXPECT_STEP(3);
+      mtx.unlock_shared();
+      break;
+    case 1:
+      ph.await();     // p1
+      ph.advance(2);  // p2-3
+      mtx.lock();
+      EXPECT_STEP(4);
+      mtx.unlock();
+      break;
+    case 2:
+      ph.advance(1);  // p1
+      ph.await();     // p2
+      ph.advance(1);  // p3
+      mtx.lock_shared();
+      EXPECT_STEP(5);
+      mtx.unlock_shared();
+      break;
+    case 3:
+      ph.advance(2);  // p1-2
+      ph.await();     // p3
+      mtx.lock();
+      EXPECT_STEP(6);
+      mtx.unlock();
+      break;
+    }
+  });
+  EXPECT_LE(TEST_TICKS * step, sw.elapsed());
+}
+
+
 using TaskFairSharedMutexTypes = ::testing::Types<
 #if TESTCASE_EXPECT_FAILED
   yamc::fair::basic_shared_mutex<yamc::rwlock::PhaseFairness>,
