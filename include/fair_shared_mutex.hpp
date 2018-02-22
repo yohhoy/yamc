@@ -129,8 +129,14 @@ private:
       const char sym = ((p->status & 1) ? 'S' : 'E') + ((p->status & 2) ? 0 : 'a'-'A');
       if (p == &locked_) {
         YAMC_DEBUG_TRACE("%s%u:%c%s", prefix, (unsigned)(p->status >> 2), sym, delim);
+      } else if (p->status == ~std::size_t(0)) {
+        YAMC_DEBUG_TRACE("%s*%s", prefix, delim);
       } else {
+#if YAMC_DEBUG_TRACING > 1
         YAMC_DEBUG_TRACE("%s%c#%04x%s", prefix, sym, wq_nodehash(p), delim);
+#else
+        YAMC_DEBUG_TRACE("%s%c%s", prefix, sym, delim);  // no hash
+#endif
       }
     }
     YAMC_DEBUG_TRACE("]\n");
@@ -202,7 +208,7 @@ protected:
       while (queue_.next != &request) {
         cv_.wait(lk);
       }
-      YAMC_DEBUG_DUMPQ("  lock/wait", &request, -1);
+      YAMC_DEBUG_DUMPQ("  lock/enter", &request, -1);
       wq_erase(&request);
     }
     wq_push_locknode(0);
@@ -229,16 +235,31 @@ protected:
     if (!wq_empty()) {
       // mark subsequent shared-lock nodes as 'lockable'
       if (RwLockFairness::phased) {
-        // PhaseFairness: mark all queued shared-lock nodes if the next is (waiting) shared-lock.
+        //
+        // PhaseFairness: move up to the front and mark all shared-lock nodes,
+        // when next phase is shared-lock.
+        //
         if ((queue_.next->status & node_status_mask) == 1) {
-          for (node* p = queue_.next; p != &queue_; p = p->next) {
-            if ((p->status & node_status_mask) == 1) {
+          node sentinel = {~std::size_t(0), 0, 0};
+          wq_push_back(&sentinel);
+          node* p = queue_.next;
+          while (p != &sentinel) {
+            node* next = p->next;
+            if ((p->status & node_status_mask) == 0) {
+              wq_erase(p);
+              wq_push_back(p);
+            } else {
+              assert((p->status & node_status_mask) == 1);
               p->status |= 2;
             }
+            p = next;
           }
+          wq_erase(&sentinel);
         }
       } else {
+        //
         // TaskFairness: mark directly subsequent shared-lock nodes group.
+        //
         node* p = queue_.next;
         while (p != &queue_ && (p->status & node_status_mask) == 1) {
           p->status |= 2;
@@ -274,16 +295,16 @@ protected:
             }
             cv_.notify_all();
           }
-          YAMC_DEBUG_DUMPQ("<<try_lockwait/false", &request, -1);
+          YAMC_DEBUG_DUMPQ("<<try_lockwait/timeout", &request, -1);
           wq_erase(&request);
           return false;
         }
       }
-      YAMC_DEBUG_DUMPQ("  try_lockwait/wait", &request, -1);
+      YAMC_DEBUG_DUMPQ("  try_lockwait/enter", &request, -1);
       wq_erase(&request);
     }
     wq_push_locknode(0);
-    YAMC_DEBUG_DUMPQ("<<try_lockwait/true", &locked_, +1);
+    YAMC_DEBUG_DUMPQ("<<try_lockwait", &locked_, +1);
     return true;
   }
 
@@ -297,7 +318,7 @@ protected:
       while (request.status != 3) {
         cv_.wait(lk);
       }
-      YAMC_DEBUG_DUMPQ("  lock_shared/wait", &request, -1);
+      YAMC_DEBUG_DUMPQ("  lock_shared/enter", &request, -1);
       wq_erase(&request);
     }
     wq_push_locknode(1);
@@ -342,16 +363,16 @@ protected:
         if (cv_.wait_until(lk, tp) == std::cv_status::timeout) {
           if (request.status == 3)  // re-check predicate
             break;
-          YAMC_DEBUG_DUMPQ("<<try_lockwait_shared/false", &request, -1);
+          YAMC_DEBUG_DUMPQ("<<try_lockwait_shared/timeout", &request, -1);
           wq_erase(&request);
           return false;
         }
       }
-      YAMC_DEBUG_DUMPQ("  try_lockwait_shared/wait", &request, -1);
+      YAMC_DEBUG_DUMPQ("  try_lockwait_shared/enter", &request, -1);
       wq_erase(&request);
     }
     wq_push_locknode(1);
-    YAMC_DEBUG_DUMPQ("<<try_lockwait_shared/true", &locked_, +1);
+    YAMC_DEBUG_DUMPQ("<<try_lockwait_shared", &locked_, +1);
     return true;
   }
 };
