@@ -213,11 +213,14 @@ int main()
   unsigned nthread = 10;
   using reader_prefer_shared_mutex = yamc::alternate::basic_shared_mutex<yamc::rwlock::ReaderPrefer>;
   using writer_prefer_shared_mutex = yamc::alternate::basic_shared_mutex<yamc::rwlock::WriterPrefer>;
+  using task_fairness_shared_mutex  = yamc::fair::basic_shared_mutex<yamc::rwlock::TaskFairness>;
+  using phase_fairness_shared_mutex = yamc::fair::basic_shared_mutex<yamc::rwlock::PhaseFairness>;
 
   perf_lock<std::mutex>       ("StdMutex", nthread);
   perf_lock<yamc::fair::mutex>("FifoMutex", nthread);
 
   perf_rwlock<reader_prefer_shared_mutex>("ReaderPrefer", nthread);
   perf_rwlock<writer_prefer_shared_mutex>("WriterPrefer", nthread);
-  perf_rwlock<yamc::fair::shared_mutex> ("PhaseFair", nthread);
+  perf_rwlock<task_fairness_shared_mutex> ("TaskFair", nthread);
+  perf_rwlock<phase_fairness_shared_mutex>("PhaseFair", nthread);
 }
