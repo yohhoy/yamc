@@ -42,8 +42,10 @@ std::mutex g_guard;
 using SharedMutexTypes = ::testing::Types<
   yamc::checked::shared_mutex,
   yamc::checked::shared_timed_mutex,
-  yamc::fair::shared_mutex,
-  yamc::fair::shared_timed_mutex,
+  yamc::fair::basic_shared_mutex<yamc::rwlock::TaskFairness>,
+  yamc::fair::basic_shared_mutex<yamc::rwlock::PhaseFairness>,
+  yamc::fair::basic_shared_timed_mutex<yamc::rwlock::TaskFairness>,
+  yamc::fair::basic_shared_timed_mutex<yamc::rwlock::PhaseFairness>,
   yamc::alternate::basic_shared_mutex<yamc::rwlock::ReaderPrefer>,
   yamc::alternate::basic_shared_mutex<yamc::rwlock::WriterPrefer>,
   yamc::alternate::basic_shared_timed_mutex<yamc::rwlock::ReaderPrefer>,
@@ -225,7 +227,8 @@ TYPED_TEST(SharedMutexTest, TryLockSharedFail)
 
 using SharedTimedMutexTypes = ::testing::Types<
   yamc::checked::shared_timed_mutex,
-  yamc::fair::shared_timed_mutex,
+  yamc::fair::basic_shared_timed_mutex<yamc::rwlock::TaskFairness>,
+  yamc::fair::basic_shared_timed_mutex<yamc::rwlock::PhaseFairness>,
   yamc::alternate::basic_shared_timed_mutex<yamc::rwlock::ReaderPrefer>,
   yamc::alternate::basic_shared_timed_mutex<yamc::rwlock::WriterPrefer>
 >;

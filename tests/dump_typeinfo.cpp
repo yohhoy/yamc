@@ -52,8 +52,13 @@ int main()
   DUMP(yamc::fair::recursive_mutex);
   DUMP(yamc::fair::timed_mutex);
   DUMP(yamc::fair::recursive_timed_mutex);
+
   DUMP(yamc::fair::shared_mutex);
   DUMP(yamc::fair::shared_timed_mutex);
+  DUMP(yamc::fair::basic_shared_mutex<yamc::rwlock::TaskFairness>);
+  DUMP(yamc::fair::basic_shared_mutex<yamc::rwlock::PhaseFairness>);
+  DUMP(yamc::fair::basic_shared_timed_mutex<yamc::rwlock::TaskFairness>);
+  DUMP(yamc::fair::basic_shared_timed_mutex<yamc::rwlock::PhaseFairness>);
 
   DUMP(yamc::alternate::mutex);
   DUMP(yamc::alternate::recursive_mutex);
