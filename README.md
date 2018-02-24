@@ -14,7 +14,7 @@ This library includes:
 - Spinlock mutex, support configurable backoff algorithm.
 - Shared mutex for readers-writer locking in C++11, support reader-prefer/writer-prefer scheduling.
 - Checked mutex for debugging, compatible with requirements in C++11/14/17 Standard.
-- Fair mutex and phase-fair shared mutex, which prevent from starvation.
+- Fair mutex and fair shared mutex, support FIFO scheduling to prevent from starvation.
 - `shared_lock<Mutex>`, `scoped_lock<Mutexes...>` utilities which are added in C++14/17.
 
 
@@ -71,8 +71,8 @@ This mutex collections library provide the following types:
 - `yamc::fair::recursive_mutex`: fairness, recursive
 - `yamc::fair::timed_mutex`: fairness, non-recursive, support timeout
 - `yamc::fair::recursive_timed_mutex`: fairness, recursive, support timeout
-- `yamc::fair::shared_mutex`: phase-fairness, RW locking, non-recursive
-- `yamc::fair::shared_timed_mutex`: phase-fairness, RW locking, non-recursive, support timeout
+- `yamc::fair::shared_mutex`: fairness, RW locking, non-recursive
+- `yamc::fair::shared_timed_mutex`: fairness, RW locking, non-recursive, support timeout
 - `yamc::alternate::recursive_mutex`: recursive
 - `yamc::alternate::timed_mutex`: non-recursive, support timeout
 - `yamc::alternate::recursive_timed_mutex`: recursive, support timeout
@@ -174,7 +174,7 @@ You can tweak the algorithm by specifying `RwLockPolicy` when you instantiate sh
 
 Customizable macro:
 
-- `YAMC_RWLOCK_SCHED_DEFAULT`: RwLockPolicy of shared mutex types. Default policy is `yamc::rwlock::ReaderPrefer`.
+- `YAMC_RWLOCK_SCHED_DEFAULT`: `RwLockPolicy` of shared mutex types. Default policy is `yamc::rwlock::ReaderPrefer`.
 
 Pre-defined RwLockPolicy classes:
 
@@ -184,11 +184,6 @@ Pre-defined RwLockPolicy classes:
 - `yamc::rwlock::WriterPrefer`: Writer prefer locking.
   While any reader thread owns shared lock and there are a waiting writer thread, subsequent other reader threads which try to acquire shared lock are blocked until writer thread's work is done.
   This policy might introduce "Reader Starvation" if writer threads continuously try to acquire exclusive lock.
-
-Shared mutex types in `yamc::fair` namespace provide "Phase-Fair Readers-Writer lock", that does not cause writer starvation nor reader starvation.
-That shared mutex has FIFO queue of threads wait for lock acquisition, and switch two phases which is reader prefer or writer prefer.
-For example, 5 threads try to acquire lock in W1 -> R2 -> R3 -> W4 -> R5 order (W=exclusive lock / R=shared lock), each threads will acquire the lock in that order.
-In this example, 2 reader threads can concurrently acquire R2 and R3.
 
 Sample code:
 ```cpp
@@ -201,6 +196,25 @@ using MySharedMutex = yamc::alternate::basic_shared_mutex<yamc::rwlock::ReaderPr
 ```
 
 [rwlock]: https://en.wikipedia.org/wiki/Readers%E2%80%93writer_lock
+
+
+## Readers-Writer lock fairness
+The shared mutex types in `yamc::fair` namespace implement "Task/Phase-fair Readers-Writer lock", wchich ensure not to cause writer starvation nor reader starvation.
+That fair shared mutex has FIFO(First-In-First-Out) queue of threads wait for lock acquisition, and switch the turn that threads acquire exclusive lock or shared locks.
+For example, 4 threads try to acquire lock in W1 -> R2 -> R3 -> W4 order (W=exclusive lock / R=shared lock), each threads will acquire the lock in that order.
+In this case, 2 reader threads can concurrently acquire R2 and R3.
+
+These scheduling algorithm of fair shared mutex types are implemented with policy-based template class `yamc::fair::basic_shared_(timed_)mutex<RwLockFairness>`.
+You can tweak the algorithm by specifying `RwLockFairness` when you instantiate fair shared mutex type, or define the following macro to change default behavior of these fair shared mutex types.
+
+Customizable macro:
+
+- `YAMC_RWLOCK_FAIRNESS_DEFAULT`: `RwLockFairness` of fair shared mutex types. Default policy is `yamc::rwlock::TaskFairness`.
+
+Pre-defined RwLockFairness classes:
+
+- `yamc::rwlock::TaskFairness`: Task-fairness RW locking schedule, which provides simple FIFO lock ordering. When lock request order is W1 -> R2 -> E3 -> R4, each waiting threads will acquire RW lock in the request order.
+- `yamc::rwlock::PhaseFairness`: Phase-fairness RW locking schedule, which provides "phasing" FIFO lock ordering. When lock request order is W1 -> R2 -> E3 -> R4, the acquisition order will be W1 -> R2,R4 -> E3. Because exclusive lock(W1) releasing switches the RW phase, and waiting reader threads acquire shared locks(R2,R4) concurrently.
 
 
 ## Check requirements of mutex operation
