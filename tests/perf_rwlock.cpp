@@ -22,6 +22,10 @@
 #define PERF_WEIGHT_TASK 100
 #define PERF_WEIGHT_WAIT 200
 
+#ifndef PERF_SCHED_YEILD
+#define PERF_SCHED_YEILD std::this_thread::yield()
+#endif
+
 // dummy task (waste CPU instructions)
 #define PERF_DUMMY_TASK(weight_) { volatile unsigned n = (weight_); while (--n); }
 
@@ -54,7 +58,7 @@ void perform_rwlock_contention(const config& cfg)
         ++nwcount;  // write op
         mtx.unlock();
         PERF_DUMMY_TASK(PERF_WEIGHT_WAIT)
-        std::this_thread::yield();
+        PERF_SCHED_YEILD;
       }
       gate.await();  // end
       counters[idx] = nwcount;
@@ -73,7 +77,7 @@ void perform_rwlock_contention(const config& cfg)
         ++nrcount;  // read op
         mtx.unlock_shared();
         PERF_DUMMY_TASK(PERF_WEIGHT_WAIT)
-        std::this_thread::yield();
+        PERF_SCHED_YEILD;
       }
       gate.await();  // end
       counters[idx] = nrcount;
@@ -140,7 +144,7 @@ void perform_lock_contention(const config& cfg)
         ++ncount;  // write/read op
         mtx.unlock();
         PERF_DUMMY_TASK(PERF_WEIGHT_WAIT)
-        std::this_thread::yield();
+        PERF_SCHED_YEILD;
       }
       gate.await();  // end
       counters[idx] = ncount;
