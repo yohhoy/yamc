@@ -126,7 +126,7 @@ This means that you can use shared mutex variants (`shared_mutex`, `shared_timed
 CI building and unit-testing on the following environments:
 - Linux/G++ 5.4
 - Linux/Clang 3.7
-- OSX/Clang (Xcode 8.2)
+- OSX/Clang (Xcode 8.3)
 - Windows/MSVC 14.0 (Visual Studio 2015)
 
 [std_condvar]: http://en.cppreference.com/w/cpp/thread/condition_variable
@@ -199,7 +199,7 @@ using MySharedMutex = yamc::alternate::basic_shared_mutex<yamc::rwlock::ReaderPr
 
 
 ## Readers-Writer lock fairness
-The shared mutex types in `yamc::fair` namespace implement "Task/Phase-fair Readers-Writer lock", wchich ensure not to cause writer starvation nor reader starvation.
+The shared mutex types in `yamc::fair` namespace implement "Task/Phase-fair Readers-Writer lock", which ensure not to cause writer starvation nor reader starvation.
 That fair shared mutex has FIFO(First-In-First-Out) queue of threads wait for lock acquisition, and switch the turn that threads acquire exclusive lock or shared locks.
 For example, 4 threads try to acquire lock in W1 -> R2 -> R3 -> W4 order (W=exclusive lock / R=shared lock), each threads will acquire the lock in that order.
 In this case, 2 reader threads can concurrently acquire R2 and R3.
@@ -214,7 +214,7 @@ Customizable macro:
 Pre-defined RwLockFairness classes:
 
 - `yamc::rwlock::TaskFairness`: Task-fairness RW locking schedule, which provides simple FIFO lock ordering. When lock request order is W1 -> R2 -> E3 -> R4, each waiting threads will acquire RW lock in the request order.
-- `yamc::rwlock::PhaseFairness`: Phase-fairness RW locking schedule, which provides "phasing" FIFO lock ordering. When lock request order is W1 -> R2 -> E3 -> R4, the acquisition order will be W1 -> R2,R4 -> E3. Because exclusive lock(W1) releasing switches the RW phase, and waiting reader threads acquire shared locks(R2,R4) concurrently.
+- `yamc::rwlock::PhaseFairness`: Phase-fairness RW locking schedule, which provides "phasing" FIFO lock ordering. When lock request order is W1 -> R2 -> E3 -> R4, the acquisition order will be W1 -> R2,R4 -> E3. Because releasing exclusive lock (W1) switches the RW phase, so all waiting reader threads acquire shared locks (R2,R4) concurrently.
 
 
 ## Check requirements of mutex operation
