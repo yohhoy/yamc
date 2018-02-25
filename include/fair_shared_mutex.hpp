@@ -34,7 +34,7 @@
 
 /// default shared_mutex rwlock fairness policy
 #ifndef YAMC_RWLOCK_FAIRNESS_DEFAULT
-#define YAMC_RWLOCK_FAIRNESS_DEFAULT yamc::rwlock::TaskFairness
+#define YAMC_RWLOCK_FAIRNESS_DEFAULT yamc::rwlock::PhaseFairness
 #endif
 
 

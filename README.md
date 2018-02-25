@@ -209,7 +209,7 @@ You can tweak the algorithm by specifying `RwLockFairness` when you instantiate 
 
 Customizable macro:
 
-- `YAMC_RWLOCK_FAIRNESS_DEFAULT`: `RwLockFairness` of fair shared mutex types. Default policy is `yamc::rwlock::TaskFairness`.
+- `YAMC_RWLOCK_FAIRNESS_DEFAULT`: `RwLockFairness` of fair shared mutex types. Default policy is `yamc::rwlock::PhaseFairness`.
 
 Pre-defined RwLockFairness classes:
 
