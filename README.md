@@ -213,8 +213,8 @@ Customizable macro:
 
 Pre-defined RwLockFairness classes:
 
-- `yamc::rwlock::TaskFairness`: Task-fairness RW locking schedule, which provides simple FIFO lock ordering. When lock request order is W1 -> R2 -> E3 -> R4, each waiting threads will acquire RW lock in the request order.
-- `yamc::rwlock::PhaseFairness`: Phase-fairness RW locking schedule, which provides "phasing" FIFO lock ordering. When lock request order is W1 -> R2 -> E3 -> R4, the acquisition order will be W1 -> R2,R4 -> E3. Because releasing exclusive lock (W1) switches the RW phase, so all waiting reader threads acquire shared locks (R2,R4) concurrently.
+- `yamc::rwlock::TaskFairness`: Task-fairness RW locking schedule, which provides simple FIFO lock ordering. When lock request order is W1 -> R2 -> W3 -> R4, each waiting threads will acquire RW lock in the request order.
+- `yamc::rwlock::PhaseFairness`: Phase-fairness RW locking schedule, which provides "phasing" FIFO lock ordering. When lock request order is W1 -> R2 -> W3 -> R4, the acquisition order will be W1 -> R2,R4 -> W3. Because releasing exclusive lock (W1) switches the RW phase, so all waiting reader threads acquire shared locks (R2,R4) concurrently.
 
 
 ## Check requirements of mutex operation

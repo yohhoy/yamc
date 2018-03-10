@@ -58,7 +58,7 @@ TYPED_TEST_CASE(FairMutexTest, FairMutexTypes);
 
 // FIFO scheduling
 //
-// T0: T=1=a=a=====w=4=U.......L=7=U
+// T0: T=1=a=a=====w=4=U.l-----L=7=U
 //         |  \   /    |       |
 // T1: ....w.2.a.a.l---L=5=U...|....
 //         |   |  \        |   |
