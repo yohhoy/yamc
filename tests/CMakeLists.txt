@@ -6,7 +6,7 @@ find_package(Threads)
 
 # Google Test
 if(MSVC)
-  set(GTEST_DEBUG_POSTFIX "")
+  set(GTEST_DEBUG_POSTFIX d)
   set(GTEST_FORCE_SHARED_CRT ON)
 endif()
 include(ExternalProject)
@@ -14,7 +14,6 @@ set(EXTERNAL_INSTALL_LOCATION ${CMAKE_BINARY_DIR}/external)
 ExternalProject_Add(googletest
   GIT_REPOSITORY https://github.com/google/googletest
   CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${EXTERNAL_INSTALL_LOCATION}
-             -DCMAKE_DEBUG_POSTFIX=${GTEST_DEBUG_POSTFIX}
              -Dgtest_force_shared_crt=${GTEST_FORCE_SHARED_CRT}
 )
 
@@ -40,7 +39,10 @@ macro (do_test name srcfile)
   set(testname ${name}_test)
   add_executable(${testname} ${srcfile}.cpp)
   add_dependencies(${testname} googletest)
-  target_link_libraries(${testname} Threads::Threads gtest gtest_main)
+  target_link_libraries(${testname}
+    Threads::Threads
+    debug gtest${GTEST_DEBUG_POSTFIX} optimized gtest
+    debug gtest_main${GTEST_DEBUG_POSTFIX} optimized gtest_main)
   add_test(${name} ${testname})
 endmacro (do_test)
 
