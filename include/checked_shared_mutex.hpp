@@ -26,7 +26,6 @@
 #ifndef YAMC_CHECKED_SHARED_MUTEX_HPP_
 #define YAMC_CHECKED_SHARED_MUTEX_HPP_
 
-
 #include <cassert>
 #include <algorithm>
 #include <chrono>

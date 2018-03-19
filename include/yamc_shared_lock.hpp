@@ -26,9 +26,9 @@
 #ifndef YAMC_SHARED_LOCK_HPP_
 #define YAMC_SHARED_LOCK_HPP_
 
-
 #include <cassert>
 #include <chrono>
+#include <mutex>
 #include <system_error>
 #include <utility>  // std::swap
 

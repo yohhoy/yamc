@@ -26,6 +26,7 @@
 #ifndef YAMC_FAIR_MUTEX_HPP_
 #define YAMC_FAIR_MUTEX_HPP_
 
+#include <cassert>
 #include <chrono>
 #include <condition_variable>
 #include <mutex>

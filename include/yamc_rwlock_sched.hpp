@@ -26,6 +26,9 @@
 #ifndef YAMC_RWLOCK_SCHED_HPP_
 #define YAMC_RWLOCK_SCHED_HPP_
 
+#include <cassert>
+#include <cstddef>
+
 
 /// default shared_mutex rwlock policy
 #ifndef YAMC_RWLOCK_SCHED_DEFAULT
