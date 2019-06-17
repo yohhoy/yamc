@@ -35,7 +35,7 @@ before_script:
 script:
   - mkdir build
   - cd build
-  - cmake -DCMAKE_CXX_COMPILER=$COMPILER ..
+  - cmake -DCMAKE_BUILD_TYPE=RELEASE -DCMAKE_CXX_COMPILER=$COMPILER -DENABLE_TESTING=ON ..
   - make -j2
   - tests/dump_sizeof
   - tests/dump_layout

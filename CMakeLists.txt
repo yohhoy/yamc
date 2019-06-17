@@ -15,9 +15,9 @@ endif()
 
 include_directories(include)
 
-if (CB_ENABLE_TESTING)
-	enable_testing()
-	add_subdirectory(tests)
+if (ENABLE_TESTING)
+  enable_testing()
+  add_subdirectory(tests)
 endif()
 
 install(DIRECTORY include/ DESTINATION include/yamc/
