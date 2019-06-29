@@ -11,8 +11,9 @@ before_build:
   - cd c:\projects\yamc
   - cmake --version
   - set PATH=C:\Program Files (x86)\MSBuild\14.0\Bin;%PATH%
-  - if %PLATFORM% == Win32 cmake -G "Visual Studio 14 2015" .
-  - if %PLATFORM% == x64 cmake -G "Visual Studio 14 2015 Win64" .
+  - set CMAKE_OPTS=-DCMAKE_BUILD_TYPE=RELEASE -DENABLE_TESTING=ON
+  - if %PLATFORM% == Win32 cmake -G "Visual Studio 14 2015" %CMAKE_OPTS% .
+  - if %PLATFORM% == x64 cmake -G "Visual Studio 14 2015 Win64" %CMAKE_OPTS% .
 
 build:
   project: yamc.sln
