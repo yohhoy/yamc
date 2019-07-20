@@ -199,21 +199,20 @@ void task_runner(std::size_t nthread, F f)
 
 
 /// stopwatch
-template <typename Duration = std::chrono::microseconds>
+template <typename Clock = std::chrono::system_clock, typename Duration = std::chrono::microseconds>
 class stopwatch {
-  using ClockType = std::chrono::system_clock;
-  ClockType::time_point start_;
+  typename Clock::time_point start_;
 
 public:
   stopwatch()
-    : start_(ClockType::now()) {}
+    : start_(Clock::now()) {}
 
   stopwatch(const stopwatch&) = delete;
   stopwatch& operator=(const stopwatch&) = delete;
 
   Duration elapsed()
   {
-    auto end = ClockType::now();
+    auto end = Clock::now();
     return std::chrono::duration_cast<Duration>(end - start_);
   }
 };

@@ -257,7 +257,7 @@ TYPED_TEST(TimedMutexTest, TryLockForTimeout)
   });
   {
     step.await();  // b1
-    yamc::test::stopwatch<> sw;
+    yamc::test::stopwatch<std::chrono::steady_clock> sw;
     EXPECT_FALSE(mtx.try_lock_for(TEST_EXPECT_TIMEOUT));
     EXPECT_LE(TEST_EXPECT_TIMEOUT, sw.elapsed());
     step.await();  // b2

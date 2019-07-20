@@ -313,7 +313,7 @@ TYPED_TEST(SharedTimedMutexTest, TryLockForTimeout)
   // writer-thread
   {
     step.await();  // b1
-    yamc::test::stopwatch<> sw;
+    yamc::test::stopwatch<std::chrono::steady_clock> sw;
     EXPECT_FALSE(mtx.try_lock_for(TEST_EXPECT_TIMEOUT));
     EXPECT_LE(TEST_EXPECT_TIMEOUT, sw.elapsed());
     step.await();  // b2
@@ -413,7 +413,7 @@ TYPED_TEST(SharedTimedMutexTest, TryLockSharedForTimeout)
       } else {
         // reader-threads
         step.await();  // b1
-        yamc::test::stopwatch<> sw;
+        yamc::test::stopwatch<std::chrono::steady_clock> sw;
         EXPECT_FALSE(mtx.try_lock_shared_for(TEST_EXPECT_TIMEOUT));
         EXPECT_LE(TEST_EXPECT_TIMEOUT, sw.elapsed());
         step.await();  // b2
