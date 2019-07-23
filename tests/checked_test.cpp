@@ -41,7 +41,7 @@ using CheckedMutexTypes = ::testing::Types<
 template <typename Mutex>
 struct CheckedMutexTest : ::testing::Test {};
 
-TYPED_TEST_CASE(CheckedMutexTest, CheckedMutexTypes);
+TYPED_TEST_SUITE(CheckedMutexTest, CheckedMutexTypes);
 
 // abandon mutex
 TYPED_TEST(CheckedMutexTest, AbandonMutex) {
@@ -136,7 +136,7 @@ using CheckedRecursiveMutexTypes = ::testing::Types<
 template <typename Mutex>
 struct CheckedRecursiveMutexTest : ::testing::Test {};
 
-TYPED_TEST_CASE(CheckedRecursiveMutexTest, CheckedRecursiveMutexTypes);
+TYPED_TEST_SUITE(CheckedRecursiveMutexTest, CheckedRecursiveMutexTypes);
 
 // abandon recursive_mutex
 TYPED_TEST(CheckedRecursiveMutexTest, AbandonMutex) {
@@ -225,7 +225,7 @@ using CheckedTimedMutexTypes = ::testing::Types<
 template <typename Mutex>
 struct CheckedTimedMutexTest : ::testing::Test {};
 
-TYPED_TEST_CASE(CheckedTimedMutexTest, CheckedTimedMutexTypes);
+TYPED_TEST_SUITE(CheckedTimedMutexTest, CheckedTimedMutexTypes);
 
 // recurse try_lock_for() on non-recursive mutex
 TYPED_TEST(CheckedTimedMutexTest, RecurseTryLockFor) {
@@ -252,7 +252,7 @@ using CheckedSharedMutexTypes = ::testing::Types<
 template <typename Mutex>
 struct CheckedSharedMutexTest : ::testing::Test {};
 
-TYPED_TEST_CASE(CheckedSharedMutexTest, CheckedSharedMutexTypes);
+TYPED_TEST_SUITE(CheckedSharedMutexTest, CheckedSharedMutexTypes);
 
 // abandon mutex
 TYPED_TEST(CheckedSharedMutexTest, AbandonMutex) {
@@ -394,7 +394,7 @@ using CheckedSharedTimedMutexTypes = ::testing::Types<
 template <typename Mutex>
 struct CheckedSharedTimedMutexTest : ::testing::Test {};
 
-TYPED_TEST_CASE(CheckedSharedTimedMutexTest, CheckedSharedTimedMutexTypes);
+TYPED_TEST_SUITE(CheckedSharedTimedMutexTest, CheckedSharedTimedMutexTypes);
 
 // recurse try_lock_shared_for()
 TYPED_TEST(CheckedSharedTimedMutexTest, RecurseTryLockSharedFor) {

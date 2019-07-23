@@ -55,7 +55,7 @@ using SharedMutexTypes = ::testing::Types<
 template <typename Mutex>
 struct SharedMutexTest : ::testing::Test {};
 
-TYPED_TEST_CASE(SharedMutexTest, SharedMutexTypes);
+TYPED_TEST_SUITE(SharedMutexTest, SharedMutexTypes);
 
 // shared_mutex::lock()
 TYPED_TEST(SharedMutexTest, Lock)
@@ -236,7 +236,7 @@ using SharedTimedMutexTypes = ::testing::Types<
 template <typename Mutex>
 struct SharedTimedMutexTest : ::testing::Test {};
 
-TYPED_TEST_CASE(SharedTimedMutexTest, SharedTimedMutexTypes);
+TYPED_TEST_SUITE(SharedTimedMutexTest, SharedTimedMutexTypes);
 
 // shared_timed_mutex::try_lock_for()
 TYPED_TEST(SharedTimedMutexTest, TryLockFor)
@@ -455,7 +455,7 @@ using RWLockReaderPreferTypes = ::testing::Types<
 template <typename Mutex>
 struct RWLockReaderPreferTest : ::testing::Test {};
 
-TYPED_TEST_CASE(RWLockReaderPreferTest, RWLockReaderPreferTypes);
+TYPED_TEST_SUITE(RWLockReaderPreferTest, RWLockReaderPreferTypes);
 
 // Reader prefer lock
 //
@@ -526,7 +526,7 @@ using RwLockWriterPreferTypes = ::testing::Types<
 template <typename Mutex>
 struct RwLockWriterPreferTest : ::testing::Test {};
 
-TYPED_TEST_CASE(RwLockWriterPreferTest, RwLockWriterPreferTypes);
+TYPED_TEST_SUITE(RwLockWriterPreferTest, RwLockWriterPreferTypes);
 
 // Writer prefer lock
 //

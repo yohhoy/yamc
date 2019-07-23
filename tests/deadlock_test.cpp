@@ -50,7 +50,7 @@ using CheckedMutexTypes = ::testing::Types<
 template <typename Mutex>
 struct CheckedMutexTest : ::testing::Test {};
 
-TYPED_TEST_CASE(CheckedMutexTest, CheckedMutexTypes);
+TYPED_TEST_SUITE(CheckedMutexTest, CheckedMutexTypes);
 
 // deadlock with 2-threads/2-mutex
 TYPED_TEST(CheckedMutexTest, BasicDeadlock)
@@ -193,7 +193,7 @@ using CheckedTimedMutexTypes = ::testing::Types<
 template <typename Mutex>
 struct CheckedTimedMutexTest : ::testing::Test {};
 
-TYPED_TEST_CASE(CheckedTimedMutexTest, CheckedTimedMutexTypes);
+TYPED_TEST_SUITE(CheckedTimedMutexTest, CheckedTimedMutexTypes);
 
 // deadlock with try_lock_for
 TYPED_TEST(CheckedTimedMutexTest, TryLockForDeadlock)
@@ -266,7 +266,7 @@ using CheckedSharedMutexTypes = ::testing::Types<
 template <typename Mutex>
 struct CheckedSharedMutexTest : ::testing::Test {};
 
-TYPED_TEST_CASE(CheckedSharedMutexTest, CheckedSharedMutexTypes);
+TYPED_TEST_SUITE(CheckedSharedMutexTest, CheckedSharedMutexTypes);
 
 // reader deadlock
 TYPED_TEST(CheckedSharedMutexTest, ReaderDeadlock)
@@ -420,7 +420,7 @@ using CheckedSharedTimedMutexTypes = ::testing::Types<
 template <typename Mutex>
 struct CheckedSharedTimedMutexTest : ::testing::Test {};
 
-TYPED_TEST_CASE(CheckedSharedTimedMutexTest, CheckedSharedTimedMutexTypes);
+TYPED_TEST_SUITE(CheckedSharedTimedMutexTest, CheckedSharedTimedMutexTypes);
 
 // reader deadlock with try_lock_for
 TYPED_TEST(CheckedSharedTimedMutexTest, TryLockForReaderDeadlock)

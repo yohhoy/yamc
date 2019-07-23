@@ -35,7 +35,7 @@ using NormalMutexTypes = ::testing::Types<
 template <typename Mutex>
 struct NormalMutexTest : ::testing::Test {};
 
-TYPED_TEST_CASE(NormalMutexTest, NormalMutexTypes);
+TYPED_TEST_SUITE(NormalMutexTest, NormalMutexTypes);
 
 // mutex::lock()
 TYPED_TEST(NormalMutexTest, BasicLock)
@@ -105,7 +105,7 @@ using RecursiveMutexTypes = ::testing::Types<
 template <typename Mutex>
 struct RecursiveMutexTest : ::testing::Test {};
 
-TYPED_TEST_CASE(RecursiveMutexTest, RecursiveMutexTypes);
+TYPED_TEST_SUITE(RecursiveMutexTest, RecursiveMutexTypes);
 
 // recursive_mutex::lock()
 TYPED_TEST(RecursiveMutexTest, BasicLock)
@@ -204,7 +204,7 @@ using TimedMutexTypes = ::testing::Types<
 template <typename Mutex>
 struct TimedMutexTest : ::testing::Test {};
 
-TYPED_TEST_CASE(TimedMutexTest, TimedMutexTypes);
+TYPED_TEST_SUITE(TimedMutexTest, TimedMutexTypes);
 
 // timed_mutex::try_lock_for()
 TYPED_TEST(TimedMutexTest, TryLockFor)
@@ -294,7 +294,7 @@ using RecursiveTimedMutexTypes = ::testing::Types<
 template <typename Mutex>
 struct RecursiveTimedMutexTest : ::testing::Test {};
 
-TYPED_TEST_CASE(RecursiveTimedMutexTest, RecursiveTimedMutexTypes);
+TYPED_TEST_SUITE(RecursiveTimedMutexTest, RecursiveTimedMutexTypes);
 
 // recursive_timed_mutex::try_lock_for()
 TYPED_TEST(RecursiveTimedMutexTest, TryLockFor)

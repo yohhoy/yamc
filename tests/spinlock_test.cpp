@@ -29,7 +29,7 @@ using SpinMutexTypes = ::testing::Types<
 template <typename Mutex>
 struct SpinMutexTest : ::testing::Test {};
 
-TYPED_TEST_CASE(SpinMutexTest, SpinMutexTypes);
+TYPED_TEST_SUITE(SpinMutexTest, SpinMutexTypes);
 
 // mutex::lock()
 TYPED_TEST(SpinMutexTest, BasicLock)

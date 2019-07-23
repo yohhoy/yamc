@@ -54,7 +54,7 @@ using FairMutexTypes = ::testing::Types<
 template <typename Mutex>
 struct FairMutexTest : ::testing::Test {};
 
-TYPED_TEST_CASE(FairMutexTest, FairMutexTypes);
+TYPED_TEST_SUITE(FairMutexTest, FairMutexTypes);
 
 // FIFO scheduling
 //
@@ -124,7 +124,7 @@ using FairTimedMutexTypes = ::testing::Types<
 template <typename Mutex>
 struct FairTimedMutexTest : ::testing::Test {};
 
-TYPED_TEST_CASE(FairTimedMutexTest, FairTimedMutexTypes);
+TYPED_TEST_SUITE(FairTimedMutexTest, FairTimedMutexTypes);
 
 // FIFO scheduling with try_lock_for() timeout
 //
@@ -256,7 +256,7 @@ using FairSharedMutexTypes = ::testing::Types<
 template <typename Mutex>
 struct FairSharedMutexTest : ::testing::Test {};
 
-TYPED_TEST_CASE(FairSharedMutexTest, FairSharedMutexTypes);
+TYPED_TEST_SUITE(FairSharedMutexTest, FairSharedMutexTypes);
 
 // fair RW lock FIFO scheduling
 //
@@ -333,7 +333,7 @@ using TaskFairSharedMutexTypes = ::testing::Types<
 template <typename Mutex>
 struct TaskFairSharedMutexTest : ::testing::Test {};
 
-TYPED_TEST_CASE(TaskFairSharedMutexTest, TaskFairSharedMutexTypes);
+TYPED_TEST_SUITE(TaskFairSharedMutexTest, TaskFairSharedMutexTypes);
 
 // task-fairness RW lock scheduling
 //
@@ -426,7 +426,7 @@ using PhaseFairSharedMutexTypes = ::testing::Types<
 template <typename Mutex>
 struct PhaseFairSharedMutexTest : ::testing::Test {};
 
-TYPED_TEST_CASE(PhaseFairSharedMutexTest, PhaseFairSharedMutexTypes);
+TYPED_TEST_SUITE(PhaseFairSharedMutexTest, PhaseFairSharedMutexTypes);
 
 // phase-fair RW lock scheduling
 //
@@ -515,7 +515,7 @@ using FairSharedTimedMutexTypes = ::testing::Types<
 template <typename Mutex>
 struct FairSharedTimedMutexTest : ::testing::Test {};
 
-TYPED_TEST_CASE(FairSharedTimedMutexTest, FairSharedTimedMutexTypes);
+TYPED_TEST_SUITE(FairSharedTimedMutexTest, FairSharedTimedMutexTypes);
 
 // task-fair RW lock scheduling try_lock_for() timeout
 //
