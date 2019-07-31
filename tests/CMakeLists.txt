@@ -59,3 +59,4 @@ set_target_properties(deadlock1_test PROPERTIES COMPILE_DEFINITIONS "YAMC_CHECKE
 do_test(fairness fairness_test)
 do_test(rwlock rwlock_test)
 do_test(lock lock_test)
+do_test(semaphore semaphore_test)
