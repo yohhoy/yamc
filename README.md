@@ -15,7 +15,8 @@ This library includes:
 - Shared mutex for readers-writer locking in C++11, support reader-prefer/writer-prefer scheduling.
 - Checked mutex for debugging, compatible with requirements in C++11/14/17 Standard.
 - Fair mutex and fair shared mutex, support FIFO scheduling to prevent from starvation.
-- `shared_lock<Mutex>`, `scoped_lock<Mutexes...>` utilities which are added in C++14/17.
+- `shared_lock<Mutex>`, `scoped_lock<Mutexes...>` utilities in C++14/17 Standard.
+- Experimental: C++20 synchronization primitives emulation.
 
 
 ## Example
@@ -114,6 +115,17 @@ Period.
 - When your compiler doesn't support C++14/17 Standard Library, shared mutex in `yamc::alternate::*` and `yamc::shared_lock<Mutex>` which emulate C++14 [`std::shared_lock<Mutex>`][std_sharedlock] are useful.
 
 [std_sharedlock]: http://en.cppreference.com/w/cpp/thread/shared_lock
+
+
+## Experimantal: C++20 synchroniation primitives
+This library provides a part of C++20 synchronization primitives emulation.
+These primitives have same interfaces in C++20 Standard and emlulate behaviors described in Standard specification.
+
+- `<semaphore>` header:
+-- `counting_semaphre<N>` is [counting semaphore][semaphore].
+-- `binary_semaphore` is binary semaphore; alias of `counting_semaphore<1>`.
+
+[semaphore]: https://en.wikipedia.org/wiki/Semaphore_(programming)
 
 
 ## Requirements

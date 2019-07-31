@@ -124,17 +124,17 @@ TEST(SemaphoreTest, ReleaseUpdate)
   yamc::counting_semaphore<> sem(0);
   yamc::test::task_runner(
     4,
-	[&](std::size_t id) {
-	  if (id == 0) {
+    [&](std::size_t id) {
+      if (id == 0) {
         // signal-thread
-		EXPECT_STEP(1);
-		EXPECT_NO_THROW(sem.release(3));
-	  } else {
+        EXPECT_STEP(1);
+        EXPECT_NO_THROW(sem.release(3));
+      } else {
         // 3 wait-threads
         EXPECT_NO_THROW(sem.acquire());
         EXPECT_STEP_RANGE(2, 4);
-	  }
-	}
+      }
+    }
   );
 }
 
