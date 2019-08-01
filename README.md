@@ -117,13 +117,16 @@ Period.
 [std_sharedlock]: http://en.cppreference.com/w/cpp/thread/shared_lock
 
 
-## Experimantal: C++20 synchroniation primitives
+## Experimental: C++20 synchronization primitives
 This library provides a part of C++20 synchronization primitives emulation.
-These primitives have same interfaces in C++20 Standard and emlulate behaviors described in Standard specification.
+These primitives have same interfaces in C++20 Standard and emulate behaviors described in Standard specification.
 
 - `<semaphore>` header:
--- `counting_semaphre<N>` is [counting semaphore][semaphore].
--- `binary_semaphore` is binary semaphore; alias of `counting_semaphore<1>`.
+    - `counting_semaphre<N>` is [counting semaphore][semaphore].
+    - `binary_semaphore` is binary semaphore; alias of `counting_semaphore<1>`.
+- `<latch>` header:
+    - `latch` is countdown latch; one time rendezvous point.
+
 
 [semaphore]: https://en.wikipedia.org/wiki/Semaphore_(programming)
 
