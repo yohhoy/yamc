@@ -47,7 +47,7 @@ public:
   /*constexpr*/ explicit latch(ptrdiff_t expected)
     : counter_(expected)
   {
-    assert(0 < expected);
+    assert(0 <= expected);
   }
 
   ~latch() = default;
