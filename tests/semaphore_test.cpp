@@ -7,6 +7,11 @@
 #include "yamc_testutil.hpp"
 #if defined(__APPLE__)
 #include "gcd_semaphore.hpp"
+#define ENABLE_GCD_SEMAPHORE
+#endif
+#if defined(_POSIX_VERSION) && !defined(__APPLE__)
+#include "posix_semaphore.hpp"
+#define ENABLE_POSIX_SEMAPHORE
 #endif
 
 
@@ -44,7 +49,7 @@ struct GenericSemaphore {
   using binary_semaphore = yamc::binary_semaphore;
 };
 
-#if defined(__APPLE__)
+#if defined(ENABLE_GCD_SEMAPHORE)
 // selector for GCD dispatch semaphore implementation
 struct GcdSemaphore {
   template <std::ptrdiff_t least_max_value>
@@ -54,10 +59,23 @@ struct GcdSemaphore {
 };
 #endif
 
+#if defined(ENABLE_POSIX_SEMAPHORE)
+// selector for POSIX semaphore implementation
+struct PosixSemaphore {
+  template <std::ptrdiff_t least_max_value>
+  using counting_semaphore = yamc::posix::counting_semaphore<least_max_value>;
+  using counting_semaphore_def = yamc::posix::counting_semaphore<>;
+  using binary_semaphore = yamc::posix::binary_semaphore;
+};
+#endif
+
 using SemaphoreSelector = ::testing::Types<
  GenericSemaphore
-#if defined(__APPLE__)
+#if defined(ENABLE_GCD_SEMAPHORE)
  , GcdSemaphore
+#endif
+#if defined(ENABLE_POSIX_SEMAPHORE)
+ , PosixSemaphore
 #endif
 >;
 
