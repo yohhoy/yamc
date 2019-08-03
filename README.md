@@ -21,7 +21,7 @@ This library includes:
 
 ## Example
 All mutex types in this library are compatible with corresponding mutex types in C++ Standard Library.
-The following toy example use spinlock mutex (`yamc::spin_ttas::mutex`) and scoped locking by [`std::lock_guard<>`][std_lockguard]. 
+The following toy example use spinlock mutex (`yamc::spin_ttas::mutex`) and scoped locking by [`std::lock_guard<>`][std_lockguard].
 
 ```cpp
 #include <mutex>  // std::lock_guard<>
@@ -118,17 +118,19 @@ Period.
 
 
 ## Experimental: C++20 synchronization primitives
-This library provides a part of C++20 synchronization primitives emulation.
+This library also provides a part of C++20 synchronization primitives emulation.
 These primitives have same interfaces in C++20 Standard and emulate behaviors described in Standard specification.
 
-- `<semaphore>` header:
+- `<semaphore>` header
     - `counting_semaphre<N>` is [counting semaphore][semaphore].
     - `binary_semaphore` is binary semaphore; alias of `counting_semaphore<1>`.
-- `<latch>` header:
-    - `latch` is countdown latch; one time rendezvous point.
-
+- `<latch>` header
+    - `latch` is countdown latch; one-time rendezvous point.
+- `<barrier>` header
+    - `barrier` is [cyclic barrier][barrier] with completion handler; reusable rendezvous point.
 
 [semaphore]: https://en.wikipedia.org/wiki/Semaphore_(programming)
+[barrier]: https://en.wikipedia.org/wiki/Barrier_(computer_science)
 
 
 ## Requirements
