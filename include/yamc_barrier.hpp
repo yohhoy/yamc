@@ -40,6 +40,7 @@ namespace yamc {
 
 namespace detail {
 
+/// default CompletionFunction of yamc::barrier class template
 class default_barrier_completion {
 public:
   void operator()() const {
@@ -118,7 +119,7 @@ public:
     // equivalent to wait(arrive())
     std::unique_lock<decltype(mtx_)> lk(mtx_);
     assert(0 < counter_);
-    ptrdiff_t arrival_phase = phase_;
+    auto arrival_phase = phase_;
     counter_ -= 1;
     if (counter_ == 0) {
       phase_completion_step(false);
@@ -132,7 +133,7 @@ public:
   {
     std::unique_lock<decltype(mtx_)> lk(mtx_);
     assert(0 < counter_);
-    ptrdiff_t arrival_phase = phase_;
+    auto arrival_phase = phase_;
     counter_ -= 1;
     if (counter_ == 0) {
       phase_completion_step(true);

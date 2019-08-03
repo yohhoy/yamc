@@ -244,7 +244,7 @@ TEST(BarrierTest, ArriveWaitPhasing)
 //
 // T0: 1.A---X-W.3
 //       |   |
-// T1: ..X.2.X...
+// T1: ..X.2.X....
 //
 //   CriticalPath = 1-2-3
 //
