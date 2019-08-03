@@ -26,6 +26,7 @@
 #ifndef YAMC_SEMAPHORE_HPP_
 #define YAMC_SEMAPHORE_HPP_
 
+#include <cassert>
 #include <chrono>
 #include <condition_variable>
 #include <limits>
@@ -87,8 +88,8 @@ public:
 
   void release(ptrdiff_t update = 1)
   {
-    assert(0 <= update && update <= max() - counter_);
     std::lock_guard<decltype(mtx_)> lk(mtx_);
+    assert(0 <= update && update <= max() - counter_);
     counter_ += update;
     if (0 < counter_) {
       cv_.notify_all();
@@ -108,7 +109,7 @@ public:
   {
     std::unique_lock<decltype(mtx_)> lk(mtx_);
     if (counter_ <= 0) {
-      // no spurious failure 
+      // no spurious failure
       return false;
     }
     --counter_;
