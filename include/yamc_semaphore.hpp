@@ -27,6 +27,7 @@
 #define YAMC_SEMAPHORE_HPP_
 
 #include <cassert>
+#include <cstddef>
 #include <chrono>
 #include <condition_variable>
 #include <limits>
@@ -35,7 +36,7 @@
 
 /// default least_max_value of yamc::counting_semaphore
 #ifndef YAMC_SEMAPHORE_LEAST_MAX_VALUE
-#define YAMC_SEMAPHORE_LEAST_MAX_VALUE  (std::numeric_limits<ptrdiff_t>::max())
+#define YAMC_SEMAPHORE_LEAST_MAX_VALUE  (std::numeric_limits<std::ptrdiff_t>::max())
 #endif
 
 
@@ -47,9 +48,9 @@
  */
 namespace yamc {
 
-template <ptrdiff_t least_max_value = YAMC_SEMAPHORE_LEAST_MAX_VALUE>
+template <std::ptrdiff_t least_max_value = YAMC_SEMAPHORE_LEAST_MAX_VALUE>
 class counting_semaphore {
-  ptrdiff_t counter_;
+  std::ptrdiff_t counter_;
   std::condition_variable cv_;
   std::mutex mtx_;
 
@@ -69,13 +70,13 @@ class counting_semaphore {
   }
 
 public:
-  static constexpr ptrdiff_t max() noexcept
+  static constexpr std::ptrdiff_t max() noexcept
   {
     static_assert(0 < least_max_value, "least_max_value shall be greater than zero");
     return least_max_value;
   }
 
-  /*constexpr*/ explicit counting_semaphore(ptrdiff_t desired)
+  /*constexpr*/ explicit counting_semaphore(std::ptrdiff_t desired)
     : counter_(desired)
   {
     assert(0 <= desired && desired <= max());
@@ -86,7 +87,7 @@ public:
   counting_semaphore(const counting_semaphore&) = delete;
   counting_semaphore& operator=(const counting_semaphore&) = delete;
 
-  void release(ptrdiff_t update = 1)
+  void release(std::ptrdiff_t update = 1)
   {
     std::lock_guard<decltype(mtx_)> lk(mtx_);
     assert(0 <= update && update <= max() - counter_);

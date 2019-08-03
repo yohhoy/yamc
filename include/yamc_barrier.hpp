@@ -27,6 +27,7 @@
 #define YAMC_LATCH_HPP_
 
 #include <cassert>
+#include <cstddef>
 #include <condition_variable>
 #include <mutex>
 
@@ -57,8 +58,8 @@ struct barrier_arrival_token {
 
 template <class CompletionFunction = detail::default_barrier_completion>
 class barrier {
-  ptrdiff_t init_count_;
-  ptrdiff_t counter_;
+  std::ptrdiff_t init_count_;
+  std::ptrdiff_t counter_;
   unsigned phase_ = 0;
   CompletionFunction completion_;
   mutable std::condition_variable cv_;
@@ -78,7 +79,7 @@ class barrier {
 public:
   using arrival_token = detail::barrier_arrival_token;
 
-  /*constexpr*/ explicit barrier(ptrdiff_t phase_count, CompletionFunction f = CompletionFunction())
+  /*constexpr*/ explicit barrier(std::ptrdiff_t phase_count, CompletionFunction f = CompletionFunction())
     : init_count_(phase_count)
     , counter_(phase_count)
     , completion_(std::move(f))
@@ -94,7 +95,7 @@ public:
 #if 201703L <= __cplusplus
   [[nodiscard]]
 #endif
-  arrival_token arrive(ptrdiff_t update = 1)
+  arrival_token arrive(std::ptrdiff_t update = 1)
   {
     std::lock_guard<decltype(mtx_)> lk(mtx_);
     assert(0 < update && update <= counter_);

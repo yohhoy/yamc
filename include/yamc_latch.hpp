@@ -27,6 +27,7 @@
 #define YAMC_LATCH_HPP_
 
 #include <cassert>
+#include <cstddef>
 #include <condition_variable>
 #include <mutex>
 
@@ -39,12 +40,12 @@
 namespace yamc {
 
 class latch {
-  ptrdiff_t counter_;
+  std::ptrdiff_t counter_;
   mutable std::condition_variable cv_;
   mutable std::mutex mtx_;
 
 public:
-  /*constexpr*/ explicit latch(ptrdiff_t expected)
+  /*constexpr*/ explicit latch(std::ptrdiff_t expected)
     : counter_(expected)
   {
     assert(0 <= expected);
@@ -55,7 +56,7 @@ public:
   latch(const latch&) = delete;
   latch& operator=(const latch&) = delete;
 
-  void count_down(ptrdiff_t update = 1)
+  void count_down(std::ptrdiff_t update = 1)
   {
     std::lock_guard<decltype(mtx_)> lk(mtx_);
     assert(0 <= update && update <= counter_);
@@ -80,7 +81,7 @@ public:
     }
   }
 
-  void arrive_and_wait(ptrdiff_t update = 1)
+  void arrive_and_wait(std::ptrdiff_t update = 1)
   {
     std::unique_lock<decltype(mtx_)> lk(mtx_);
     // equivalent to { count_down(update); wait(); }
