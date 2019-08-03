@@ -5,6 +5,9 @@
 #include "gtest/gtest.h"
 #include "yamc_semaphore.hpp"
 #include "yamc_testutil.hpp"
+#if defined(__APPLE__)
+#include "gcd_semaphore.hpp"
+#endif
 
 
 #define TEST_THREADS   8
@@ -33,79 +36,118 @@ std::mutex g_guard;
   { TRACE("STEP"#r0_"-"#r1_); int s = ++step; EXPECT_TRUE(r0_ <= s && s <= r1_); WAIT_TICKS; }
 
 
+// selector for generic C++11 semaphore implementation
+struct GenericSemaphore {
+  template <std::ptrdiff_t least_max_value>
+  using counting_semaphore = yamc::counting_semaphore<least_max_value>;
+  using counting_semaphore_def = yamc::counting_semaphore<>;
+  using binary_semaphore = yamc::binary_semaphore;
+};
+
+#if defined(__APPLE__)
+// selector for GCD dispatch semaphore implementation
+struct GcdSemaphore {
+  template <std::ptrdiff_t least_max_value>
+  using counting_semaphore = yamc::gcd::counting_semaphore<least_max_value>;
+  using counting_semaphore_def = yamc::gcd::counting_semaphore<>;
+  using binary_semaphore = yamc::gcd::binary_semaphore;
+};
+#endif
+
+using SemaphoreSelector = ::testing::Types<
+ GenericSemaphore
+#if defined(__APPLE__)
+ , GcdSemaphore
+#endif
+>;
+
+
+template <typename Selector>
+struct SemaphoreTest : ::testing::Test {};
+
+TYPED_TEST_SUITE(SemaphoreTest, SemaphoreSelector);
+
 // semaphore construction with zero
-TEST(SemaphoreTest, CtorZero)
+TYPED_TEST(SemaphoreTest, CtorZero)
 {
-  constexpr ptrdiff_t LEAST_MAX_VALUE = 1000;
-  EXPECT_NO_THROW(yamc::counting_semaphore<LEAST_MAX_VALUE>{0});
+  using counting_semaphore = typename TypeParam::template counting_semaphore<1>;
+  EXPECT_NO_THROW(counting_semaphore{0});
 }
 
 // semaphore constructor with maximum value
-TEST(SemaphoreTest, CtorMaxValue)
+TYPED_TEST(SemaphoreTest, CtorMaxValue)
 {
   constexpr ptrdiff_t LEAST_MAX_VALUE = 1000;
-  EXPECT_NO_THROW(yamc::counting_semaphore<LEAST_MAX_VALUE>{LEAST_MAX_VALUE});
+  using counting_semaphore = typename TypeParam::template counting_semaphore<LEAST_MAX_VALUE>;
+  EXPECT_NO_THROW(counting_semaphore{counting_semaphore::max()});
 }
 
 // semaphore::acquire()
-TEST(SemaphoreTest, Acquire)
+TYPED_TEST(SemaphoreTest, Acquire)
 {
-  yamc::counting_semaphore<> sem(1);
+  using counting_semaphore = typename TypeParam::counting_semaphore_def;
+  counting_semaphore sem{1};
   EXPECT_NO_THROW(sem.acquire());
-  SUCCEED();
 }
 
 // semaphore::try_acquire()
-TEST(SemaphoreTest, TryAcquire)
+TYPED_TEST(SemaphoreTest, TryAcquire)
 {
-  yamc::counting_semaphore<> sem(1);
+  using counting_semaphore = typename TypeParam::counting_semaphore_def;
+  counting_semaphore sem{1};
   EXPECT_TRUE(sem.try_acquire());
 }
 
 // semaphore::try_acquire() failure
-TEST(SemaphoreTest, TryAcquireFail)
+TYPED_TEST(SemaphoreTest, TryAcquireFail)
 {
-  yamc::counting_semaphore<> sem(0);
+  using counting_semaphore = typename TypeParam::counting_semaphore_def;
+  counting_semaphore sem{0};
   EXPECT_FALSE(sem.try_acquire());
 }
 
 // semaphore::try_acquire_for()
-TEST(SemaphoreTest, TryAcquireFor)
+TYPED_TEST(SemaphoreTest, TryAcquireFor)
 {
-  yamc::counting_semaphore<> sem(1);
+  using counting_semaphore = typename TypeParam::counting_semaphore_def;
+  counting_semaphore sem{1};
   EXPECT_TRUE(sem.try_acquire_for(TEST_NOT_TIMEOUT));
 }
 
 // semaphore::try_acquire_until()
-TEST(SemaphoreTest, TryAcquireUntil)
+TYPED_TEST(SemaphoreTest, TryAcquireUntil)
 {
-  yamc::counting_semaphore<> sem(1);
+  using counting_semaphore = typename TypeParam::counting_semaphore_def;
+  counting_semaphore sem{1};
   EXPECT_TRUE(sem.try_acquire_until(std::chrono::system_clock::now() + TEST_NOT_TIMEOUT));
 }
 
 // semaphore::try_acquire_for() timeout
-TEST(SemaphoreTest, TryAcquireForTimeout)
+TYPED_TEST(SemaphoreTest, TryAcquireForTimeout)
 {
-  yamc::counting_semaphore<> sem(0);
+  using counting_semaphore = typename TypeParam::counting_semaphore_def;
+  counting_semaphore sem{0};
   yamc::test::stopwatch<std::chrono::steady_clock> sw;
   EXPECT_FALSE(sem.try_acquire_for(TEST_EXPECT_TIMEOUT));
   EXPECT_LE(TEST_EXPECT_TIMEOUT, sw.elapsed());
 }
 
 // semaphore::try_acquire_until() timeout
-TEST(SemaphoreTest, TryAcquireUntilTimeout)
+TYPED_TEST(SemaphoreTest, TryAcquireUntilTimeout)
 {
-  yamc::counting_semaphore<> sem(0);
+  using counting_semaphore = typename TypeParam::counting_semaphore_def;
+  counting_semaphore sem{0};
   yamc::test::stopwatch<> sw;
   EXPECT_FALSE(sem.try_acquire_until(std::chrono::system_clock::now() + TEST_EXPECT_TIMEOUT));
   EXPECT_LE(TEST_EXPECT_TIMEOUT, sw.elapsed());
 }
 
 // semaphore::release()
-TEST(SemaphoreTest, Release)
+TYPED_TEST(SemaphoreTest, Release)
 {
+  using counting_semaphore = typename TypeParam::counting_semaphore_def;
   std::atomic<int> step = {};
-  yamc::counting_semaphore<> sem(0);
+  counting_semaphore sem{0};
   yamc::test::join_thread thd([&]{
     EXPECT_STEP(1);
     EXPECT_NO_THROW(sem.release());
@@ -118,10 +160,11 @@ TEST(SemaphoreTest, Release)
 }
 
 // semaphore::release(update)
-TEST(SemaphoreTest, ReleaseUpdate)
+TYPED_TEST(SemaphoreTest, ReleaseUpdate)
 {
+  using counting_semaphore = typename TypeParam::counting_semaphore_def;
   std::atomic<int> step = {};
-  yamc::counting_semaphore<> sem(0);
+  counting_semaphore sem{0};
   yamc::test::task_runner(
     4,
     [&](std::size_t id) {
@@ -139,9 +182,10 @@ TEST(SemaphoreTest, ReleaseUpdate)
 }
 
 // use semaphore as Mutex
-TEST(SemaphoreTest, UseAsMutex)
+TYPED_TEST(SemaphoreTest, UseAsMutex)
 {
-  yamc::binary_semaphore sem(1);
+  using binary_semaphore = typename TypeParam::binary_semaphore;
+  binary_semaphore sem{1};
   std::size_t counter = 0;
   yamc::test::task_runner(
     TEST_THREADS,
@@ -157,23 +201,24 @@ TEST(SemaphoreTest, UseAsMutex)
 }
 
 
-// counting_semaphore::max()
-TEST(LeastMaxValueTest, CounitingSemaphoreDefault)
-{
-  EXPECT_GE(yamc::counting_semaphore<>::max(), YAMC_SEMAPHORE_LEAST_MAX_VALUE);
-}
+template <typename Selector>
+struct LeastMaxValueTest : ::testing::Test {};
+
+TYPED_TEST_SUITE(LeastMaxValueTest, SemaphoreSelector);
 
 // counting_semaphore::max() with least_max_value
-TEST(LeastMaxValueTest, CounitingSemaphore)
+TYPED_TEST(LeastMaxValueTest, CounitingSemaphore)
 {
   constexpr ptrdiff_t LEAST_MAX_VALUE = 1000;
-  EXPECT_GE(yamc::counting_semaphore<LEAST_MAX_VALUE>::max(), LEAST_MAX_VALUE);
-  // counting_semaphre<N>::max() may return value greater than N.
+  using counting_semaphore = typename TypeParam::template counting_semaphore<LEAST_MAX_VALUE>;
+  EXPECT_GE(counting_semaphore::max(), LEAST_MAX_VALUE);
+  // counting_semaphore<N>::max() may return value greater than N.
 }
 
-// binary_semaphore::max
-TEST(LeastMaxValueTest, BinarySemaphore)
+// binary_semaphore::max()
+TYPED_TEST(LeastMaxValueTest, BinarySemaphore)
 {
-  EXPECT_GE(yamc::binary_semaphore::max(), 1);
-  // counting_semaphre<N>::max() may return value greater than N.
+  using binary_semaphore = typename TypeParam::binary_semaphore;
+  EXPECT_GE(binary_semaphore::max(), 1);
+  // counting_semaphore<N>::max() may return value greater than N.
 }
