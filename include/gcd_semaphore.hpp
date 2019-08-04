@@ -102,7 +102,7 @@ public:
   bool try_acquire_for(const std::chrono::duration<Rep, Period>& rel_time)
   {
     int64_t delta = std::chrono::duration_cast<std::chrono::nanoseconds>(rel_time).count();
-    auto timeout = ::dispatch_time(DISPATCH_WALLTIME_NOW, delta);
+    auto timeout = ::dispatch_time(DISPATCH_TIME_NOW, delta);
     long result = ::dispatch_semaphore_wait(dsema_, timeout);
     return (result == KERN_SUCCESS);
   }
