@@ -31,6 +31,7 @@
 #include <chrono>
 #include <system_error>
 // POSIX semaphore
+#include <limits.h>
 #include <semaphore.h>
 
 
@@ -65,9 +66,9 @@ class counting_semaphore {
     abs_timeout.tv_nsec = (long)(duration_cast<nanoseconds>(tp.time_since_epoch()).count() % 1000000000);
 
     errno = 0;
-    if (::sem_timedwait(&sem_, abs_timeout) == 0) {
+    if (::sem_timedwait(&sem_, &abs_timeout) == 0) {
       return true;
-    } else if (errno != ETIMEOUT) {
+    } else if (errno != ETIMEDOUT) {
       throw_errno("sem_timedwait");
     }
     return false;
@@ -116,7 +117,7 @@ public:
 
   bool try_acquire() noexcept
   {
-    return ::sem_trywait(&sem_);
+    return (::sem_trywait(&sem_) == 0);
   }
 
   template<class Rep, class Period>
