@@ -13,6 +13,10 @@
 #include "posix_semaphore.hpp"
 #define ENABLE_POSIX_SEMAPHORE
 #endif
+#if defined(_WIN32)
+#include "win_semaphore.hpp"
+#define ENABLE_WIN_SEMAPHORE
+#endif
 
 
 #define TEST_THREADS   8
@@ -41,7 +45,7 @@ std::mutex g_guard;
   { TRACE("STEP"#r0_"-"#r1_); int s = ++step; EXPECT_TRUE(r0_ <= s && s <= r1_); WAIT_TICKS; }
 
 
-// selector for generic C++11 semaphore implementation
+// selector for generic semaphore implementation (platform independent)
 struct GenericSemaphore {
   template <std::ptrdiff_t least_max_value>
   using counting_semaphore = yamc::counting_semaphore<least_max_value>;
@@ -69,6 +73,16 @@ struct PosixSemaphore {
 };
 #endif
 
+#if defined(ENABLE_WIN_SEMAPHORE)
+// selector for Windows semaphore implementation
+struct WinSemaphore {
+  template <std::ptrdiff_t least_max_value>
+  using counting_semaphore = yamc::win::counting_semaphore<least_max_value>;
+  using counting_semaphore_def = yamc::win::counting_semaphore<>;
+  using binary_semaphore = yamc::win::binary_semaphore;
+};
+#endif
+
 using SemaphoreSelector = ::testing::Types<
  GenericSemaphore
 #if defined(ENABLE_GCD_SEMAPHORE)
@@ -76,6 +90,9 @@ using SemaphoreSelector = ::testing::Types<
 #endif
 #if defined(ENABLE_POSIX_SEMAPHORE)
  , PosixSemaphore
+#endif
+#if defined(ENABLE_WIN_SEMAPHORE)
+ , WinSemaphore
 #endif
 >;
 
