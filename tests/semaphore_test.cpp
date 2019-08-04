@@ -114,7 +114,7 @@ TYPED_TEST(SemaphoreTest, CtorMaxValue)
 {
   constexpr ptrdiff_t LEAST_MAX_VALUE = 1000;
   using counting_semaphore = typename TypeParam::template counting_semaphore<LEAST_MAX_VALUE>;
-  EXPECT_NO_THROW(counting_semaphore{counting_semaphore::max()});
+  EXPECT_NO_THROW(counting_semaphore{(counting_semaphore::max)()});
 }
 
 // semaphore::acquire()
@@ -246,7 +246,7 @@ TYPED_TEST(LeastMaxValueTest, CounitingSemaphore)
 {
   constexpr ptrdiff_t LEAST_MAX_VALUE = 1000;
   using counting_semaphore = typename TypeParam::template counting_semaphore<LEAST_MAX_VALUE>;
-  EXPECT_GE(counting_semaphore::max(), LEAST_MAX_VALUE);
+  EXPECT_GE((counting_semaphore::max)(), LEAST_MAX_VALUE);
   // counting_semaphore<N>::max() may return value greater than N.
 }
 
@@ -254,6 +254,6 @@ TYPED_TEST(LeastMaxValueTest, CounitingSemaphore)
 TYPED_TEST(LeastMaxValueTest, BinarySemaphore)
 {
   using binary_semaphore = typename TypeParam::binary_semaphore;
-  EXPECT_GE(binary_semaphore::max(), 1);
+  EXPECT_GE((binary_semaphore::max)(), 1);
   // counting_semaphore<N>::max() may return value greater than N.
 }
