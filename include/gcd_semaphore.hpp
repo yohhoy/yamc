@@ -92,12 +92,8 @@ public:
   {
     validate_native_handle("counting_semaphore::release");
     while (0 < update--) {
-      long result = ::dispatch_semaphore_signal(dsema_);
-      if (result != KERN_SUCCESS) {
-        // [thread.mutex.requirements.mutex]
-        // resource_unavailable_try_again - if any native handle type manipulated is not available.
-        throw std::system_error(std::make_error_code(std::errc::resource_unavailable_try_again), "dispatch_semaphore_signal");
-      }
+      ::dispatch_semaphore_signal(dsema_);
+      // dispatch_semaphore_signal() function return number of threads signaled.
     }
   }
 
