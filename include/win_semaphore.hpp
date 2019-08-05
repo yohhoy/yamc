@@ -70,7 +70,7 @@ template <std::ptrdiff_t least_max_value = 0x7FFFFFFF>
 class counting_semaphore {
   ::HANDLE hsem_ = NULL;
 
-  static void validate_native_handle(const char* what_arg)
+  void validate_native_handle(const char* what_arg)
   {
     if (hsem_ == NULL) {
       // [thread.mutex.requirements.mutex]
