@@ -30,13 +30,15 @@
 #include <cstddef>
 #include <chrono>
 #include <system_error>
+#include <type_traits>
 // POSIX semaphore
-#include <limits.h>
+#include <limits.h>  // SEM_VALUE_MAX
 #include <semaphore.h>
+#include <time.h>    // timespec struct
 
 
 /*
- * Semaphores in C++20 Standard Library
+ * Semaphores in C++20 Standard Library for POSIX-compatible platform
  *
  * - yamc::posix::counting_semaphore<least_max_value>
  * - yamc::posix::binary_semaphore
@@ -52,9 +54,9 @@ template <std::ptrdiff_t least_max_value = SEM_VALUE_MAX>
 class counting_semaphore {
   ::sem_t sem_;
 
-  void throw_errno(const char* what_arg)
+  static void throw_errno(const char* what_arg)
   {
-    throw std::system_error(std::error_code(errno, std::system_category()), what_arg);
+    throw std::system_error(std::error_code(errno, std::generic_category()), what_arg);
   }
 
   bool do_try_acquirewait(const std::chrono::system_clock::time_point& tp)
@@ -124,7 +126,7 @@ public:
   bool try_acquire_for(const std::chrono::duration<Rep, Period>& rel_time)
   {
     // C++ Standard says '_for'-suffixed timeout function shall use steady clock,
-    // but we use std::chorno::system_clock which may or may not be steady.
+    // but we use std::chrono::system_clock which may or may not be steady.
     const auto tp = std::chrono::system_clock::now() + rel_time;
     return do_try_acquirewait(tp);
   }
@@ -132,6 +134,7 @@ public:
   template<class Clock, class Duration>
   bool try_acquire_until(const std::chrono::time_point<Clock, Duration>& abs_time)
   {
+    static_assert(std::is_same<Clock, std::chrono::system_clock>::value, "support only system_clock");
     return do_try_acquirewait(abs_time);
   }
 };
