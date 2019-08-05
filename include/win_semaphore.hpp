@@ -35,6 +35,25 @@
 
 
 /*
+ * Timeout offset for WaitForSingleObject() in semaphore implementation
+ *
+ * https://docs.microsoft.com/windows/win32/sync/wait-functions
+ * > Wait Functions and Time-out Intervals
+ * > If the time-out interval is less than the resolution of the system clock,
+ * > the wait may time out in less than the specified length of time.
+ * > If the time-out interval is greater than one tick but less than two,
+ * > the wait can be anywhere between one and two ticks, and so on.
+ *
+ * [thread.req.timing]
+ * Implementations necessarily have some delay in returning from a timeout. [...]
+ * The delay durations may vary from timeout to timeout, but in all cases shorter is better.
+ */
+#ifndef YAMC_WIN_SEMAPHORE_TIMEOUT_OFFSET
+#define YAMC_WIN_SEMAPHORE_TIMEOUT_OFFSET  1
+#endif
+
+
+/*
  * Semaphores in C++20 Standard Library for Windows platform
  *
  * - yamc::win::counting_semaphore<least_max_value>
@@ -64,11 +83,11 @@ class counting_semaphore {
   bool do_try_acquirewait(const std::chrono::duration<Rep, Period>& timeout)
   {
     using namespace std::chrono;
-    // WaitForSingleObject() timeout has millisecond precision.
-    // https://docs.microsoft.com/windows/win32/api/synchapi/nf-synchapi-waitforsingleobject
-    // https://docs.microsoft.com/windows/win32/sync/wait-functions
-    // timeout_in_msec = std::chrono::ceil<milliseconds>(timeout)
+    // round up timeout to milliseconds precision
     DWORD timeout_in_msec = static_cast<DWORD>(duration_cast<milliseconds>(timeout + nanoseconds{999999}).count());
+    if (0 < timeout_in_msec) {
+      timeout_in_msec += YAMC_WIN_SEMAPHORE_TIMEOUT_OFFSET;
+    }
     DWORD result = ::WaitForSingleObject(hsem_, timeout_in_msec);
     if (result != WAIT_OBJECT_0 && result != WAIT_TIMEOUT) {
       // [thread.mutex.requirements.mutex]
