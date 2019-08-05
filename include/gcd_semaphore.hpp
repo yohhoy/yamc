@@ -51,7 +51,16 @@ namespace gcd {
 
 template <std::ptrdiff_t least_max_value = std::numeric_limits<long>::max()>
 class counting_semaphore {
-  ::dispatch_semaphore_t dsema_;
+  ::dispatch_semaphore_t dsema_ = NULL;
+
+  void validate_native_handle(const char* what_arg)
+  {
+    if (dsema_ == NULL) {
+      // [thread.mutex.requirements.mutex]
+      // invalid_argument - if any native handle type manipulated as part of mutex construction is incorrect.
+      throw std::system_error(std::make_error_code(std::errc::invalid_argument), what_arg);
+    }
+  }
 
 public:
   static constexpr std::ptrdiff_t max() noexcept
@@ -66,7 +75,7 @@ public:
   {
     assert(0 <= desired && desired <= max());
     dsema_ = ::dispatch_semaphore_create((long)desired);
-    assert(dsema_ != NULL);
+    // counting_semaphore constructor throws nothing.
   }
 
   ~counting_semaphore()
@@ -81,42 +90,68 @@ public:
 
   void release(std::ptrdiff_t update = 1)
   {
+    validate_native_handle("counting_semaphore::release");
     while (0 < update--) {
-      ::dispatch_semaphore_signal(dsema_);
+      long result = ::dispatch_semaphore_signal(dsema_);
+      if (result != KERN_SUCCESS) {
+        // [thread.mutex.requirements.mutex]
+        // resource_unavailable_try_again - if any native handle type manipulated is not available.
+        throw std::system_error(std::make_error_code(std::errc::resource_unavailable_try_again), "dispatch_semaphore_signal");
+      }
     }
   }
 
   void acquire()
   {
-    ::dispatch_semaphore_wait(dsema_, DISPATCH_TIME_FOREVER);
+    validate_native_handle("counting_semaphore::acquire");
+    long result = ::dispatch_semaphore_wait(dsema_, DISPATCH_TIME_FOREVER);
+    if (result != KERN_SUCCESS) {
+      // [thread.mutex.requirements.mutex]
+      // resource_unavailable_try_again - if any native handle type manipulated is not available.
+      throw std::system_error(std::make_error_code(std::errc::resource_unavailable_try_again), "dispatch_semaphore_wait");
+    }
   }
 
   bool try_acquire() noexcept
   {
-    long result = ::dispatch_semaphore_wait(dsema_, DISPATCH_TIME_NOW);
-    // dispatch_semaphore() will return KERN_SUCCESS or KERN_OPERATION_TIMED_OUT
-    return (result == KERN_SUCCESS);
+    return (dsema_ != NULL && ::dispatch_semaphore_wait(dsema_, DISPATCH_TIME_NOW) == KERN_SUCCESS);
   }
 
   template<class Rep, class Period>
   bool try_acquire_for(const std::chrono::duration<Rep, Period>& rel_time)
   {
-    int64_t delta = std::chrono::duration_cast<std::chrono::nanoseconds>(rel_time).count();
+    using namespace std::chrono;
+    validate_native_handle("counting_semaphore::try_acquire_for");
+    int64_t delta = duration_cast<nanoseconds>(rel_time).count();
     auto timeout = ::dispatch_time(DISPATCH_TIME_NOW, delta);
+
     long result = ::dispatch_semaphore_wait(dsema_, timeout);
+    if (result != KERN_SUCCESS && result != KERN_OPERATION_TIMED_OUT) {
+      // [thread.mutex.requirements.mutex]
+      // resource_unavailable_try_again - if any native handle type manipulated is not available.
+      throw std::system_error(std::make_error_code(std::errc::resource_unavailable_try_again), "dispatch_semaphore_wait");
+    }
     return (result == KERN_SUCCESS);
   }
 
   template<class Clock, class Duration>
   bool try_acquire_until(const std::chrono::time_point<Clock, Duration>& abs_time)
   {
-    static_assert(std::is_same<Clock, std::chrono::system_clock>::value, "support only system_clock");
+    using namespace std::chrono;
+    validate_native_handle("counting_semaphore::try_acquire_until");
+    static_assert(std::is_same<Clock, system_clock>::value, "support only system_clock");
     // Until C++20, the epoch of std::chrono::system_clock is unspecified,
     // but most implementation use UNIX epooch (19700101T000000Z).
     const struct ::timespec unix_epoch = { 0, 0 };
-    auto from_epoch = std::chrono::duration_cast<std::chrono::nanoseconds>(abs_time.time_since_epoch()).count();
+    auto from_epoch = duration_cast<nanoseconds>(abs_time.time_since_epoch()).count();
     auto timeout = ::dispatch_walltime(&unix_epoch, from_epoch);
+
     long result = ::dispatch_semaphore_wait(dsema_, timeout);
+    if (result != KERN_SUCCESS && result != KERN_OPERATION_TIMED_OUT) {
+      // [thread.mutex.requirements.mutex]
+      // resource_unavailable_try_again - if any native handle type manipulated is not available.
+      throw std::system_error(std::make_error_code(std::errc::resource_unavailable_try_again), "dispatch_semaphore_wait");
+    }
     return (result == KERN_SUCCESS);
   }
 };
