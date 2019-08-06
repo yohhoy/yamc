@@ -34,22 +34,9 @@
 #include <windows.h>
 
 
-/*
- * Timeout offset for WaitForSingleObject() in semaphore implementation
- *
- * https://docs.microsoft.com/windows/win32/sync/wait-functions
- * > Wait Functions and Time-out Intervals
- * > If the time-out interval is less than the resolution of the system clock,
- * > the wait may time out in less than the specified length of time.
- * > If the time-out interval is greater than one tick but less than two,
- * > the wait can be anywhere between one and two ticks, and so on.
- *
- * [thread.req.timing]
- * Implementations necessarily have some delay in returning from a timeout. [...]
- * The delay durations may vary from timeout to timeout, but in all cases shorter is better.
- */
-#ifndef YAMC_WIN_SEMAPHORE_TIMEOUT_OFFSET
-#define YAMC_WIN_SEMAPHORE_TIMEOUT_OFFSET  1
+/// Enable acculate timeout for yamc::win::counting_semaphore<>
+#ifndef YAMC_WIN_SEMAPHORE_ACCURATE_TIMEOUT
+#define YAMC_WIN_SEMAPHORE_ACCURATE_TIMEOUT  1
 #endif
 
 
@@ -85,10 +72,17 @@ class counting_semaphore {
     using namespace std::chrono;
     // round up timeout to milliseconds precision
     DWORD timeout_in_msec = static_cast<DWORD>(duration_cast<milliseconds>(timeout + nanoseconds{999999}).count());
-    if (0 < timeout_in_msec) {
-      timeout_in_msec += YAMC_WIN_SEMAPHORE_TIMEOUT_OFFSET;
-    }
     DWORD result = ::WaitForSingleObject(hsem_, timeout_in_msec);
+#if YAMC_WIN_SEMAPHORE_ACCURATE_TIMEOUT
+    if (result == WAIT_TIMEOUT && 0 < timeout_in_msec) {
+      // Win32 wait functions will return early than specified timeout interval by design.
+      // (https://docs.microsoft.com/windows/win32/sync/wait-functions for more details)
+      //
+      // The current thread sleep one more "tick" to guarantee timing specification in C++ Standard,
+      // that actual timeout interval shall be longer than requested timeout of try_acquire_*().
+      ::Sleep(1);
+    }
+#endif
     if (result != WAIT_OBJECT_0 && result != WAIT_TIMEOUT) {
       // [thread.mutex.requirements.mutex]
       // resource_unavailable_try_again - if any native handle type manipulated is not available.
