@@ -36,7 +36,7 @@
 
 /// default least_max_value of yamc::counting_semaphore
 #ifndef YAMC_SEMAPHORE_LEAST_MAX_VALUE
-#define YAMC_SEMAPHORE_LEAST_MAX_VALUE  (std::numeric_limits<std::ptrdiff_t>::max())
+#define YAMC_SEMAPHORE_LEAST_MAX_VALUE  ((std::numeric_limits<std::ptrdiff_t>::max)())
 #endif
 
 
@@ -70,7 +70,7 @@ class counting_semaphore {
   }
 
 public:
-  static constexpr std::ptrdiff_t max() noexcept
+  static constexpr std::ptrdiff_t (max)() noexcept
   {
     static_assert(0 < least_max_value, "least_max_value shall be greater than zero");
     return least_max_value;
@@ -79,7 +79,8 @@ public:
   /*constexpr*/ explicit counting_semaphore(std::ptrdiff_t desired)
     : counter_(desired)
   {
-    assert(0 <= desired && desired <= max());
+    assert(0 <= desired && desired <= (max)());
+    // counting_semaphore constructor throws nothing.
   }
 
   ~counting_semaphore() = default;
@@ -90,7 +91,7 @@ public:
   void release(std::ptrdiff_t update = 1)
   {
     std::lock_guard<decltype(mtx_)> lk(mtx_);
-    assert(0 <= update && update <= max() - counter_);
+    assert(0 <= update && update <= (max)() - counter_);
     counter_ += update;
     if (0 < counter_) {
       cv_.notify_all();

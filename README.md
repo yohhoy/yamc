@@ -16,7 +16,7 @@ This library includes:
 - Checked mutex for debugging, compatible with requirements in C++11/14/17 Standard.
 - Fair mutex and fair shared mutex, support FIFO scheduling to prevent from starvation.
 - `shared_lock<Mutex>`, `scoped_lock<Mutexes...>` utilities in C++14/17 Standard.
-- Experimental: C++20 synchronization primitives emulation.
+- C++20 synchronization primitives; `counting_semaphore`, `latch`, `barrier`.
 
 
 ## Example
@@ -80,7 +80,7 @@ This mutex collections library provide the following types:
 - `yamc::alternate::shared_mutex`: RW locking, non-recursive
 - `yamc::alternate::shared_timed_mutex`: RW locking, non-recursive, support timeout
 
-These mutex types fulfil corresponding mutex semantics in C++ Standard.
+These mutex types fulfill corresponding mutex semantics in C++ Standard.
 You can replace type `std::mutex` to `yamc::*::mutex`, `std::recursive_mutex` to `yamc::*::recursive_mutex` likewise, except some special case.
 Note: [`std::mutex`'s default constructor][mutex_ctor] is constexpr, but `yamc::*::mutex` is not.
 All mutex types in C++ Standard are [standard-layout][standardlayout] class, but not all types in `yamc` namespace are.
@@ -117,18 +117,23 @@ Period.
 [std_sharedlock]: http://en.cppreference.com/w/cpp/thread/shared_lock
 
 
-## Experimental: C++20 synchronization primitives
-This library also provides a part of C++20 synchronization primitives emulation.
-These primitives have same interfaces in C++20 Standard and emulate behaviors described in Standard specification.
+## C++20 synchronization primitives
+This library also provides a part of C++20 synchronization primitives emulation. (Based on [P1135][wg21p1135])
+These primitives have the same interfaces and emulate runtime behaviors described in C++20 Standard Library specification.
 
 - `<semaphore>` header
-    - `counting_semaphre<N>` is [counting semaphore][semaphore].
+    - `counting_semaphore<N>` is [counting semaphore][semaphore].
     - `binary_semaphore` is binary semaphore; alias of `counting_semaphore<1>`.
 - `<latch>` header
     - `latch` is countdown latch; one-time rendezvous point.
 - `<barrier>` header
     - `barrier` is [cyclic barrier][barrier] with completion handler; reusable rendezvous point.
 
+There are two categories of the semaphore implementation:
+- "Generic": Cross-platform with C++11 primitives only, inefficient compared to "Native" version.
+- "Native": High performance, platform dependent with POSIX/macOS/Windows native APIs.
+
+[wg21p1135]: https://wg21.link/p1135
 [semaphore]: https://en.wikipedia.org/wiki/Semaphore_(programming)
 [barrier]: https://en.wikipedia.org/wiki/Barrier_(computer_science)
 
@@ -143,7 +148,7 @@ This means that you can use shared mutex variants (`shared_mutex`, `shared_timed
 CI building and unit-testing on the following environments:
 - Linux/G++ 5.4
 - Linux/Clang 3.7
-- OSX/Clang (Xcode 8.3)
+- macOS/Clang (Xcode 8.3)
 - Windows/MSVC 14.0 (Visual Studio 2015)
 
 [std_condvar]: http://en.cppreference.com/w/cpp/thread/condition_variable
@@ -270,5 +275,5 @@ If you need to detect general deadlock, consider [Valgrind/Helgrind][helgrind] a
 [clang-tsan]: https://clang.llvm.org/docs/ThreadSanitizer.html
 
 
-# Licence
+# License
 MIT License
