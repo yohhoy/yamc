@@ -23,8 +23,8 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#ifndef YAMC_LATCH_HPP_
-#define YAMC_LATCH_HPP_
+#ifndef YAMC_BARRIER_HPP_
+#define YAMC_BARRIER_HPP_
 
 #include <cassert>
 #include <cstddef>
