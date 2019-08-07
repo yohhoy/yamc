@@ -9,6 +9,10 @@
 #include "fair_shared_mutex.hpp"
 #include "alternate_mutex.hpp"
 #include "alternate_shared_mutex.hpp"
+#if defined(_POSIX_THREADS) && (_POSIX_THREADS > 0)
+#include "posix_mutex.hpp"
+#define ENABLE_POSIX_MUTEX
+#endif
 #include "yamc_testutil.hpp"
 
 
@@ -28,6 +32,9 @@ using NormalMutexTypes = ::testing::Types<
   yamc::alternate::mutex,
   yamc::alternate::timed_mutex,
   yamc::alternate::shared_mutex
+#if defined(ENABLE_POSIX_MUTEX)
+  , yamc::posix::mutex
+#endif
 >;
 
 template <typename Mutex>
@@ -98,6 +105,9 @@ using RecursiveMutexTypes = ::testing::Types<
   yamc::fair::recursive_timed_mutex,
   yamc::alternate::recursive_mutex,
   yamc::alternate::recursive_timed_mutex
+#if defined(ENABLE_POSIX_MUTEX)
+  , yamc::posix::recursive_mutex
+#endif
 >;
 
 template <typename Mutex>
