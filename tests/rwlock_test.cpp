@@ -6,6 +6,10 @@
 #include "fair_shared_mutex.hpp"
 #include "alternate_shared_mutex.hpp"
 #include "yamc_shared_lock.hpp"
+#if defined(_POSIX_THREADS) && (_POSIX_THREADS > 0)
+#include "posix_shared_mutex.hpp"
+#define ENABLE_POSIX_SHARED_MUTEX
+#endif
 #include "yamc_testutil.hpp"
 
 
@@ -26,6 +30,9 @@ using SharedMutexTypes = ::testing::Types<
   yamc::alternate::basic_shared_mutex<yamc::rwlock::WriterPrefer>,
   yamc::alternate::basic_shared_timed_mutex<yamc::rwlock::ReaderPrefer>,
   yamc::alternate::basic_shared_timed_mutex<yamc::rwlock::WriterPrefer>
+#if defined(ENABLE_POSIX_SHARED_MUTEX)
+  , yamc::posix::shared_mutex
+#endif
 >;
 
 template <typename Mutex>

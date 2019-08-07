@@ -11,6 +11,7 @@
 #include "alternate_shared_mutex.hpp"
 #if defined(_POSIX_THREADS) && (_POSIX_THREADS > 0)
 #include "posix_mutex.hpp"
+#include "posix_shared_mutex.hpp"
 #define ENABLE_POSIX_MUTEX
 #endif
 #include "yamc_testutil.hpp"
@@ -34,6 +35,7 @@ using NormalMutexTypes = ::testing::Types<
   yamc::alternate::shared_mutex
 #if defined(ENABLE_POSIX_MUTEX)
   , yamc::posix::mutex
+  , yamc::posix::shared_mutex
 #endif
 >;
 
