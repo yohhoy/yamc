@@ -1,7 +1,6 @@
 /*
  * semaphore_test.cpp
  */
-#include <atomic>
 #include "gtest/gtest.h"
 #include "yamc_semaphore.hpp"
 #include "yamc_testutil.hpp"
@@ -24,25 +23,6 @@
 
 #define TEST_NOT_TIMEOUT    std::chrono::minutes(3)
 #define TEST_EXPECT_TIMEOUT std::chrono::milliseconds(300)
-
-#if 0
-namespace {
-std::mutex g_guard;
-#define TRACE(msg_) \
-  (std::unique_lock<std::mutex>(g_guard),\
-   std::cout << std::this_thread::get_id() << ':' << (msg_) << std::endl)
-}
-#else
-#define TRACE(msg_)
-#endif
-
-#define TEST_TICKS std::chrono::milliseconds(200)
-#define WAIT_TICKS std::this_thread::sleep_for(TEST_TICKS)
-
-#define EXPECT_STEP(n_) \
-  { TRACE("STEP"#n_); EXPECT_EQ(n_, ++step); std::this_thread::sleep_for(TEST_TICKS); }
-#define EXPECT_STEP_RANGE(r0_, r1_) \
-  { TRACE("STEP"#r0_"-"#r1_); int s = ++step; EXPECT_TRUE(r0_ <= s && s <= r1_); WAIT_TICKS; }
 
 
 // selector for generic semaphore implementation (platform independent)
@@ -84,15 +64,15 @@ struct WinSemaphore {
 #endif
 
 using SemaphoreSelector = ::testing::Types<
- GenericSemaphore
+  GenericSemaphore
 #if defined(ENABLE_GCD_SEMAPHORE)
- , GcdSemaphore
+  , GcdSemaphore
 #endif
 #if defined(ENABLE_POSIX_SEMAPHORE)
- , PosixSemaphore
+  , PosixSemaphore
 #endif
 #if defined(ENABLE_WIN_SEMAPHORE)
- , WinSemaphore
+  , WinSemaphore
 #endif
 >;
 
@@ -180,8 +160,8 @@ TYPED_TEST(SemaphoreTest, TryAcquireUntilTimeout)
 // semaphore::release()
 TYPED_TEST(SemaphoreTest, Release)
 {
+  SETUP_STEPTEST;
   using counting_semaphore = typename TypeParam::counting_semaphore_def;
-  std::atomic<int> step = {};
   counting_semaphore sem{0};
   yamc::test::join_thread thd([&]{
     EXPECT_STEP(1);
@@ -197,8 +177,8 @@ TYPED_TEST(SemaphoreTest, Release)
 // semaphore::release(update)
 TYPED_TEST(SemaphoreTest, ReleaseUpdate)
 {
+  SETUP_STEPTEST;
   using counting_semaphore = typename TypeParam::counting_semaphore_def;
-  std::atomic<int> step = {};
   counting_semaphore sem{0};
   yamc::test::task_runner(
     4,

@@ -1,39 +1,13 @@
 /*
  * fairness_test.cpp
  */
-#include <atomic>
-#include <chrono>
-#include <iostream>
-#include <mutex>
-#include <thread>
 #include "gtest/gtest.h"
 #include "fair_mutex.hpp"
 #include "fair_shared_mutex.hpp"
 #include "yamc_testutil.hpp"
 
 
-#if 0
-namespace {
-std::mutex g_guard;
-#define TRACE(msg_) \
-  (std::unique_lock<std::mutex>(g_guard),\
-   std::cout << std::this_thread::get_id() << ':' << (msg_) << std::endl)
-}
-#else
-#define TRACE(msg_)
-#endif
-
-
-#define TEST_EXPECT_TIMEOUT std::chrono::milliseconds(10)
 #define TEST_NOT_TIMEOUT std::chrono::minutes(3)
-
-#define TEST_TICKS std::chrono::milliseconds(200)
-#define WAIT_TICKS std::this_thread::sleep_for(TEST_TICKS)
-
-#define EXPECT_STEP(n_) \
-  { TRACE("STEP"#n_); EXPECT_EQ(n_, ++step); std::this_thread::sleep_for(TEST_TICKS); }
-#define EXPECT_STEP_RANGE(r0_, r1_) \
-  { TRACE("STEP"#r0_"-"#r1_); int s = ++step; EXPECT_TRUE(r0_ <= s && s <= r1_); WAIT_TICKS; }
 
 
 // debug for test case
@@ -72,8 +46,8 @@ TYPED_TEST_SUITE(FairMutexTest, FairMutexTypes);
 //
 TYPED_TEST(FairMutexTest, FifoSched)
 {
+  SETUP_STEPTEST;
   yamc::test::phaser phaser(3);
-  int step = 0;
   TypeParam mtx;
   yamc::test::stopwatch<> sw;
   yamc::test::task_runner(3, [&](std::size_t id) {
@@ -81,36 +55,36 @@ TYPED_TEST(FairMutexTest, FifoSched)
     switch (id) {
     case 0:
       EXPECT_TRUE(mtx.try_lock());
-      EXPECT_STEP(1)
+      EXPECT_STEP(1);
       ph.advance(2);  // p1-2
       ph.await();     // p3
-      EXPECT_STEP(4)
+      EXPECT_STEP(4);
       mtx.unlock();
       mtx.lock();
-      EXPECT_STEP(7)
+      EXPECT_STEP(7);
       mtx.unlock();
       break;
     case 1:
       ph.await();     // p1
-      EXPECT_STEP(2)
+      EXPECT_STEP(2);
       ph.advance(2);  // p2-3
       mtx.lock();
-      EXPECT_STEP(5)
+      EXPECT_STEP(5);
       mtx.unlock();
       break;
     case 2:
       ph.await();     // p1
       EXPECT_FALSE(mtx.try_lock());
       ph.await();     // p2
-      EXPECT_STEP(3)
+      EXPECT_STEP(3);
       ph.advance(1);  // p3
       mtx.lock();
-      EXPECT_STEP(6)
+      EXPECT_STEP(6);
       mtx.unlock();
       break;
     }
   });
-  EXPECT_LE(TEST_TICKS * step, sw.elapsed());
+  EXPECT_LE(TEST_TICKS * 7, sw.elapsed());
 }
 
 
@@ -142,8 +116,8 @@ TYPED_TEST_SUITE(FairTimedMutexTest, FairTimedMutexTypes);
 //
 TYPED_TEST(FairTimedMutexTest, FifoTryLockFor)
 {
+  SETUP_STEPTEST;
   yamc::test::phaser phaser(3);
-  int step = 0;
   TypeParam mtx;
   yamc::test::stopwatch<> sw;
   yamc::test::task_runner(3, [&](std::size_t id) {
@@ -155,21 +129,20 @@ TYPED_TEST(FairTimedMutexTest, FifoTryLockFor)
       WAIT_TICKS;
       ph.advance(1);  // p2
       ph.await();     // p3
-      EXPECT_STEP(3)
+      EXPECT_STEP(3);
       mtx.unlock();
       EXPECT_TRUE(mtx.try_lock_for(TEST_NOT_TIMEOUT));
-      EXPECT_STEP(6)
+      EXPECT_STEP(6);
       mtx.unlock();
       break;
     case 1:
       ph.await();     // p1
       ph.advance(1);  // p2
       EXPECT_FALSE(mtx.try_lock_for(TEST_TICKS * 2));
-      step += 2;
-      TRACE("STEP:1-2(timeout)");
+      ADVANCE_STEP("STEP1-2(timeout)", 2);
       ph.advance(1);  // p3
       EXPECT_TRUE(mtx.try_lock_for(TEST_NOT_TIMEOUT));
-      EXPECT_STEP(5)
+      EXPECT_STEP(5);
       mtx.unlock();
       break;
     case 2:
@@ -177,12 +150,12 @@ TYPED_TEST(FairTimedMutexTest, FifoTryLockFor)
       ph.await();     // p2
       ph.advance(1);  // p3
       EXPECT_TRUE(mtx.try_lock_for(TEST_NOT_TIMEOUT));
-      EXPECT_STEP(4)
+      EXPECT_STEP(4);
       mtx.unlock();
       break;
     }
   });
-  EXPECT_LE(TEST_TICKS * step, sw.elapsed());
+  EXPECT_LE(TEST_TICKS * 6, sw.elapsed());
 }
 
 // FIFO scheduling with try_lock_until() timeout
@@ -201,8 +174,8 @@ TYPED_TEST(FairTimedMutexTest, FifoTryLockFor)
 //
 TYPED_TEST(FairTimedMutexTest, FifoTryLockUntil)
 {
+  SETUP_STEPTEST;
   yamc::test::phaser phaser(3);
-  int step = 0;
   TypeParam mtx;
   using Clock = std::chrono::steady_clock;
   yamc::test::stopwatch<> sw;
@@ -215,21 +188,20 @@ TYPED_TEST(FairTimedMutexTest, FifoTryLockUntil)
       WAIT_TICKS;
       ph.advance(1);  // p2
       ph.await();     // p3
-      EXPECT_STEP(3)
+      EXPECT_STEP(3);
       mtx.unlock();
       EXPECT_TRUE(mtx.try_lock_until(Clock::now() + TEST_NOT_TIMEOUT));
-      EXPECT_STEP(6)
+      EXPECT_STEP(6);
       mtx.unlock();
       break;
     case 1:
       ph.await();     // p1
       ph.advance(1);  // p2
       EXPECT_FALSE(mtx.try_lock_until(Clock::now() + TEST_TICKS * 2));
-      step += 2;
-      TRACE("STEP:1-2(timeout)");
+      ADVANCE_STEP("STEP1-2(timeout)", 2);
       ph.advance(1);  // p3
       EXPECT_TRUE(mtx.try_lock_until(Clock::now() + TEST_NOT_TIMEOUT));
-      EXPECT_STEP(5)
+      EXPECT_STEP(5);
       mtx.unlock();
       break;
     case 2:
@@ -237,12 +209,12 @@ TYPED_TEST(FairTimedMutexTest, FifoTryLockUntil)
       ph.await();     // p2
       ph.advance(1);  // p3
       EXPECT_TRUE(mtx.try_lock_until(Clock::now() + TEST_NOT_TIMEOUT));
-      EXPECT_STEP(4)
+      EXPECT_STEP(4);
       mtx.unlock();
       break;
     }
   });
-  EXPECT_LE(TEST_TICKS * step, sw.elapsed());
+  EXPECT_LE(TEST_TICKS * 6, sw.elapsed());
 }
 
 
@@ -276,8 +248,8 @@ TYPED_TEST_SUITE(FairSharedMutexTest, FairSharedMutexTypes);
 //
 TYPED_TEST(FairSharedMutexTest, FifoSched)
 {
+  SETUP_STEPTEST;
   yamc::test::phaser phaser(4);
-  int step = 0;
   TypeParam mtx;
   yamc::test::stopwatch<> sw;
   yamc::test::task_runner(4, [&](std::size_t id) {
@@ -317,7 +289,7 @@ TYPED_TEST(FairSharedMutexTest, FifoSched)
       break;
     }
   });
-  EXPECT_LE(TEST_TICKS * step, sw.elapsed());
+  EXPECT_LE(TEST_TICKS * 6, sw.elapsed());
 }
 
 
@@ -355,8 +327,8 @@ TYPED_TEST_SUITE(TaskFairSharedMutexTest, TaskFairSharedMutexTypes);
 //
 TYPED_TEST(TaskFairSharedMutexTest, TaskFifoSched)
 {
+  SETUP_STEPTEST;
   yamc::test::phaser phaser(5);
-  std::atomic<int> step = {0};
   TypeParam mtx;
   yamc::test::stopwatch<> sw;
   yamc::test::task_runner(5, [&](std::size_t id) {
@@ -448,8 +420,8 @@ TYPED_TEST_SUITE(PhaseFairSharedMutexTest, PhaseFairSharedMutexTypes);
 //
 TYPED_TEST(PhaseFairSharedMutexTest, PhaseFifoSched)
 {
+  SETUP_STEPTEST;
   yamc::test::phaser phaser(5);
-  std::atomic<int> step = {0};
   TypeParam mtx;
   yamc::test::stopwatch<> sw;
   yamc::test::task_runner(5, [&](std::size_t id) {
@@ -537,8 +509,8 @@ TYPED_TEST_SUITE(FairSharedTimedMutexTest, FairSharedTimedMutexTypes);
 //
 TYPED_TEST(FairSharedTimedMutexTest, FifoTryLockFor)
 {
+  SETUP_STEPTEST;
   yamc::test::phaser phaser(5);
-  std::atomic<int> step = {0};
   TypeParam mtx;
   yamc::test::stopwatch<> sw;
   yamc::test::task_runner(5, [&](std::size_t id) {
@@ -576,8 +548,7 @@ TYPED_TEST(FairSharedTimedMutexTest, FifoTryLockFor)
       ph.await();     // p2
       ph.advance(1);  // p3
       EXPECT_FALSE(mtx.try_lock_for(TEST_TICKS * 2));
-      step += 2;
-      TRACE("STEP4-5(timeout)");
+      ADVANCE_STEP("STEP4-5(timeout)", 2);
       ph.advance(1);  // p4
       break;
     case 4:
@@ -613,8 +584,8 @@ TYPED_TEST(FairSharedTimedMutexTest, FifoTryLockFor)
 //
 TYPED_TEST(FairSharedTimedMutexTest, FifoTryLockUntil)
 {
+  SETUP_STEPTEST;
   yamc::test::phaser phaser(5);
-  std::atomic<int> step = {0};
   TypeParam mtx;
   using Clock = std::chrono::steady_clock;
   yamc::test::stopwatch<> sw;
@@ -653,8 +624,7 @@ TYPED_TEST(FairSharedTimedMutexTest, FifoTryLockUntil)
       ph.await();     // p2
       ph.advance(1);  // p3
       EXPECT_FALSE(mtx.try_lock_until(Clock::now() + TEST_TICKS * 2));
-      step += 2;
-      TRACE("STEP4-5(timeout)");
+      ADVANCE_STEP("STEP4-5(timeout)", 2);
       ph.advance(1);  // p4
       break;
     case 4:
@@ -689,8 +659,8 @@ TYPED_TEST(FairSharedTimedMutexTest, FifoTryLockUntil)
 //
 TYPED_TEST(FairSharedTimedMutexTest, FifoTryLockSharedFor)
 {
+  SETUP_STEPTEST;
   yamc::test::phaser phaser(4);
-  std::atomic<int> step = {0};
   TypeParam mtx;
   yamc::test::stopwatch<> sw;
   yamc::test::task_runner(4, [&](std::size_t id) {
@@ -709,8 +679,7 @@ TYPED_TEST(FairSharedTimedMutexTest, FifoTryLockSharedFor)
       ph.await();     // p1
       ph.advance(1);  // p2
       EXPECT_FALSE(mtx.try_lock_shared_for(TEST_TICKS));
-      step += 1;
-      TRACE("STEP:2(timeout)");
+      ADVANCE_STEP("STEP2(timeout)", 1);
       ph.advance(2);  // p3-4
       break;
     case 2:
@@ -755,8 +724,8 @@ TYPED_TEST(FairSharedTimedMutexTest, FifoTryLockSharedFor)
 //
 TYPED_TEST(FairSharedTimedMutexTest, FifoTryLockSharedUntil)
 {
+  SETUP_STEPTEST;
   yamc::test::phaser phaser(4);
-  std::atomic<int> step = {0};
   TypeParam mtx;
   using Clock = std::chrono::steady_clock;
   yamc::test::stopwatch<> sw;
@@ -776,8 +745,7 @@ TYPED_TEST(FairSharedTimedMutexTest, FifoTryLockSharedUntil)
       ph.await();     // p1
       ph.advance(1);  // p2
       EXPECT_FALSE(mtx.try_lock_shared_until(Clock::now() + TEST_TICKS));
-      step += 1;
-      TRACE("STEP:2(timeout)");
+      ADVANCE_STEP("STEP2(timeout)", 1);
       ph.advance(2);  // p3-4
       break;
     case 2:

@@ -1,8 +1,6 @@
 /*
  * spinlock_test.cpp
  */
-#include <atomic>
-#include <mutex>
 #include <type_traits>
 #include "gtest/gtest.h"
 #include "naive_spin_mutex.hpp"

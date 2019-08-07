@@ -5,7 +5,6 @@
  *   - YAMC_CHECKED_CALL_ABORT=0  throw std::system_error [default]
  *   - YAMC_CHECKED_CALL_ABORT=1  call std::abort()
  */
-#include <chrono>
 #include <system_error>
 #include "gtest/gtest.h"
 #include "checked_mutex.hpp"
@@ -33,9 +32,6 @@
 
 
 #define TEST_NOT_TIMEOUT std::chrono::minutes(3)
-
-#define TEST_TICKS std::chrono::milliseconds(200)
-#define WAIT_TICKS std::this_thread::sleep_for(TEST_TICKS)
 
 
 using CheckedMutexTypes = ::testing::Types<

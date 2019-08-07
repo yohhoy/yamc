@@ -1,8 +1,6 @@
 /*
  * basic_test.cpp
  */
-#include <chrono>
-#include <mutex>
 #include <type_traits>
 #include "gtest/gtest.h"
 #include "checked_mutex.hpp"

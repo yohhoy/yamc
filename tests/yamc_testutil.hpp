@@ -28,6 +28,7 @@
 
 #include <cassert>
 #include <algorithm>
+#include <atomic>
 #include <chrono>
 #include <condition_variable>
 #include <memory>
@@ -93,7 +94,7 @@ public:
 };
 
 
-/// randzvous point primitive
+/// rendezvous point primitive
 class barrier {
   std::size_t nthread_;
   std::size_t count_;
@@ -370,5 +371,50 @@ struct shared_timed_mutex {
 } // namespace mock
 
 } // namespace yamc
+
+
+#define TEST_TICKS std::chrono::milliseconds(200)
+#define WAIT_TICKS std::this_thread::sleep_for(TEST_TICKS)
+
+// stepping test
+#if 0
+namespace {
+std::mutex g_guard;
+#define TRACE(msg_) \
+  (std::unique_lock<std::mutex>(g_guard),\
+   std::cout << std::this_thread::get_id() << ':' << (msg_) << std::endl)
+}
+#else
+#define TRACE(msg_)
+#endif
+
+// declare stepping counter
+#define SETUP_STEPTEST  std::atomic<int> step = {0}
+
+// expect n-th step
+#define EXPECT_STEP(n_) \
+  do {                                                         \
+    TRACE("STEP"#n_);                                          \
+    int s = step.fetch_add(1, std::memory_order_relaxed) + 1;  \
+    EXPECT_EQ(n_, s);                                          \
+    WAIT_TICKS;                                                \
+  } while (0)
+
+// expect between step#r0 and step#r1
+#define EXPECT_STEP_RANGE(r0_, r1_) \
+  do {                                                         \
+    TRACE("STEP"#r0_"-"#r1_);                                  \
+    int s = step.fetch_add(1, std::memory_order_relaxed) + 1;  \
+    EXPECT_TRUE(r0_ <= s && s <= r1_);                         \
+    WAIT_TICKS;                                                \
+  } while(0)
+
+// advance step counter (w/o wait ticks)
+#define ADVANCE_STEP(msg_, inc_) \
+  do {                                                \
+    TRACE(msg_);                                      \
+    step.fetch_add(inc_, std::memory_order_relaxed);  \
+  } while(0)
+
 
 #endif

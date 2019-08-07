@@ -5,7 +5,6 @@
  *   - YAMC_CHECKED_CALL_ABORT=0  throw std::system_error [default]
  *   - YAMC_CHECKED_CALL_ABORT=1  call std::abort()
  */
-#include <chrono>
 #include <system_error>
 #include "gtest/gtest.h"
 #include "checked_mutex.hpp"

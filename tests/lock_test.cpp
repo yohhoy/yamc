@@ -1,27 +1,12 @@
 /*
  * lock_test.cpp
  */
-#include <chrono>
-#include <mutex>
 #include <type_traits>
 #include "gtest/gtest.h"
 #include "yamc_shared_lock.hpp"
 #include "yamc_scoped_lock.hpp"
 #include "yamc_testutil.hpp"
 
-#if 0
-namespace {
-std::mutex g_guard;
-#define TRACE(msg_) \
-  (std::unique_lock<std::mutex>(g_guard),\
-   std::cout << std::this_thread::get_id() << ':' << (msg_) << std::endl)
-}
-#else
-#define TRACE(msg_)
-#endif
-
-#define TEST_TICKS std::chrono::milliseconds(200)
-#define WAIT_TICKS std::this_thread::sleep_for(TEST_TICKS)
 
 #define EXPECT_THROW_SYSTEM_ERROR(errorcode_, block_) \
   try { \
@@ -30,9 +15,6 @@ std::mutex g_guard;
   } catch (const std::system_error& e) { \
     EXPECT_EQ(std::make_error_code(errorcode_), e.code()); \
   }
-
-#define EXPECT_STEP(n_) \
-  { TRACE("STEP"#n_); EXPECT_EQ(n_, ++step); std::this_thread::sleep_for(TEST_TICKS); }
 
 
 using MockSharedMutex = yamc::mock::shared_mutex;
@@ -458,12 +440,12 @@ TEST(ScopedLockTest, CtorAdoptLock2)
 // avoid deadlock
 TEST(ScopedLockTest, AvoidDeadlock)
 {
+  SETUP_STEPTEST;
   yamc::test::phaser phaser(2);
   using Mutex1 = std::mutex;
   using Mutex2 = std::recursive_mutex;
   Mutex1 mtx1;
   Mutex2 mtx2;
-  int step = 0;
   yamc::test::task_runner(2, [&](std::size_t id) {
     auto ph = phaser.get(id);
     switch (id) {
