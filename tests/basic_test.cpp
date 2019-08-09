@@ -359,3 +359,30 @@ TYPED_TEST(RecursiveTimedMutexTest, TryLockUntil)
   EXPECT_EQ(TEST_ITERATION * TEST_THREADS, c2);
   EXPECT_EQ(TEST_ITERATION * TEST_THREADS, c3);
 }
+
+
+#if defined(ENABLE_POSIX_MUTEX)
+using PosixMutexTypes = ::testing::Types<
+  yamc::posix::mutex,
+  yamc::posix::recursive_mutex
+>;
+
+template <typename Mutex>
+struct PosixMutexTest : ::testing::Test {};
+
+TYPED_TEST_SUITE(PosixMutexTest, PosixMutexTypes);
+
+// native_handle_type
+TYPED_TEST(PosixMutexTest, NativeHandleType)
+{
+  ::testing::StaticAssertTypeEq<typename TypeParam::native_handle_type, pthread_mutex_t>();
+}
+
+// native_handle()
+TYPED_TEST(PosixMutexTest, NativeHandle)
+{
+  TypeParam mtx;
+  typename TypeParam::native_handle_type handle = mtx.native_handle();
+  (void)handle;  // suppress "unused variable" warning
+}
+#endif

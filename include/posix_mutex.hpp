@@ -51,7 +51,7 @@ class mutex {
 #endif
 
 public:
-  constexpr mutex() = default;
+  constexpr mutex() noexcept = default;
 
   ~mutex()
   {
@@ -74,6 +74,12 @@ public:
   void unlock()
   {
     ::pthread_mutex_unlock(&mtx_);
+  }
+
+  using native_handle_type = ::pthread_mutex_t;
+  native_handle_type native_handle()
+  {
+    return mtx_;
   }
 };
 
@@ -109,6 +115,12 @@ public:
   void unlock()
   {
     ::pthread_mutex_unlock(&mtx_);
+  }
+
+  using native_handle_type = ::pthread_mutex_t;
+  native_handle_type native_handle()
+  {
+    return mtx_;
   }
 };
 
