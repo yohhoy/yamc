@@ -36,6 +36,9 @@ using NormalMutexTypes = ::testing::Types<
 #if defined(ENABLE_POSIX_MUTEX)
   , yamc::posix::mutex
   , yamc::posix::shared_mutex
+#if YAMC_ENABLE_POSIX_TIMED_MUTEX
+  , yamc::posix::timed_mutex
+#endif
 #endif
 >;
 
@@ -109,6 +112,9 @@ using RecursiveMutexTypes = ::testing::Types<
   yamc::alternate::recursive_timed_mutex
 #if defined(ENABLE_POSIX_MUTEX)
   , yamc::posix::recursive_mutex
+#if YAMC_ENABLE_POSIX_TIMED_MUTEX
+  , yamc::posix::recursive_timed_mutex
+#endif
 #endif
 >;
 
@@ -209,6 +215,10 @@ using TimedMutexTypes = ::testing::Types<
   yamc::alternate::timed_mutex,
   yamc::alternate::recursive_timed_mutex,
   yamc::alternate::shared_timed_mutex
+#if defined(ENABLE_POSIX_MUTEX) && YAMC_ENABLE_POSIX_TIMED_MUTEX
+  , yamc::posix::timed_mutex
+  , yamc::posix::recursive_timed_mutex
+#endif
 >;
 
 template <typename Mutex>
@@ -299,6 +309,9 @@ using RecursiveTimedMutexTypes = ::testing::Types<
   yamc::checked::recursive_timed_mutex,
   yamc::fair::recursive_timed_mutex,
   yamc::alternate::recursive_timed_mutex
+#if defined(ENABLE_POSIX_MUTEX) && YAMC_ENABLE_POSIX_TIMED_MUTEX
+  , yamc::posix::recursive_timed_mutex
+#endif
 >;
 
 template <typename Mutex>
@@ -365,6 +378,10 @@ TYPED_TEST(RecursiveTimedMutexTest, TryLockUntil)
 using PosixMutexTypes = ::testing::Types<
   yamc::posix::mutex,
   yamc::posix::recursive_mutex
+#if YAMC_ENABLE_POSIX_TIMED_MUTEX
+  , yamc::posix::timed_mutex
+  , yamc::posix::recursive_timed_mutex
+#endif
 >;
 
 template <typename Mutex>
