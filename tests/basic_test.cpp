@@ -215,9 +215,14 @@ using TimedMutexTypes = ::testing::Types<
   yamc::alternate::timed_mutex,
   yamc::alternate::recursive_timed_mutex,
   yamc::alternate::shared_timed_mutex
-#if defined(ENABLE_POSIX_MUTEX) && YAMC_ENABLE_POSIX_TIMED_MUTEX
+#if defined(ENABLE_POSIX_MUTEX)
+#if YAMC_ENABLE_POSIX_TIMED_MUTEX
   , yamc::posix::timed_mutex
   , yamc::posix::recursive_timed_mutex
+#endif
+#if YAMC_ENABLE_POSIX_SHARED_TIMED_MUTEX
+  , yamc::posix::shared_timed_mutex
+#endif
 #endif
 >;
 

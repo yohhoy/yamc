@@ -32,6 +32,9 @@ using SharedMutexTypes = ::testing::Types<
   yamc::alternate::basic_shared_timed_mutex<yamc::rwlock::WriterPrefer>
 #if defined(ENABLE_POSIX_SHARED_MUTEX)
   , yamc::posix::shared_mutex
+#if YAMC_ENABLE_POSIX_SHARED_TIMED_MUTEX
+  , yamc::posix::shared_timed_mutex
+#endif
 #endif
 >;
 
@@ -214,6 +217,9 @@ using SharedTimedMutexTypes = ::testing::Types<
   yamc::fair::basic_shared_timed_mutex<yamc::rwlock::PhaseFairness>,
   yamc::alternate::basic_shared_timed_mutex<yamc::rwlock::ReaderPrefer>,
   yamc::alternate::basic_shared_timed_mutex<yamc::rwlock::WriterPrefer>
+#if defined(ENABLE_POSIX_SHARED_MUTEX) && YAMC_ENABLE_POSIX_SHARED_TIMED_MUTEX
+  , yamc::posix::shared_timed_mutex
+#endif
 >;
 
 template <typename Mutex>
