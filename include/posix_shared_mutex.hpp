@@ -51,8 +51,7 @@ namespace yamc {
  * - yamc::posix::shared_timed_mutex [optional]
  *
  * Some platform doesn't support locking operation with timeout.
- *
- * http://pubs.opengroup.org/onlinepubs/9699919799/basedefs/pthread.h.html
+ * https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/pthread.h.html
  * https://pubs.opengroup.org/onlinepubs/9699919799/functions/pthread_rwlock_timedrdlock.html
  * https://pubs.opengroup.org/onlinepubs/9699919799/functions/pthread_rwlock_timedwrlock.html
  */
@@ -63,6 +62,9 @@ namespace detail {
 class shared_mutex_base {
 protected:
 #if defined(PTHREAD_RWLOCK_INITIALIZER)
+  // POSIX.1-2001/SUSv3 once deleted PTHREAD_RWLOCK_INITIALIZER macro,
+  // POSIX.1-2008/SUSv4 defines PTHREAD_RWLOCK_INITIALIZER macro again.
+  // https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/pthread.h.html
   ::pthread_rwlock_t rwlock_ = PTHREAD_RWLOCK_INITIALIZER;
 #elif defined(PTHREAD_RWLOCK_INITIALIZER_NP)
   ::pthread_rwlock_t rwlock_ = PTHREAD_RWLOCK_INITIALIZER_NP;

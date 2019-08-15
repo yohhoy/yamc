@@ -53,29 +53,29 @@ namespace yamc {
  * - yamc::posix::recursive_timed_mutex [optional]
  *
  * Some platform doesn't support locking operation with timeout.
- *
- * http://pubs.opengroup.org/onlinepubs/9699919799/basedefs/pthread.h.html
- * http://pubs.opengroup.org/onlinepubs/9699919799/functions/pthread_mutex_timedlock.html
+ * https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/pthread.h.html
+ * https://pubs.opengroup.org/onlinepubs/9699919799/functions/pthread_mutex_timedlock.html
  */
 namespace posix {
 
-class mutex {
+namespace detail {
+
+class mutex_base {
+protected:
 #if defined(PTHREAD_MUTEX_INITIALIZER)
+  // POSIX.1 defines PTHREAD_MUTEX_INITIALIZER macro to initialize default mutex.
+  // https://pubs.opengroup.org/onlinepubs/9699919799/functions/pthread_mutex_destroy.html
   ::pthread_mutex_t mtx_ = PTHREAD_MUTEX_INITIALIZER;
 #elif defined(PTHREAD_MUTEX_INITIALIZER_NP)
   ::pthread_mutex_t mtx_ = PTHREAD_MUTEX_INITIALIZER_NP;
 #endif
 
-public:
-  constexpr mutex() noexcept = default;
+  constexpr mutex_base() noexcept = default;
 
-  ~mutex()
+  ~mutex_base()
   {
     ::pthread_mutex_destroy(&mtx_);
   }
-
-  mutex(const mutex&) = delete;
-  mutex& operator=(const mutex&) = delete;
 
   void lock()
   {
@@ -99,24 +99,34 @@ public:
   }
 };
 
-
-class recursive_mutex {
+class recursive_mutex_base {
+protected:
+  // POSIX.1 does NOT define PTHREAD_RECURSIVE_MUTEX_INITIALIZER-like macro,
+  // - Linux defines PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP macro,
+  // - macOS defines PTHREAD_RECURSIVE_MUTEX_INITIALIZER macro.
 #if defined(PTHREAD_RECURSIVE_MUTEX_INITIALIZER)
   ::pthread_mutex_t mtx_ = PTHREAD_RECURSIVE_MUTEX_INITIALIZER;
 #elif defined(PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP)
   ::pthread_mutex_t mtx_ = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
+#else
+  ::pthread_mutex_t mtx_;
 #endif
 
-public:
-  recursive_mutex() = default;
+  recursive_mutex_base()
+  {
+#if !defined(PTHREAD_RECURSIVE_MUTEX_INITIALIZER) && !defined(PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP)
+    ::pthread_mutexattr_t attr;
+    ::pthread_mutexattr_init(&attr);
+    ::pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+    ::pthread_mutex_init(&mtx_, &attr);
+    ::pthread_mutexattr_destroy(&attr);
+#endif
+  }
 
-  ~recursive_mutex()
+  ~recursive_mutex_base()
   {
     ::pthread_mutex_destroy(&mtx_);
   }
-
-  recursive_mutex(const recursive_mutex&) = delete;
-  recursive_mutex& operator=(const recursive_mutex&) = delete;
 
   void lock()
   {
@@ -140,14 +150,51 @@ public:
   }
 };
 
+} // namespace detail
+
+class mutex : private detail::mutex_base {
+  using base = detail::mutex_base;
+
+public:
+  constexpr mutex() noexcept = default;
+  ~mutex() = default;
+
+  mutex(const mutex&) = delete;
+  mutex& operator=(const mutex&) = delete;
+
+  using base::lock;
+  using base::try_lock;
+  using base::unlock;
+
+  using base::native_handle_type;
+  using base::native_handle;
+};
+
+
+class recursive_mutex : private detail::recursive_mutex_base {
+  using base = detail::recursive_mutex_base;
+
+public:
+  recursive_mutex() = default;
+  ~recursive_mutex() = default;
+
+  recursive_mutex(const recursive_mutex&) = delete;
+  recursive_mutex& operator=(const recursive_mutex&) = delete;
+
+  using base::lock;
+  using base::try_lock;
+  using base::unlock;
+
+  using base::native_handle_type;
+  using base::native_handle;
+};
+
 
 #if YAMC_ENABLE_POSIX_TIMED_MUTEX
-class timed_mutex {
-#if defined(PTHREAD_MUTEX_INITIALIZER)
-  ::pthread_mutex_t mtx_ = PTHREAD_MUTEX_INITIALIZER;
-#elif defined(PTHREAD_MUTEX_INITIALIZER_NP)
-  ::pthread_mutex_t mtx_ = PTHREAD_MUTEX_INITIALIZER_NP;
-#endif
+class timed_mutex : private detail::mutex_base {
+  using base = detail::mutex_base;
+
+  using base::mtx_;
 
   bool do_try_lockwait(const std::chrono::system_clock::time_point& tp)
   {
@@ -160,24 +207,14 @@ class timed_mutex {
 
 public:
   timed_mutex() = default;
-
-  ~timed_mutex()
-  {
-    ::pthread_mutex_destroy(&mtx_);
-  }
+  ~timed_mutex() = default;
 
   timed_mutex(const timed_mutex&) = delete;
   timed_mutex& operator=(const timed_mutex&) = delete;
 
-  void lock()
-  {
-    ::pthread_mutex_lock(&mtx_);
-  }
-
-  bool try_lock()
-  {
-    return (::pthread_mutex_trylock(&mtx_) == 0);
-  }
+  using base::lock;
+  using base::try_lock;
+  using base::unlock;
 
   template<class Rep, class Period>
   bool try_lock_for(const std::chrono::duration<Rep, Period>& rel_time)
@@ -195,25 +232,15 @@ public:
     return do_try_lockwait(abs_time);
   }
 
-  void unlock()
-  {
-    ::pthread_mutex_unlock(&mtx_);
-  }
-
-  using native_handle_type = ::pthread_mutex_t;
-  native_handle_type native_handle()
-  {
-    return mtx_;
-  }
+  using base::native_handle_type;
+  using base::native_handle;
 };
 
 
-class recursive_timed_mutex {
-#if defined(PTHREAD_RECURSIVE_MUTEX_INITIALIZER)
-  ::pthread_mutex_t mtx_ = PTHREAD_RECURSIVE_MUTEX_INITIALIZER;
-#elif defined(PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP)
-  ::pthread_mutex_t mtx_ = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
-#endif
+class recursive_timed_mutex : private detail::recursive_mutex_base {
+  using base = detail::recursive_mutex_base;
+
+  using base::mtx_;
 
   bool do_try_lockwait(const std::chrono::system_clock::time_point& tp)
   {
@@ -226,24 +253,14 @@ class recursive_timed_mutex {
 
 public:
   recursive_timed_mutex() = default;
-
-  ~recursive_timed_mutex()
-  {
-    ::pthread_mutex_destroy(&mtx_);
-  }
+  ~recursive_timed_mutex() = default;
 
   recursive_timed_mutex(const recursive_timed_mutex&) = delete;
   recursive_timed_mutex& operator=(const recursive_timed_mutex&) = delete;
 
-  void lock()
-  {
-    ::pthread_mutex_lock(&mtx_);
-  }
-
-  bool try_lock()
-  {
-    return (::pthread_mutex_trylock(&mtx_) == 0);
-  }
+  using base::lock;
+  using base::try_lock;
+  using base::unlock;
 
   template<class Rep, class Period>
   bool try_lock_for(const std::chrono::duration<Rep, Period>& rel_time)
@@ -261,19 +278,10 @@ public:
     return do_try_lockwait(abs_time);
   }
 
-  void unlock()
-  {
-    ::pthread_mutex_unlock(&mtx_);
-  }
-
-  using native_handle_type = ::pthread_mutex_t;
-  native_handle_type native_handle()
-  {
-    return mtx_;
-  }
+  using base::native_handle_type;
+  using base::native_handle;
 };
 #endif // YAMC_ENABLE_POSIX_TIMED_MUTEX
-
 
 } // namespace posix
 } // namespace yamc
