@@ -9,6 +9,11 @@
 #include "fair_shared_mutex.hpp"
 #include "alternate_mutex.hpp"
 #include "alternate_shared_mutex.hpp"
+#if defined(_POSIX_THREADS) && (_POSIX_THREADS > 0)
+#include "posix_mutex.hpp"
+#include "posix_shared_mutex.hpp"
+#define ENABLE_POSIX_MUTEX
+#endif
 #include "yamc_testutil.hpp"
 
 
@@ -28,6 +33,13 @@ using NormalMutexTypes = ::testing::Types<
   yamc::alternate::mutex,
   yamc::alternate::timed_mutex,
   yamc::alternate::shared_mutex
+#if defined(ENABLE_POSIX_MUTEX)
+  , yamc::posix::mutex
+  , yamc::posix::shared_mutex
+#if YAMC_ENABLE_POSIX_TIMED_MUTEX
+  , yamc::posix::timed_mutex
+#endif
+#endif
 >;
 
 template <typename Mutex>
@@ -98,6 +110,12 @@ using RecursiveMutexTypes = ::testing::Types<
   yamc::fair::recursive_timed_mutex,
   yamc::alternate::recursive_mutex,
   yamc::alternate::recursive_timed_mutex
+#if defined(ENABLE_POSIX_MUTEX)
+  , yamc::posix::recursive_mutex
+#if YAMC_ENABLE_POSIX_TIMED_MUTEX
+  , yamc::posix::recursive_timed_mutex
+#endif
+#endif
 >;
 
 template <typename Mutex>
@@ -197,6 +215,15 @@ using TimedMutexTypes = ::testing::Types<
   yamc::alternate::timed_mutex,
   yamc::alternate::recursive_timed_mutex,
   yamc::alternate::shared_timed_mutex
+#if defined(ENABLE_POSIX_MUTEX)
+#if YAMC_ENABLE_POSIX_TIMED_MUTEX
+  , yamc::posix::timed_mutex
+  , yamc::posix::recursive_timed_mutex
+#endif
+#if YAMC_ENABLE_POSIX_SHARED_TIMED_MUTEX
+  , yamc::posix::shared_timed_mutex
+#endif
+#endif
 >;
 
 template <typename Mutex>
@@ -287,6 +314,9 @@ using RecursiveTimedMutexTypes = ::testing::Types<
   yamc::checked::recursive_timed_mutex,
   yamc::fair::recursive_timed_mutex,
   yamc::alternate::recursive_timed_mutex
+#if defined(ENABLE_POSIX_MUTEX) && YAMC_ENABLE_POSIX_TIMED_MUTEX
+  , yamc::posix::recursive_timed_mutex
+#endif
 >;
 
 template <typename Mutex>
@@ -347,3 +377,34 @@ TYPED_TEST(RecursiveTimedMutexTest, TryLockUntil)
   EXPECT_EQ(TEST_ITERATION * TEST_THREADS, c2);
   EXPECT_EQ(TEST_ITERATION * TEST_THREADS, c3);
 }
+
+
+#if defined(ENABLE_POSIX_MUTEX)
+using PosixMutexTypes = ::testing::Types<
+  yamc::posix::mutex,
+  yamc::posix::recursive_mutex
+#if YAMC_ENABLE_POSIX_TIMED_MUTEX
+  , yamc::posix::timed_mutex
+  , yamc::posix::recursive_timed_mutex
+#endif
+>;
+
+template <typename Mutex>
+struct PosixMutexTest : ::testing::Test {};
+
+TYPED_TEST_SUITE(PosixMutexTest, PosixMutexTypes);
+
+// native_handle_type
+TYPED_TEST(PosixMutexTest, NativeHandleType)
+{
+  ::testing::StaticAssertTypeEq<typename TypeParam::native_handle_type, pthread_mutex_t>();
+}
+
+// native_handle()
+TYPED_TEST(PosixMutexTest, NativeHandle)
+{
+  TypeParam mtx;
+  typename TypeParam::native_handle_type handle = mtx.native_handle();
+  (void)handle;  // suppress "unused variable" warning
+}
+#endif

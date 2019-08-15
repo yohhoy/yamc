@@ -44,7 +44,7 @@
  * - yamc::posix::binary_semaphore
  *
  * This implementation use POSIX unnamed semaphore.
- * http://pubs.opengroup.org/onlinepubs/9699919799/basedefs/semaphore.h.html
+ * https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/semaphore.h.html
  */
 namespace yamc {
 
