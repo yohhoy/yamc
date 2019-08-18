@@ -32,6 +32,12 @@
 #include <windows.h>
 
 
+/// Enable acculate timeout for yamc::win::* primitives
+#ifndef YAMC_WIN_ACCURATE_TIMEOUT
+#define YAMC_WIN_ACCURATE_TIMEOUT  1
+#endif
+
+
 namespace yamc {
 
 /*
@@ -92,12 +98,22 @@ protected:
   ::HANDLE hmtx_ = NULL;
 
   template<class Rep, class Period>
-  bool do_try_acquirewait(const std::chrono::duration<Rep, Period>& timeout)
+  bool do_try_lockwait(const std::chrono::duration<Rep, Period>& timeout)
   {
     using namespace std::chrono;
     // round up timeout to milliseconds precision
     DWORD timeout_in_msec = static_cast<DWORD>(duration_cast<milliseconds>(timeout + nanoseconds{999999}).count());
     DWORD result = ::WaitForSingleObject(hmtx_, timeout_in_msec);
+#if YAMC_WIN_ACCURATE_TIMEOUT
+    if (result == WAIT_TIMEOUT && 0 < timeout_in_msec) {
+      // Win32 wait functions will return early than specified timeout interval by design.
+      // (https://docs.microsoft.com/windows/win32/sync/wait-functions for more details)
+      //
+      // The current thread sleep one more "tick" to guarantee timing specification in C++ Standard,
+      // that actual timeout interval shall be longer than requested timeout of try_lock_*().
+      ::Sleep(1);
+    }
+#endif
     if (result != WAIT_OBJECT_0 && result != WAIT_TIMEOUT) {
       // [thread.mutex.requirements.mutex]
       // resource_unavailable_try_again - if any native handle type manipulated is not available.
@@ -139,13 +155,13 @@ protected:
   template<class Rep, class Period>
   bool try_lock_for(const std::chrono::duration<Rep, Period>& rel_time)
   {
-    return do_try_acquirewait(rel_time);
+    return do_try_lockwait(rel_time);
   }
 
   template<class Clock, class Duration>
   bool try_lock_until(const std::chrono::time_point<Clock, Duration>& abs_time)
   {
-    return do_try_acquirewait(abs_time - Clock::now());
+    return do_try_lockwait(abs_time - Clock::now());
   }
 
   void unlock()

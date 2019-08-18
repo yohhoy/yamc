@@ -34,9 +34,9 @@
 #include <windows.h>
 
 
-/// Enable acculate timeout for yamc::win::counting_semaphore<>
-#ifndef YAMC_WIN_SEMAPHORE_ACCURATE_TIMEOUT
-#define YAMC_WIN_SEMAPHORE_ACCURATE_TIMEOUT  1
+/// Enable acculate timeout for yamc::win::* primitives
+#ifndef YAMC_WIN_ACCURATE_TIMEOUT
+#define YAMC_WIN_ACCURATE_TIMEOUT  1
 #endif
 
 
@@ -73,7 +73,7 @@ class counting_semaphore {
     // round up timeout to milliseconds precision
     DWORD timeout_in_msec = static_cast<DWORD>(duration_cast<milliseconds>(timeout + nanoseconds{999999}).count());
     DWORD result = ::WaitForSingleObject(hsem_, timeout_in_msec);
-#if YAMC_WIN_SEMAPHORE_ACCURATE_TIMEOUT
+#if YAMC_WIN_ACCURATE_TIMEOUT
     if (result == WAIT_TIMEOUT && 0 < timeout_in_msec) {
       // Win32 wait functions will return early than specified timeout interval by design.
       // (https://docs.microsoft.com/windows/win32/sync/wait-functions for more details)
