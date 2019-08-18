@@ -16,6 +16,7 @@
 #endif
 #if defined(_WIN32)
 #include "win_mutex.hpp"
+#include "win_shared_mutex.hpp"
 #define ENABLE_WIN_MUTEX
 #endif
 #include "yamc_testutil.hpp"
@@ -47,6 +48,7 @@ using NormalMutexTypes = ::testing::Types<
 #if defined(ENABLE_WIN_MUTEX)
   , yamc::win::mutex
   , yamc::win::timed_mutex
+  , yamc::win::shared_mutex
 #endif
 >;
 
@@ -435,7 +437,8 @@ using WinMutexTypes = ::testing::Types<
   yamc::win::mutex,
   yamc::win::recursive_mutex,
   yamc::win::timed_mutex,
-  yamc::win::recursive_timed_mutex
+  yamc::win::recursive_timed_mutex,
+  yamc::win::shared_mutex
 >;
 
 template <typename Mutex>
@@ -448,6 +451,7 @@ TYPED_TEST(WinMutexTest, NativeHandleType)
 {
   //::testing::StaticAssertTypeEq<typename TypeParam::native_handle_type, ::CRITICAL_SECTION*>();
   //::testing::StaticAssertTypeEq<typename TypeParam::native_handle_type, ::HANDLE>();
+  //::testing::StaticAssertTypeEq<typename TypeParam::native_handle_type, ::SRWLOCK*>();
 }
 
 // native_handle()
