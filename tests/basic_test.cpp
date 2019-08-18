@@ -14,6 +14,11 @@
 #include "posix_shared_mutex.hpp"
 #define ENABLE_POSIX_MUTEX
 #endif
+#if defined(_WIN32)
+#include "win_mutex.hpp"
+#include "win_shared_mutex.hpp"
+#define ENABLE_WIN_MUTEX
+#endif
 #include "yamc_testutil.hpp"
 
 
@@ -39,6 +44,11 @@ using NormalMutexTypes = ::testing::Types<
 #if YAMC_ENABLE_POSIX_TIMED_MUTEX
   , yamc::posix::timed_mutex
 #endif
+#endif
+#if defined(ENABLE_WIN_MUTEX)
+  , yamc::win::mutex
+  , yamc::win::timed_mutex
+  , yamc::win::shared_mutex
 #endif
 >;
 
@@ -115,6 +125,10 @@ using RecursiveMutexTypes = ::testing::Types<
 #if YAMC_ENABLE_POSIX_TIMED_MUTEX
   , yamc::posix::recursive_timed_mutex
 #endif
+#endif
+#if defined(ENABLE_WIN_MUTEX)
+  , yamc::win::recursive_mutex
+  , yamc::win::recursive_timed_mutex
 #endif
 >;
 
@@ -224,6 +238,11 @@ using TimedMutexTypes = ::testing::Types<
   , yamc::posix::shared_timed_mutex
 #endif
 #endif
+#if defined(ENABLE_WIN_MUTEX)
+  , yamc::win::timed_mutex
+  , yamc::win::recursive_timed_mutex
+#endif
+
 >;
 
 template <typename Mutex>
@@ -317,6 +336,9 @@ using RecursiveTimedMutexTypes = ::testing::Types<
 #if defined(ENABLE_POSIX_MUTEX) && YAMC_ENABLE_POSIX_TIMED_MUTEX
   , yamc::posix::recursive_timed_mutex
 #endif
+#if defined(ENABLE_WIN_MUTEX)
+  , yamc::win::recursive_timed_mutex
+#endif
 >;
 
 template <typename Mutex>
@@ -407,4 +429,36 @@ TYPED_TEST(PosixMutexTest, NativeHandle)
   typename TypeParam::native_handle_type handle = mtx.native_handle();
   (void)handle;  // suppress "unused variable" warning
 }
-#endif
+#endif // defined(ENABLE_POSIX_MUTEX)
+
+
+#if defined(ENABLE_WIN_MUTEX)
+using WinMutexTypes = ::testing::Types<
+  yamc::win::mutex,
+  yamc::win::recursive_mutex,
+  yamc::win::timed_mutex,
+  yamc::win::recursive_timed_mutex,
+  yamc::win::shared_mutex
+>;
+
+template <typename Mutex>
+struct WinMutexTest : ::testing::Test {};
+
+TYPED_TEST_SUITE(WinMutexTest, WinMutexTypes);
+
+// native_handle_type
+TYPED_TEST(WinMutexTest, NativeHandleType)
+{
+  //::testing::StaticAssertTypeEq<typename TypeParam::native_handle_type, ::CRITICAL_SECTION*>();
+  //::testing::StaticAssertTypeEq<typename TypeParam::native_handle_type, ::HANDLE>();
+  //::testing::StaticAssertTypeEq<typename TypeParam::native_handle_type, ::SRWLOCK*>();
+}
+
+// native_handle()
+TYPED_TEST(WinMutexTest, NativeHandle)
+{
+  TypeParam mtx;
+  typename TypeParam::native_handle_type handle = mtx.native_handle();
+  (void)handle;  // suppress "unused variable" warning
+}
+#endif // defined(ENABLE_WIN_MUTEX)
