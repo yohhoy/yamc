@@ -26,6 +26,7 @@
 #ifndef POSIX_SHARED_MUTEX_HPP_
 #define POSIX_SHARED_MUTEX_HPP_
 
+#include <chrono>
 // POSIX(pthreads) mutex
 #include <pthread.h>
 #include <time.h>
