@@ -98,8 +98,8 @@ void perform_rwlock_contention(const config& cfg)
   }
   auto pivot = counters.begin();
   std::advance(pivot, cfg.nwriter);
-  std::size_t nwissue = std::accumulate(counters.begin(), pivot, 0u);
-  std::size_t nrissue = std::accumulate(pivot, counters.end(), 0u);
+  std::size_t nwissue = std::accumulate(counters.begin(), pivot, std::size_t{0});
+  std::size_t nrissue = std::accumulate(pivot, counters.end(), std::size_t{0});
 
   // average [count/sec/thread]
   double wavg = (double)nwissue / cfg.nwriter / elapsed;
