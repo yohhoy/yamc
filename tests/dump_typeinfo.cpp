@@ -14,6 +14,11 @@
 #include "fair_shared_mutex.hpp"
 #include "alternate_mutex.hpp"
 #include "alternate_shared_mutex.hpp"
+// platform native
+#if defined(_WIN32)
+#include "win_native_mutex.hpp"
+#define ENABLE_WIN_NATIVE_MUTEX
+#endif
 
 
 #ifdef DUMP_SIZEOF
@@ -71,5 +76,11 @@ int main()
   DUMP(yamc::alternate::basic_shared_mutex<yamc::rwlock::WriterPrefer>);
   DUMP(yamc::alternate::basic_shared_timed_mutex<yamc::rwlock::ReaderPrefer>);
   DUMP(yamc::alternate::basic_shared_timed_mutex<yamc::rwlock::WriterPrefer>);
+
+#if defined(ENABLE_WIN_NATIVE_MUTEX)
+  DUMP(yamc::win::native_mutex);
+  DUMP(yamc::win::critical_section);
+  DUMP(yamc::win::slim_rwlock);
+#endif
   return 0;
 }

@@ -1,5 +1,5 @@
 /*
- * win_mutex.hpp
+ * win_native_mutex.hpp
  *
  * MIT License
  *
@@ -23,8 +23,8 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#ifndef WIN_MUTEX_HPP_
-#define WIN_MUTEX_HPP_
+#ifndef WIN_NATIVE_MUTEX_HPP_
+#define WIN_NATIVE_MUTEX_HPP_
 
 #include <chrono>
 #include <system_error>
@@ -32,7 +32,7 @@
 #include <windows.h>
 
 
-/// Enable acculate timeout for yamc::win::* primitives
+/// Enable accurate timeout for yamc::win::* primitives
 #ifndef YAMC_WIN_ACCURATE_TIMEOUT
 #define YAMC_WIN_ACCURATE_TIMEOUT  1
 #endif
@@ -41,61 +41,26 @@
 namespace yamc {
 
 /*
- * Windows mutex (critical section) wrapper on Windows platform
+ * Native Mutex/CriticalSection/SlimRWLock wrapper on Windows platform
  *
- * - yamc::win::mutex
- * - yamc::win::recursive_mutex
- * - yamc::win::timed_mutex
- * - yamc::win::recursive_timed_mutex
+ * - yamc::win::native_mutex
+ * - yamc::win::critical_section
+ * - yamc::win::slim_rwlock
  *
- * Windows' mutex objects and critical section objects support recursive locking.
- * https://docs.microsoft.com/windows/win32/sync/critical-section-objects
+ * Characteristics:
+ *   |                  | recursive |  timed  |  shared |
+ *   +------------------+-----------+---------+---------+
+ *   | native_mutex     |  support  | support |   N/A   |
+ *   | critical_section |  support  |   N/A   |   N/A   |
+ *   | slim_rwlock      |    N/A    |   N/A   | support |
+ *
  * https://docs.microsoft.com/windows/win32/sync/mutex-objects
+ * https://docs.microsoft.com/windows/win32/sync/critical-section-objects
+ * https://docs.microsoft.com/windows/win32/sync/slim-reader-writer--srw--locks
  */
 namespace win {
 
-namespace detail {
-
-class mutex_base {
-protected:
-  ::CRITICAL_SECTION cs_;
-
-  mutex_base() noexcept
-  {
-    ::InitializeCriticalSection(&cs_);
-  }
-
-  ~mutex_base()
-  {
-    ::DeleteCriticalSection(&cs_);
-  }
-
-  void lock()
-  {
-    ::EnterCriticalSection(&cs_);
-  }
-
-  bool try_lock()
-  {
-    return (::TryEnterCriticalSection(&cs_) != 0);
-    // explicit comparison to 0 to suppress "warning C4800"
-  }
-
-  void unlock()
-  {
-    ::LeaveCriticalSection(&cs_);
-  }
-
-  using native_handle_type = ::CRITICAL_SECTION*;
-  native_handle_type native_handle()
-  {
-    return &cs_;
-  }
-};
-
-
-class timed_mutex_base {
-protected:
+class native_mutex {
   ::HANDLE hmtx_ = NULL;
 
   template<class Rep, class Period>
@@ -123,7 +88,8 @@ protected:
     return (result == WAIT_OBJECT_0);
   }
 
-  timed_mutex_base()
+public:
+  native_mutex()
   {
     hmtx_ = ::CreateMutex(NULL, FALSE, NULL);
     if (hmtx_ == NULL) {
@@ -133,10 +99,13 @@ protected:
     }
   }
 
-  ~timed_mutex_base()
+  ~native_mutex()
   {
     ::CloseHandle(hmtx_);
   }
+
+  native_mutex(const native_mutex&) = delete;
+  native_mutex& operator=(const native_mutex&) = delete;
 
   void lock()
   {
@@ -177,87 +146,106 @@ protected:
   }
 };
 
-} // namespace detail
 
-
-class mutex : private detail::mutex_base {
-  using base = detail::mutex_base;
+class critical_section {
+  ::CRITICAL_SECTION cs_;
 
 public:
-  /*constexpr*/ mutex() noexcept = default;
-  ~mutex() = default;
+  critical_section() noexcept
+  {
+    ::InitializeCriticalSection(&cs_);
+  }
 
-  mutex(const mutex&) = delete;
-  mutex& operator=(const mutex&) = delete;
+  ~critical_section()
+  {
+    ::DeleteCriticalSection(&cs_);
+  }
 
-  using base::lock;
-  using base::try_lock;
-  using base::unlock;
+  critical_section(const critical_section&) = delete;
+  critical_section& operator=(const critical_section&) = delete;
 
-  using base::native_handle_type;
-  using base::native_handle;
+  void lock()
+  {
+    ::EnterCriticalSection(&cs_);
+  }
+
+  bool try_lock()
+  {
+    return (::TryEnterCriticalSection(&cs_) != 0);
+    // explicit comparison to 0 to suppress "warning C4800"
+  }
+
+  void unlock()
+  {
+    ::LeaveCriticalSection(&cs_);
+  }
+
+  using native_handle_type = ::CRITICAL_SECTION*;
+  native_handle_type native_handle()
+  {
+    return &cs_;
+  }
 };
 
 
-class recursive_mutex : private detail::mutex_base {
-  using base = detail::mutex_base;
+class slim_rwlock {
+  ::SRWLOCK srwlock_ = SRWLOCK_INIT;
 
 public:
-  recursive_mutex() = default;
-  ~recursive_mutex() = default;
+  slim_rwlock() = default;
+  ~slim_rwlock() = default;
 
-  recursive_mutex(const recursive_mutex&) = delete;
-  recursive_mutex& operator=(const recursive_mutex&) = delete;
+  slim_rwlock(const slim_rwlock&) = delete;
+  slim_rwlock& operator=(const slim_rwlock&) = delete;
 
-  using base::lock;
-  using base::try_lock;
-  using base::unlock;
+  void lock()
+  {
+    ::AcquireSRWLockExclusive(&srwlock_);
+  }
 
-  using base::native_handle_type;
-  using base::native_handle;
+  bool try_lock()
+  {
+    return (::TryAcquireSRWLockExclusive(&srwlock_) != 0);
+    // explicit comparison to 0 to suppress "warning C4800"
+  }
+
+  void unlock()
+  {
+    ::ReleaseSRWLockExclusive(&srwlock_);
+  }
+
+  void lock_shared()
+  {
+    ::AcquireSRWLockShared(&srwlock_);
+  }
+
+  bool try_lock_shared()
+  {
+    return (::TryAcquireSRWLockShared(&srwlock_) != 0);
+    // explicit comparison to 0 to suppress "warning C4800"
+  }
+
+  void unlock_shared()
+  {
+    ::ReleaseSRWLockShared(&srwlock_);
+  }
+
+  using native_handle_type = ::SRWLOCK*;
+  native_handle_type native_handle()
+  {
+    return &srwlock_;
+  }
 };
 
 
-class timed_mutex : private detail::timed_mutex_base {
-  using base = detail::timed_mutex_base;
+using mutex = critical_section;
+using recursive_mutex = critical_section;
+using timed_mutex = native_mutex;
+using recursive_timed_mutex = native_mutex;
 
-public:
-  timed_mutex() = default;
-  ~timed_mutex() = default;
+using shared_mutex = slim_rwlock;
+// Windows have no native primitives equivalent to shared_timed_mutex
 
-  timed_mutex(const timed_mutex&) = delete;
-  timed_mutex& operator=(const timed_mutex&) = delete;
-
-  using base::lock;
-  using base::try_lock;
-  using base::try_lock_for;
-  using base::try_lock_until;
-  using base::unlock;
-
-  using base::native_handle_type;
-  using base::native_handle;
-};
-
-
-class recursive_timed_mutex : private detail::timed_mutex_base {
-  using base = detail::timed_mutex_base;
-
-public:
-  recursive_timed_mutex() = default;
-  ~recursive_timed_mutex() = default;
-
-  recursive_timed_mutex(const recursive_timed_mutex&) = delete;
-  recursive_timed_mutex& operator=(const recursive_timed_mutex&) = delete;
-
-  using base::lock;
-  using base::try_lock;
-  using base::try_lock_for;
-  using base::try_lock_until;
-  using base::unlock;
-
-  using base::native_handle_type;
-  using base::native_handle;
-};
 
 } // namespace win
 } // namespace yamc

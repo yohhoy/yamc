@@ -11,8 +11,8 @@
 #define ENABLE_POSIX_SHARED_MUTEX
 #endif
 #if defined(_WIN32)
-#include "win_shared_mutex.hpp"
-#define ENABLE_WIN_SHARED_MUTEX
+#include "win_native_mutex.hpp"
+#define ENABLE_WIN_NATIVE_MUTEX
 #endif
 #include "yamc_testutil.hpp"
 
@@ -40,7 +40,7 @@ using SharedMutexTypes = ::testing::Types<
   , yamc::posix::shared_timed_mutex
 #endif
 #endif
-#if defined(ENABLE_WIN_SHARED_MUTEX)
+#if defined(ENABLE_WIN_NATIVE_MUTEX)
   , yamc::win::shared_mutex
 #endif
 >;
