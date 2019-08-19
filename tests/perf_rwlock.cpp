@@ -163,7 +163,7 @@ void perform_lock_contention(const config& cfg)
   for (auto& t : thds) {
     t.join();
   }
-  std::size_t nissue = std::accumulate(counters.begin(), counters.end(), 0u);
+  std::size_t nissue = std::accumulate(counters.begin(), counters.end(), std::size_t{0});
 
   // average [count/sec/thread]
   double avg = (double)nissue / nthread / elapsed;
