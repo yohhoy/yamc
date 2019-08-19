@@ -77,7 +77,8 @@ protected:
 
   bool try_lock()
   {
-    return ::TryEnterCriticalSection(&cs_);
+    return (::TryEnterCriticalSection(&cs_) != 0);
+    // explicit comparison to 0 to suppress "warning C4800"
   }
 
   void unlock()

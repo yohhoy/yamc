@@ -59,7 +59,8 @@ public:
 
   bool try_lock()
   {
-    return ::TryAcquireSRWLockExclusive(&srwlock_);
+    return (::TryAcquireSRWLockExclusive(&srwlock_) != 0);
+    // explicit comparison to 0 to suppress "warning C4800"
   }
 
   void unlock()
@@ -74,7 +75,8 @@ public:
 
   bool try_lock_shared()
   {
-    return ::TryAcquireSRWLockShared(&srwlock_);
+    return (::TryAcquireSRWLockShared(&srwlock_) != 0);
+    // explicit comparison to 0 to suppress "warning C4800"
   }
 
   void unlock_shared()
