@@ -15,7 +15,7 @@
 #include "alternate_mutex.hpp"
 #include "alternate_shared_mutex.hpp"
 // platform native
-#if _POSIX_THREADS > 0 || defined(__APPLE__)
+#if defined(__linux__) || defined(__APPLE__)
 #include "posix_native_mutex.hpp"
 #define ENABLE_POSIX_NATIVE_MUTEX
 #endif

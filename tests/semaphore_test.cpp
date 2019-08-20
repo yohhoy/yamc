@@ -8,7 +8,7 @@
 #include "gcd_semaphore.hpp"
 #define ENABLE_GCD_SEMAPHORE
 #endif
-#if defined(_POSIX_VERSION) && !defined(__APPLE__)
+#if defined(__linux__) && !defined(__APPLE__)
 #include "posix_semaphore.hpp"
 #define ENABLE_POSIX_SEMAPHORE
 #endif

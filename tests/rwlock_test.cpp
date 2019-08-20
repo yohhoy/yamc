@@ -6,7 +6,7 @@
 #include "fair_shared_mutex.hpp"
 #include "alternate_shared_mutex.hpp"
 #include "yamc_shared_lock.hpp"
-#if _POSIX_THREADS > 0 || defined(__APPLE__)
+#if defined(__linux__) || defined(__APPLE__)
 #include "posix_native_mutex.hpp"
 #define ENABLE_POSIX_NATIVE_MUTEX
 #endif
