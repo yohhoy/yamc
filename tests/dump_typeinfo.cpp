@@ -15,6 +15,10 @@
 #include "alternate_mutex.hpp"
 #include "alternate_shared_mutex.hpp"
 // platform native
+#if _POSIX_THREADS > 0 || defined(__APPLE__)
+#include "posix_native_mutex.hpp"
+#define ENABLE_POSIX_NATIVE_MUTEX
+#endif
 #if defined(_WIN32)
 #include "win_native_mutex.hpp"
 #define ENABLE_WIN_NATIVE_MUTEX
@@ -77,6 +81,11 @@ int main()
   DUMP(yamc::alternate::basic_shared_timed_mutex<yamc::rwlock::ReaderPrefer>);
   DUMP(yamc::alternate::basic_shared_timed_mutex<yamc::rwlock::WriterPrefer>);
 
+#if defined(ENABLE_POSIX_NATIVE_MUTEX)
+  DUMP(yamc::posix::native_mutex);
+  DUMP(yamc::posix::native_recursive_mutex);
+  DUMP(yamc::posix::rwlock);
+#endif
 #if defined(ENABLE_WIN_NATIVE_MUTEX)
   DUMP(yamc::win::native_mutex);
   DUMP(yamc::win::critical_section);

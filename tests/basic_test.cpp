@@ -9,10 +9,9 @@
 #include "fair_shared_mutex.hpp"
 #include "alternate_mutex.hpp"
 #include "alternate_shared_mutex.hpp"
-#if defined(_POSIX_THREADS) && (_POSIX_THREADS > 0)
-#include "posix_mutex.hpp"
-#include "posix_shared_mutex.hpp"
-#define ENABLE_POSIX_MUTEX
+#if _POSIX_THREADS > 0 || defined(__APPLE__)
+#include "posix_native_mutex.hpp"
+#define ENABLE_POSIX_NATIVE_MUTEX
 #endif
 #if defined(_WIN32)
 #include "win_native_mutex.hpp"
@@ -37,10 +36,10 @@ using NormalMutexTypes = ::testing::Types<
   yamc::alternate::mutex,
   yamc::alternate::timed_mutex,
   yamc::alternate::shared_mutex
-#if defined(ENABLE_POSIX_MUTEX)
+#if defined(ENABLE_POSIX_NATIVE_MUTEX)
   , yamc::posix::mutex
   , yamc::posix::shared_mutex
-#if YAMC_ENABLE_POSIX_TIMED_MUTEX
+#if YAMC_POSIX_TIMEOUT_SUPPORTED
   , yamc::posix::timed_mutex
 #endif
 #endif
@@ -119,9 +118,9 @@ using RecursiveMutexTypes = ::testing::Types<
   yamc::fair::recursive_timed_mutex,
   yamc::alternate::recursive_mutex,
   yamc::alternate::recursive_timed_mutex
-#if defined(ENABLE_POSIX_MUTEX)
+#if defined(ENABLE_POSIX_NATIVE_MUTEX)
   , yamc::posix::recursive_mutex
-#if YAMC_ENABLE_POSIX_TIMED_MUTEX
+#if YAMC_POSIX_TIMEOUT_SUPPORTED
   , yamc::posix::recursive_timed_mutex
 #endif
 #endif
@@ -228,12 +227,12 @@ using TimedMutexTypes = ::testing::Types<
   yamc::alternate::timed_mutex,
   yamc::alternate::recursive_timed_mutex,
   yamc::alternate::shared_timed_mutex
-#if defined(ENABLE_POSIX_MUTEX)
-#if YAMC_ENABLE_POSIX_TIMED_MUTEX
+#if defined(ENABLE_POSIX_NATIVE_MUTEX)
+#if YAMC_POSIX_TIMEOUT_SUPPORTED
   , yamc::posix::timed_mutex
   , yamc::posix::recursive_timed_mutex
 #endif
-#if YAMC_ENABLE_POSIX_SHARED_TIMED_MUTEX
+#if YAMC_POSIX_TIMEOUT_SUPPORTED
   , yamc::posix::shared_timed_mutex
 #endif
 #endif
@@ -331,7 +330,7 @@ using RecursiveTimedMutexTypes = ::testing::Types<
   yamc::checked::recursive_timed_mutex,
   yamc::fair::recursive_timed_mutex,
   yamc::alternate::recursive_timed_mutex
-#if defined(ENABLE_POSIX_MUTEX) && YAMC_ENABLE_POSIX_TIMED_MUTEX
+#if defined(ENABLE_POSIX_NATIVE_MUTEX) && YAMC_POSIX_TIMEOUT_SUPPORTED
   , yamc::posix::recursive_timed_mutex
 #endif
 #if defined(ENABLE_WIN_NATIVE_MUTEX)
@@ -399,35 +398,49 @@ TYPED_TEST(RecursiveTimedMutexTest, TryLockUntil)
 }
 
 
-#if defined(ENABLE_POSIX_MUTEX)
-using PosixMutexTypes = ::testing::Types<
-  yamc::posix::mutex,
-  yamc::posix::recursive_mutex
-#if YAMC_ENABLE_POSIX_TIMED_MUTEX
-  , yamc::posix::timed_mutex
-  , yamc::posix::recursive_timed_mutex
-#endif
->;
-
-template <typename Mutex>
-struct PosixMutexTest : ::testing::Test {};
-
-TYPED_TEST_SUITE(PosixMutexTest, PosixMutexTypes);
-
-// native_handle_type
-TYPED_TEST(PosixMutexTest, NativeHandleType)
+#if defined(ENABLE_POSIX_NATIVE_MUTEX)
+// posix::native_mutex::native_handle_type
+TEST(NativeMutexTest, NativeHandleType)
 {
-  ::testing::StaticAssertTypeEq<typename TypeParam::native_handle_type, pthread_mutex_t>();
+  ::testing::StaticAssertTypeEq<yamc::posix::native_mutex::native_handle_type, ::pthread_mutex_t>();
 }
 
-// native_handle()
-TYPED_TEST(PosixMutexTest, NativeHandle)
+// posix::native_mutex::native_handle()
+TEST(NativeMutexTest, NativeHandle)
 {
-  TypeParam mtx;
-  typename TypeParam::native_handle_type handle = mtx.native_handle();
+  yamc::posix::native_mutex mtx;
+  yamc::posix::native_mutex::native_handle_type handle = mtx.native_handle();
   (void)handle;  // suppress "unused variable" warning
 }
-#endif // defined(ENABLE_POSIX_MUTEX)
+
+// posix::native_recursive_mutex::native_handle_type
+TEST(NativeRecursiveMutexTest, NativeHandleType)
+{
+  ::testing::StaticAssertTypeEq<yamc::posix::native_recursive_mutex::native_handle_type, ::pthread_mutex_t>();
+}
+
+// posix::native_recursive_mutex::native_handle()
+TEST(NativeRecursiveMutexTest, NativeHandle)
+{
+  yamc::posix::native_recursive_mutex mtx;
+  yamc::posix::native_recursive_mutex::native_handle_type handle = mtx.native_handle();
+  (void)handle;  // suppress "unused variable" warning
+}
+
+// posix::rwlock::native_handle_type
+TEST(RWLockMutexTest, NativeHandleType)
+{
+  ::testing::StaticAssertTypeEq<yamc::posix::rwlock::native_handle_type, ::pthread_rwlock_t>();
+}
+
+// posix::rwlock::native_handle()
+TEST(RWLockMutexTest, NativeHandle)
+{
+  yamc::posix::rwlock mtx;
+  yamc::posix::rwlock::native_handle_type handle = mtx.native_handle();
+  (void)handle;  // suppress "unused variable" warning
+}
+#endif // defined(ENABLE_POSIX_NATIVE_MUTEX)
 
 
 #if defined(ENABLE_WIN_NATIVE_MUTEX)

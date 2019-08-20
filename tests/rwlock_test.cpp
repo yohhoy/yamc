@@ -6,9 +6,9 @@
 #include "fair_shared_mutex.hpp"
 #include "alternate_shared_mutex.hpp"
 #include "yamc_shared_lock.hpp"
-#if defined(_POSIX_THREADS) && (_POSIX_THREADS > 0)
-#include "posix_shared_mutex.hpp"
-#define ENABLE_POSIX_SHARED_MUTEX
+#if _POSIX_THREADS > 0 || defined(__APPLE__)
+#include "posix_native_mutex.hpp"
+#define ENABLE_POSIX_NATIVE_MUTEX
 #endif
 #if defined(_WIN32)
 #include "win_native_mutex.hpp"
@@ -34,9 +34,9 @@ using SharedMutexTypes = ::testing::Types<
   yamc::alternate::basic_shared_mutex<yamc::rwlock::WriterPrefer>,
   yamc::alternate::basic_shared_timed_mutex<yamc::rwlock::ReaderPrefer>,
   yamc::alternate::basic_shared_timed_mutex<yamc::rwlock::WriterPrefer>
-#if defined(ENABLE_POSIX_SHARED_MUTEX)
+#if defined(ENABLE_POSIX_NATIVE_MUTEX)
   , yamc::posix::shared_mutex
-#if YAMC_ENABLE_POSIX_SHARED_TIMED_MUTEX
+#if YAMC_POSIX_TIMEOUT_SUPPORTED
   , yamc::posix::shared_timed_mutex
 #endif
 #endif
@@ -224,7 +224,7 @@ using SharedTimedMutexTypes = ::testing::Types<
   yamc::fair::basic_shared_timed_mutex<yamc::rwlock::PhaseFairness>,
   yamc::alternate::basic_shared_timed_mutex<yamc::rwlock::ReaderPrefer>,
   yamc::alternate::basic_shared_timed_mutex<yamc::rwlock::WriterPrefer>
-#if defined(ENABLE_POSIX_SHARED_MUTEX) && YAMC_ENABLE_POSIX_SHARED_TIMED_MUTEX
+#if defined(ENABLE_POSIX_NATIVE_MUTEX) && YAMC_POSIX_TIMEOUT_SUPPORTED
   , yamc::posix::shared_timed_mutex
 #endif
 >;
