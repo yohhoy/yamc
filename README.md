@@ -16,6 +16,7 @@ This library includes:
 - Checked mutex for debugging, compatible with requirements in C++11/14/17 Standard.
 - Fair mutex and fair shared mutex, support FIFO scheduling to prevent from starvation.
 - `shared_lock<Mutex>`, `scoped_lock<Mutexes...>` utilities in C++14/17 Standard.
+- Wrapper class of platform native mutex-like synchronization primitives.
 - C++20 synchronization primitives; `counting_semaphore`, `latch`, `barrier`.
 
 
@@ -82,7 +83,7 @@ This mutex collections library provide the following types:
 
 These mutex types fulfill corresponding mutex semantics in C++ Standard.
 You can replace type `std::mutex` to `yamc::*::mutex`, `std::recursive_mutex` to `yamc::*::recursive_mutex` likewise, except some special case.
-Note: [`std::mutex`'s default constructor][mutex_ctor] is constexpr, but `yamc::*::mutex` is not.
+_Note:_ [`std::mutex`'s default constructor][mutex_ctor] is constexpr, but `yamc::*::mutex` is not.
 All mutex types in C++ Standard are [standard-layout][standardlayout] class, but not all types in `yamc` namespace are.
 
 C++11/14/17 Standard Library define variable mutex types:
@@ -117,6 +118,26 @@ Period.
 [std_sharedlock]: http://en.cppreference.com/w/cpp/thread/shared_lock
 
 
+## Wrapper of platform native mutex
+For POSIX-compatible platforms:
+- `yamc::posix::native_mutex` for native [Mutex][posix_mutex] (`pthread_mutex_t` type).
+- `yamc::posix::native_recursive_mutex` for [Mutex][posix_mutex] with recursive semantics (`pthread_mutex_t` type).
+- `yamc::posix::rwlock` for [Read-Write Lock][posix_rwlock] (`pthread_rwlock_t` type).
+
+For Windows OS platform:
+- `yamc::win::native_mutex` for native [Mutex object][win_mutex] (`HANDLE` type).
+- `yamc::win::critial_section` for [Critical Section object][win_csobj] (`CRITICAL_SECTION` type).
+- `yamc::win::slim_rwlock` for [Slim Reader/Writer(SRW) Locks][win_srwlock] (`SRWLOCK` type).
+
+_Note:_ Some platform (at least macOS) does not provide timeout locking functions.
+
+[posix_mutex]: https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap03.html#tag_03_234
+[posix_rwlock]: https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap03.html#tag_03_311
+[win_mutex]: https://docs.microsoft.com/windows/win32/sync/mutex-objects
+[win_csobj]: https://docs.microsoft.com/windows/win32/sync/critical-section-objects
+[win_srwlock]: https://docs.microsoft.com/windows/win32/sync/slim-reader-writer--srw--locks
+
+
 ## C++20 synchronization primitives
 This library also provides a part of C++20 synchronization primitives emulation. (Based on [P1135][wg21p1135])
 These primitives have the same interfaces and emulate runtime behaviors described in C++20 Standard Library specification.
@@ -142,7 +163,7 @@ There are two categories of the semaphore implementation:
 A C++ compiler and standard library support C++11.
 No need for external library.
 
-NOTE: The implementation of this library depends on C++11 Standard threading primitives only `std::mutex`, [`std::condition_variable`][std_condvar] and [`std::atomic<T>`][std_atomic].
+_Note:_ The implementation of this library depends on C++11 Standard threading primitives only `std::mutex`, [`std::condition_variable`][std_condvar] and [`std::atomic<T>`][std_atomic].
 This means that you can use shared mutex variants (`shared_mutex`, `shared_timed_mutex`) with C++11 compiler which doesn't not support C++14/17 yet.
 
 CI building and unit-testing on the following environments:
