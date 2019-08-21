@@ -6,6 +6,10 @@
 #include "naive_spin_mutex.hpp"
 #include "ttas_spin_mutex.hpp"
 #include "yamc_testutil.hpp"
+#if defined(__linux__) || defined(__APPLE__)
+#include "posix_native_mutex.hpp"
+#define ENABLE_POSIX_NATIVE_MUTEX
+#endif
 
 
 #define TEST_THREADS   20
@@ -22,6 +26,9 @@ using SpinMutexTypes = ::testing::Types<
   yamc::spin::basic_mutex<yamc::backoff::busy>,
   yamc::spin_weak::basic_mutex<yamc::backoff::busy>,
   yamc::spin_ttas::basic_mutex<yamc::backoff::busy>
+#if defined(ENABLE_POSIX_NATIVE_MUTEX) && YAMC_POSIX_SPINLOCK_SUPPORTED
+  , yamc::posix::spinlock
+#endif
 >;
 
 template <typename Mutex>

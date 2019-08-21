@@ -34,10 +34,12 @@
 
 #if defined(__APPLE__)
 // macOS doesn't have timed locking functions
-#define YAMC_POSIX_TIMEOUT_SUPPORTED  0
+#define YAMC_POSIX_TIMEOUT_SUPPORTED   0
+// macOS doesn't provide pthread_spinlock_t
+#define YAMC_POSIX_SPINLOCK_SUPPORTED  0
 #else
-// platform support timeout operations
-#define YAMC_POSIX_TIMEOUT_SUPPORTED  1
+#define YAMC_POSIX_TIMEOUT_SUPPORTED   1
+#define YAMC_POSIX_SPINLOCK_SUPPORTED  1
 #endif
 
 
@@ -49,12 +51,15 @@ namespace yamc {
  * - yamc::posix::native_mutex
  * - yamc::posix::native_recursive_mutex
  * - yamc::posix::rwlock
+ * - yamc::posix::spinlock [conditional]
  *
  * Some platform doesn't support locking operation with timeout.
+ * Some platform doesn't provide spinlock object (pthread_spinlock_t).
  * https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/pthread.h.html
  * https://pubs.opengroup.org/onlinepubs/9699919799/functions/pthread_mutex_timedlock.html
  * https://pubs.opengroup.org/onlinepubs/9699919799/functions/pthread_rwlock_timedrdlock.html
  * https://pubs.opengroup.org/onlinepubs/9699919799/functions/pthread_rwlock_timedwrlock.html
+ * https://pubs.opengroup.org/onlinepubs/9699919799/functions/pthread_spin_init.html
  */
 namespace posix {
 
@@ -324,6 +329,48 @@ public:
     return rwlock_;
   }
 };
+
+
+#if YAMC_POSIX_SPINLOCK_SUPPORTED
+class spinlock {
+  ::pthread_spinlock_t slock_;
+
+public:
+  /*constexpr*/ spinlock() noexcept
+  {
+    ::pthread_spin_init(&slock_, 0);
+  }
+
+  ~spinlock()
+  {
+    ::pthread_spin_destroy(&slock_);
+  }
+
+  spinlock(const spinlock&) = delete;
+  spinlock& operator=(const spinlock&) = delete;
+
+  void lock()
+  {
+    ::pthread_spin_lock(&slock_);
+  }
+
+  bool try_lock()
+  {
+    return (::pthread_spin_trylock(&slock_) == 0);
+  }
+
+  void unlock()
+  {
+    ::pthread_spin_unlock(&slock_);
+  }
+
+  using native_handle_type = ::pthread_spinlock_t;
+  native_handle_type native_handle()
+  {
+    return slock_;
+  }
+};
+#endif // YAMC_POSIX_SPINLOCK_SUPPORTED
 
 
 using mutex = native_mutex;

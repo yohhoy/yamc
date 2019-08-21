@@ -119,20 +119,22 @@ Period.
 
 
 ## Wrapper of platform native mutex
-For POSIX-compatible platforms:
+For POSIX-compatible platforms (see Note below):
 - `yamc::posix::native_mutex` for native [Mutex][posix_mutex] (`pthread_mutex_t` type).
 - `yamc::posix::native_recursive_mutex` for [Mutex][posix_mutex] with recursive semantics (`pthread_mutex_t` type).
 - `yamc::posix::rwlock` for [Read-Write Lock][posix_rwlock] (`pthread_rwlock_t` type).
+- `yamc::posix::spinlock` for [Spin Lock][posix_spinlock] (`pthread_spinlock_t` type).
+
+_Note:_ Some platform (at least macOS) does not provide timed locking functions, spinlock primitives in POSIX Standard.
 
 For Windows OS platform:
 - `yamc::win::native_mutex` for native [Mutex object][win_mutex] (`HANDLE` type).
 - `yamc::win::critial_section` for [Critical Section object][win_csobj] (`CRITICAL_SECTION` type).
 - `yamc::win::slim_rwlock` for [Slim Reader/Writer(SRW) Locks][win_srwlock] (`SRWLOCK` type).
 
-_Note:_ Some platform (at least macOS) does not provide timeout locking functions.
-
 [posix_mutex]: https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap03.html#tag_03_234
 [posix_rwlock]: https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap03.html#tag_03_311
+[posix_spinlock]: https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap03.html#tag_03_364
 [win_mutex]: https://docs.microsoft.com/windows/win32/sync/mutex-objects
 [win_csobj]: https://docs.microsoft.com/windows/win32/sync/critical-section-objects
 [win_srwlock]: https://docs.microsoft.com/windows/win32/sync/slim-reader-writer--srw--locks
