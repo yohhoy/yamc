@@ -86,7 +86,7 @@ int main()
   DUMP(yamc::posix::native_recursive_mutex);
   DUMP(yamc::posix::rwlock);
 #if YAMC_POSIX_SPINLOCK_SUPPORTED
-  DUMP(yamc::posix::spinlok);
+  DUMP(yamc::posix::spinlock);
 #endif
 #endif
 #if defined(ENABLE_WIN_NATIVE_MUTEX)

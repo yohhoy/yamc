@@ -54,7 +54,7 @@ namespace yamc {
  * - yamc::posix::spinlock [conditional]
  *
  * Some platform doesn't support locking operation with timeout.
- * Some platform doesn't provide spinlock object (pthread_spinlok_t).
+ * Some platform doesn't provide spinlock object (pthread_spinlock_t).
  * https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/pthread.h.html
  * https://pubs.opengroup.org/onlinepubs/9699919799/functions/pthread_mutex_timedlock.html
  * https://pubs.opengroup.org/onlinepubs/9699919799/functions/pthread_rwlock_timedrdlock.html
