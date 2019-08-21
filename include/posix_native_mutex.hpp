@@ -354,7 +354,7 @@ public:
     ::pthread_spin_lock(&slock_);
   }
 
-  bool trylock()
+  bool try_lock()
   {
     return (::pthread_spin_trylock(&slock_) == 0);
   }
