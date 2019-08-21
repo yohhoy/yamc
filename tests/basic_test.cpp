@@ -428,18 +428,34 @@ TEST(NativeRecursiveMutexTest, NativeHandle)
 }
 
 // posix::rwlock::native_handle_type
-TEST(RWLockMutexTest, NativeHandleType)
+TEST(PosixRWLockTest, NativeHandleType)
 {
   ::testing::StaticAssertTypeEq<yamc::posix::rwlock::native_handle_type, ::pthread_rwlock_t>();
 }
 
 // posix::rwlock::native_handle()
-TEST(RWLockMutexTest, NativeHandle)
+TEST(PosixRWLockTest, NativeHandle)
 {
   yamc::posix::rwlock mtx;
   yamc::posix::rwlock::native_handle_type handle = mtx.native_handle();
   (void)handle;  // suppress "unused variable" warning
 }
+
+#if YAMC_POSIX_SPINLOCK_SUPPORTED
+// posix::spinlock::native_handle_type
+TEST(PosixSpinlockTest, NativeHandleType)
+{
+  ::testing::StaticAssertTypeEq<yamc::posix::spinlock::native_handle_type, ::pthread_spinlock_t>();
+}
+
+// posix::spinlock::native_handle()
+TEST(PosixSpinlockTest, NativeHandle)
+{
+  yamc::posix::spinlock mtx;
+  yamc::posix::spinlock::native_handle_type handle = mtx.native_handle();
+  (void)handle;  // suppress "unused variable" warning
+}
+#endif // YAMC_POSIX_SPINLOCK_SUPPORTED
 #endif // defined(ENABLE_POSIX_NATIVE_MUTEX)
 
 
