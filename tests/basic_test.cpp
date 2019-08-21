@@ -402,7 +402,7 @@ TYPED_TEST(RecursiveTimedMutexTest, TryLockUntil)
 // posix::native_mutex::native_handle_type
 TEST(NativeMutexTest, NativeHandleType)
 {
-  ::testing::StaticAssertTypeEq<yamc::posix::native_mutex::native_handle_type, ::pthread_mutex_t>();
+  ::testing::StaticAssertTypeEq<yamc::posix::native_mutex::native_handle_type, ::pthread_mutex_t*>();
 }
 
 // posix::native_mutex::native_handle()
@@ -416,7 +416,7 @@ TEST(NativeMutexTest, NativeHandle)
 // posix::native_recursive_mutex::native_handle_type
 TEST(NativeRecursiveMutexTest, NativeHandleType)
 {
-  ::testing::StaticAssertTypeEq<yamc::posix::native_recursive_mutex::native_handle_type, ::pthread_mutex_t>();
+  ::testing::StaticAssertTypeEq<yamc::posix::native_recursive_mutex::native_handle_type, ::pthread_mutex_t*>();
 }
 
 // posix::native_recursive_mutex::native_handle()
@@ -430,7 +430,7 @@ TEST(NativeRecursiveMutexTest, NativeHandle)
 // posix::rwlock::native_handle_type
 TEST(PosixRWLockTest, NativeHandleType)
 {
-  ::testing::StaticAssertTypeEq<yamc::posix::rwlock::native_handle_type, ::pthread_rwlock_t>();
+  ::testing::StaticAssertTypeEq<yamc::posix::rwlock::native_handle_type, ::pthread_rwlock_t*>();
 }
 
 // posix::rwlock::native_handle()
@@ -445,7 +445,7 @@ TEST(PosixRWLockTest, NativeHandle)
 // posix::spinlock::native_handle_type
 TEST(PosixSpinlockTest, NativeHandleType)
 {
-  ::testing::StaticAssertTypeEq<yamc::posix::spinlock::native_handle_type, ::pthread_spinlock_t>();
+  ::testing::StaticAssertTypeEq<yamc::posix::spinlock::native_handle_type, ::pthread_spinlock_t*>();
 }
 
 // posix::spinlock::native_handle()

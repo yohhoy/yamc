@@ -127,10 +127,10 @@ public:
   }
 #endif
 
-  using native_handle_type = ::pthread_mutex_t;
+  using native_handle_type = ::pthread_mutex_t*;
   native_handle_type native_handle()
   {
-    return mtx_;
+    return &mtx_;
   }
 };
 
@@ -211,10 +211,10 @@ public:
   }
 #endif // YAMC_POSIX_TIMEOUT_SUPPORTED
 
-  using native_handle_type = ::pthread_mutex_t;
+  using native_handle_type = ::pthread_mutex_t*;
   native_handle_type native_handle()
   {
-    return mtx_;
+    return &mtx_;
   }
 };
 
@@ -323,10 +323,10 @@ public:
   }
 #endif // YAMC_POSIX_TIMEOUT_SUPPORTED
 
-  using native_handle_type = ::pthread_rwlock_t;
+  using native_handle_type = ::pthread_rwlock_t*;
   native_handle_type native_handle()
   {
-    return rwlock_;
+    return &rwlock_;
   }
 };
 
@@ -364,10 +364,10 @@ public:
     ::pthread_spin_unlock(&slock_);
   }
 
-  using native_handle_type = ::pthread_spinlock_t;
+  using native_handle_type = ::pthread_spinlock_t*;
   native_handle_type native_handle()
   {
-    return slock_;
+    return &slock_;
   }
 };
 #endif // YAMC_POSIX_SPINLOCK_SUPPORTED
