@@ -66,7 +66,7 @@ from_unix_epoch(const std::chrono::time_point<std::chrono::system_clock, Duratio
 {
   // Until C++20, the epoch of std::chrono::system_clock is unspecified,
   // but most implementation use UNIX epoch (19700101T000000Z).
-  return duration_cast<std::chrono::nanoseconds>(tp.time_since_epoch()).count();
+  return std::chrono::duration_cast<std::chrono::nanoseconds>(tp.time_since_epoch()).count();
 }
 
 } // namespace detail
