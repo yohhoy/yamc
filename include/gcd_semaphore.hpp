@@ -36,6 +36,8 @@
 #include <dispatch/dispatch.h>
 
 
+namespace yamc {
+
 /*
  * Semaphores in C++20 Standard Library for macOS/iOS families
  *
@@ -45,9 +47,33 @@
  * This implementation use dispatch semaphore of GCD runtime.
  * https://developer.apple.com/documentation/dispatch/dispatchsemaphore
  */
-namespace yamc {
-
 namespace gcd {
+
+namespace detail {
+
+template<typename Clock, typename Duration>
+inline
+int64_t
+from_unix_epoch(const std::chrono::time_point<Clock, Duration>& tp)
+{
+  using namespace std::chrono;
+  auto rel_time = tp - Clock::now();
+  return duration_cast<nanoseconds>((system_clock::now() + rel_time).time_since_epoch()).count();
+}
+
+template<typename Duration>
+inline
+int64_t
+from_unix_epoch(const std::chrono::time_point<std::chrono::system_clock, Duration>& tp)
+{
+  // Until C++20, the epoch of std::chrono::system_clock is unspecified,
+  // but most implementation use UNIX epoch (19700101T000000Z).
+  using namespace std::chrono;
+  return duration_cast<nanoseconds>(tp.time_since_epoch()).count();
+}
+
+} // namespace detail
+
 
 template <std::ptrdiff_t least_max_value = std::numeric_limits<long>::max()>
 class counting_semaphore {
@@ -133,14 +159,9 @@ public:
   template<class Clock, class Duration>
   bool try_acquire_until(const std::chrono::time_point<Clock, Duration>& abs_time)
   {
-    using namespace std::chrono;
     validate_native_handle("counting_semaphore::try_acquire_until");
-    static_assert(std::is_same<Clock, system_clock>::value, "support only system_clock");
-    // Until C++20, the epoch of std::chrono::system_clock is unspecified,
-    // but most implementation use UNIX epooch (19700101T000000Z).
     const struct ::timespec unix_epoch = { 0, 0 };
-    auto from_epoch = duration_cast<nanoseconds>(abs_time.time_since_epoch()).count();
-    auto timeout = ::dispatch_walltime(&unix_epoch, from_epoch);
+    auto timeout = ::dispatch_walltime(&unix_epoch, detail::from_unix_epoch(abs_time));
 
     long result = ::dispatch_semaphore_wait(dsema_, timeout);
     if (result != KERN_SUCCESS && result != KERN_OPERATION_TIMED_OUT) {
