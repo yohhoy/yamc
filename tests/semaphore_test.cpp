@@ -157,6 +157,26 @@ TYPED_TEST(SemaphoreTest, TryAcquireUntilTimeout)
   EXPECT_LE(TEST_EXPECT_TIMEOUT, sw.elapsed());
 }
 
+// semaphore::try_acquire_until() timeout with steady_clock
+TYPED_TEST(SemaphoreTest, TryAcquireUntilTimeoutSteadyClock)
+{
+  using counting_semaphore = typename TypeParam::counting_semaphore_def;
+  counting_semaphore sem{0};
+  yamc::test::stopwatch<std::chrono::steady_clock> sw;
+  EXPECT_FALSE(sem.try_acquire_until(std::chrono::steady_clock::now() + TEST_EXPECT_TIMEOUT));
+  EXPECT_LE(TEST_EXPECT_TIMEOUT, sw.elapsed());
+}
+
+// semaphore::try_acquire_until() timeout with high_resolution_clock
+TYPED_TEST(SemaphoreTest, TryAcquireUntilTimeoutHighResolutionClock)
+{
+  using counting_semaphore = typename TypeParam::counting_semaphore_def;
+  counting_semaphore sem{0};
+  yamc::test::stopwatch<std::chrono::high_resolution_clock> sw;
+  EXPECT_FALSE(sem.try_acquire_until(std::chrono::high_resolution_clock::now() + TEST_EXPECT_TIMEOUT));
+  EXPECT_LE(TEST_EXPECT_TIMEOUT, sw.elapsed());
+}
+
 // semaphore::release()
 TYPED_TEST(SemaphoreTest, Release)
 {

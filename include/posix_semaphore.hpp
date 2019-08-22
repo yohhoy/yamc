@@ -37,6 +37,8 @@
 #include <time.h>    // timespec struct
 
 
+namespace yamc {
+
 /*
  * Semaphores in C++20 Standard Library for POSIX-compatible platform
  *
@@ -46,9 +48,28 @@
  * This implementation use POSIX unnamed semaphore.
  * https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/semaphore.h.html
  */
-namespace yamc {
-
 namespace posix {
+
+namespace detail {
+
+template<typename Clock, typename Duration>
+inline
+std::chrono::time_point<std::chrono::system_clock, Duration>
+to_system_timepoint(const std::chrono::time_point<Clock, Duration>& tp)
+{
+  return std::chrono::system_clock::now() + (tp - Clock::now());
+}
+
+template<typename Duration>
+inline
+std::chrono::time_point<std::chrono::system_clock, Duration>
+to_system_timepoint(const std::chrono::time_point<std::chrono::system_clock, Duration>& tp)
+{
+  return tp;
+}
+
+} // namespace detail
+
 
 template <std::ptrdiff_t least_max_value = SEM_VALUE_MAX>
 class counting_semaphore {
@@ -126,7 +147,7 @@ public:
   bool try_acquire_for(const std::chrono::duration<Rep, Period>& rel_time)
   {
     // C++ Standard says '_for'-suffixed timeout function shall use steady clock,
-    // but we use std::chrono::system_clock which may or may not be steady.
+    // but we use system_clock to convert from time_point to legacy time_t.
     const auto tp = std::chrono::system_clock::now() + rel_time;
     return do_try_acquirewait(tp);
   }
@@ -134,8 +155,7 @@ public:
   template<class Clock, class Duration>
   bool try_acquire_until(const std::chrono::time_point<Clock, Duration>& abs_time)
   {
-    static_assert(std::is_same<Clock, std::chrono::system_clock>::value, "support only system_clock");
-    return do_try_acquirewait(abs_time);
+    return do_try_acquirewait(detail::to_system_timepoint(abs_time));
   }
 };
 
