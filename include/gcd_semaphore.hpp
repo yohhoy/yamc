@@ -56,7 +56,9 @@ inline
 int64_t
 from_unix_epoch(const std::chrono::time_point<Clock, Duration>& tp)
 {
-  return from_unix_epoch(std::chrono::system_clock::now() + (tp - Clock::now()));
+  using namespace std::chrono;
+  auto rel_time = tp - Clock::now();
+  return duration_cast<nanoseconds>((system_clock::now() + rel_time).time_since_epoch()).count();
 }
 
 template<typename Duration>
@@ -66,7 +68,8 @@ from_unix_epoch(const std::chrono::time_point<std::chrono::system_clock, Duratio
 {
   // Until C++20, the epoch of std::chrono::system_clock is unspecified,
   // but most implementation use UNIX epoch (19700101T000000Z).
-  return std::chrono::duration_cast<std::chrono::nanoseconds>(tp.time_since_epoch()).count();
+  using namespace std::chrono;
+  return duration_cast<nanoseconds>(tp.time_since_epoch()).count();
 }
 
 } // namespace detail
