@@ -132,12 +132,16 @@ For Windows OS platform:
 - `yamc::win::critial_section` for [Critical Section object][win_csobj] (`CRITICAL_SECTION` type).
 - `yamc::win::slim_rwlock` for [Slim Reader/Writer(SRW) Locks][win_srwlock] (`SRWLOCK` type).
 
+For macOS/iOS platform:
+- `yamc::apple::unfair_lock` for [Unfair Lock][apple_oslock] (`os_unfair_lock_t` type).
+
 [posix_mutex]: https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap03.html#tag_03_234
 [posix_rwlock]: https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap03.html#tag_03_311
 [posix_spinlock]: https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap03.html#tag_03_364
 [win_mutex]: https://docs.microsoft.com/windows/win32/sync/mutex-objects
 [win_csobj]: https://docs.microsoft.com/windows/win32/sync/critical-section-objects
 [win_srwlock]: https://docs.microsoft.com/windows/win32/sync/slim-reader-writer--srw--locks
+[apple_oslock]: https://developer.apple.com/documentation/os/os_unfair_lock
 
 
 ## C++20 synchronization primitives
