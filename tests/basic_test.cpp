@@ -17,6 +17,10 @@
 #include "win_native_mutex.hpp"
 #define ENABLE_WIN_NATIVE_MUTEX
 #endif
+#if defined(__APPLE__)
+#include "apple_native_mutex.hpp"
+#define ENABLE_APPLE_NATIVE_MUTEX
+#endif
 #include "yamc_testutil.hpp"
 
 
@@ -47,6 +51,9 @@ using NormalMutexTypes = ::testing::Types<
   , yamc::win::mutex
   , yamc::win::timed_mutex
   , yamc::win::shared_mutex
+#endif
+#if defined(ENABLE_APPLE_NATIVE_MUTEX)
+  , yamc::apple::unfair_lock
 #endif
 >;
 
@@ -502,3 +509,20 @@ TEST(SlimRWLockTest, NativeHandle)
   (void)handle;  // suppress "unused variable" warning
 }
 #endif // defined(ENABLE_WIN_NATIVE_MUTEX)
+
+
+#if defined(ENABLE_APPLE_NATIVE_MUTEX)
+// apple::unfair_lock::native_handle_type
+TEST(UnfairLockTest, NativeHandleType)
+{
+  ::testing::StaticAssertTypeEq<yamc::apple::unfair_lock::native_handle_type, ::os_unfair_lock_t>();
+}
+
+// apple::unfair_lock:native_handle()
+TEST(UnfairLockTest, NativeHandle)
+{
+  yamc::apple::unfair_lock mtx;
+  yamc::apple::unfair_lock::native_handle_type handle = mtx.native_handle();
+  (void)handle;  // suppress "unused variable" warning
+}
+#endif // defined(ENABLE_APPLE_NATIVE_MUTEX)

@@ -23,6 +23,10 @@
 #include "win_native_mutex.hpp"
 #define ENABLE_WIN_NATIVE_MUTEX
 #endif
+#if defined(__APPLE__)
+#include "apple_native_mutex.hpp"
+#define ENABLE_APPLE_NATIVE_MUTEX
+#endif
 
 
 #ifdef DUMP_SIZEOF
@@ -93,6 +97,9 @@ int main()
   DUMP(yamc::win::native_mutex);
   DUMP(yamc::win::critical_section);
   DUMP(yamc::win::slim_rwlock);
+#endif
+#if defined(ENABLE_APPLE_NATIVE_MUTEX)
+  DUMP(yamc::apple::unfair_lock);
 #endif
   return 0;
 }
