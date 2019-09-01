@@ -91,7 +91,7 @@ class counting_semaphore {
 public:
   static constexpr std::ptrdiff_t max() noexcept
   {
-    static_assert(0 < least_max_value, "least_max_value shall be greater than zero");
+    static_assert(0 <= least_max_value, "least_max_value shall be non-negative");
     // We assume least_max_value equals to std::numeric_limits<long>::max() here.
     // The official document says nothing about the upper limit of initial value.
     return least_max_value;

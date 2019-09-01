@@ -100,7 +100,7 @@ class counting_semaphore {
 public:
   static constexpr std::ptrdiff_t max() noexcept
   {
-    static_assert(0 < least_max_value, "least_max_value shall be greater than zero");
+    static_assert(0 <= least_max_value, "least_max_value shall be non-negative");
     static_assert(least_max_value <= SEM_VALUE_MAX, "least_max_value shall be less than or equal to SEM_VALUE_MAX");
     return least_max_value;
   }

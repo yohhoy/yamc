@@ -97,7 +97,7 @@ public:
     // Windows.h header defines max() and min() function-like macros that make trouble,
     // we put parenthesis around `max` identifier to prevent unexpected macro expansion.
     // https://docs.microsoft.com/windows/win32/multimedia/max
-    static_assert(0 < least_max_value, "least_max_value shall be greater than zero");
+    static_assert(0 <= least_max_value, "least_max_value shall be non-negative");
     return least_max_value;
   }
 
