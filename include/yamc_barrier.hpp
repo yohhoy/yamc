@@ -29,6 +29,7 @@
 #include <cassert>
 #include <cstddef>
 #include <condition_variable>
+#include <limits>
 #include <mutex>
 
 
@@ -79,12 +80,17 @@ class barrier {
 public:
   using arrival_token = detail::barrier_arrival_token;
 
-  /*constexpr*/ explicit barrier(std::ptrdiff_t phase_count, CompletionFunction f = CompletionFunction())
-    : init_count_(phase_count)
-    , counter_(phase_count)
+  static constexpr ptrdiff_t (max)() noexcept
+  {
+    return (std::numeric_limits<ptrdiff_t>::max)();
+  }
+
+  /*constexpr*/ explicit barrier(std::ptrdiff_t expected, CompletionFunction f = CompletionFunction())
+    : init_count_(expected)
+    , counter_(expected)
     , completion_(std::move(f))
   {
-    assert(0 <= phase_count);
+    assert(0 <= expected && expected < (max()));
   }
 
   ~barrier() = default;

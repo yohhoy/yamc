@@ -300,3 +300,9 @@ TEST(BarrierTest, DropPhasing)
     }
   );
 }
+
+// barrier::max()
+TEST(BarrierTest, Max)
+{
+  EXPECT_GT((yamc::barrier<>::max)(), 0);
+}

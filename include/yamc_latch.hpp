@@ -29,6 +29,7 @@
 #include <cassert>
 #include <cstddef>
 #include <condition_variable>
+#include <limits>
 #include <mutex>
 
 
@@ -45,10 +46,15 @@ class latch {
   mutable std::mutex mtx_;
 
 public:
+  static constexpr ptrdiff_t (max)() noexcept
+  {
+    return (std::numeric_limits<ptrdiff_t>::max)();
+  }
+
   /*constexpr*/ explicit latch(std::ptrdiff_t expected)
     : counter_(expected)
   {
-    assert(0 <= expected);
+    assert(0 <= expected && expected < (max)());
   }
 
   ~latch() = default;

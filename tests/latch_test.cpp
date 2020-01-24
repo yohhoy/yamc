@@ -76,3 +76,9 @@ TEST(LatchTest, ArriveAndWait)
     EXPECT_STEP_RANGE(2, 3);
   }
 }
+
+// latch::max()
+TEST(LatchTest, Max)
+{
+  EXPECT_GT((yamc::latch::max)(), 0);
+}
