@@ -145,7 +145,7 @@ For macOS/iOS platform:
 
 
 ## C++20 synchronization primitives
-This library also provides a part of C++20 synchronization primitives emulation. (Based on [P1135][wg21p1135])
+This library also provides a part of C++20 synchronization primitives emulation.
 These primitives have the same interfaces and emulate runtime behaviors described in C++20 Standard Library specification.
 
 - `<semaphore>` header
@@ -160,7 +160,6 @@ There are two categories of the semaphore implementation:
 - "Generic": Cross-platform with C++11 primitives only, inefficient compared to "Native" version.
 - "Native": High performance, platform dependent with POSIX/macOS/Windows native APIs.
 
-[wg21p1135]: https://wg21.link/p1135
 [semaphore]: https://en.wikipedia.org/wiki/Semaphore_(programming)
 [barrier]: https://en.wikipedia.org/wiki/Barrier_(computer_science)
 
