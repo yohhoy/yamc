@@ -1,9 +1,8 @@
 language: cpp
 
 dist: trusty
-sudo: required
 
-matrix:
+jobs:
   include:
     - os: linux
       compiler: gcc
