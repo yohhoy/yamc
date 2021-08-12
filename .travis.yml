@@ -1,25 +1,16 @@
 language: cpp
 
-dist: trusty
+dist: xenial
 
 jobs:
   include:
     - os: linux
       compiler: gcc
-      addons:
-        apt:
-          sources:
-            - ubuntu-toolchain-r-test
-          packages:
-            - g++-5
-      env: COMPILER=g++-5
     - os: linux
       compiler: clang
-      env: COMPILER=clang++
     - os: osx
       compiler: clang
       osx_image: xcode8.3
-      env: COMPILER=clang++
 
 before_script:
   - cmake --version
@@ -27,7 +18,7 @@ before_script:
 script:
   - mkdir build
   - cd build
-  - cmake -DCMAKE_BUILD_TYPE=RELEASE -DCMAKE_CXX_COMPILER=$COMPILER -DENABLE_TESTING=ON ..
+  - cmake -DCMAKE_BUILD_TYPE=Release -DENABLE_TESTING=ON ..
   - make -j2
   - tests/dump_sizeof
   - tests/dump_layout
