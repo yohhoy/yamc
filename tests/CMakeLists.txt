@@ -1,5 +1,10 @@
 cmake_minimum_required(VERSION 3.2)
 
+# Requires C++11
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
 # Pthread
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads)
@@ -13,6 +18,7 @@ include(ExternalProject)
 set(EXTERNAL_INSTALL_LOCATION ${CMAKE_BINARY_DIR}/external)
 ExternalProject_Add(googletest
   GIT_REPOSITORY https://github.com/google/googletest
+  GIT_TAG release-1.11.0
   CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${EXTERNAL_INSTALL_LOCATION}
              -DCMAKE_CXX_STANDARD=${CMAKE_CXX_STANDARD}
              -DCMAKE_CXX_STANDARD_REQUIRED=${CMAKE_CXX_STANDARD_REQUIRED}
