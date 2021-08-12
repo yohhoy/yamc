@@ -173,8 +173,8 @@ This means that you can use shared mutex variants (`shared_mutex`, `shared_timed
 
 CI building and unit-testing on the following environments:
 - Linux/G++ 5.4
-- Linux/Clang 3.7
-- macOS/Clang (Xcode 8.3)
+- Linux/Clang 7.0
+- macOS/Clang (Xcode 9.4)
 - Windows/MSVC 14.0 (Visual Studio 2015)
 
 [std_condvar]: http://en.cppreference.com/w/cpp/thread/condition_variable
