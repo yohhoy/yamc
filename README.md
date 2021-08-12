@@ -1,5 +1,5 @@
 # yamc
-[![Build Status](https://travis-ci.org/yohhoy/yamc.svg?branch=master)](https://travis-ci.org/yohhoy/yamc)
+[![Build Status](https://travis-ci.com/yohhoy/yamc.svg?branch=master)](https://travis-ci.com/yohhoy/yamc)
 [![Build status](https://ci.appveyor.com/api/projects/status/omke97drkdcmntfh/branch/master?svg=true)](https://ci.appveyor.com/project/yohhoy/yamc/branch/master)
 [![MIT License](http://img.shields.io/badge/license-MIT-blue.svg?style=flat)](LICENSE)
 
