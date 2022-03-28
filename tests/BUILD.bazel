@@ -1,0 +1,84 @@
+load("@rules_cc//cc:defs.bzl", "cc_test")
+
+_tests = {
+    "barrier_test": [
+        "//:yamc_barrier",
+    ],
+    "basic_test": [
+        "//:checked_mutex",
+        "//:checked_shared_mutex",
+        "//:fair_mutex",
+        "//:fair_shared_mutex",
+        "//:alternate_mutex",
+        "//:alternate_shared_mutex",
+    ],
+    "checked_test": [
+        "//:checked_mutex",
+        "//:checked_shared_mutex",
+    ],
+    "compile_test": [
+        "//:naive_spin_mutex",
+        "//:ttas_spin_mutex",
+        "//:checked_mutex",
+        "//:checked_shared_mutex",
+        "//:fair_mutex",
+        "//:fair_shared_mutex",
+        "//:alternate_mutex",
+        "//:alternate_shared_mutex",
+    ],
+    "deadlock_test": [
+        "//:checked_mutex",
+        "//:checked_shared_mutex",
+    ],
+    # "dump_typeinfo": [
+    #     "//:naive_spin_mutex",
+    #     "//:ttas_spin_mutex",
+    #     "//:checked_mutex",
+    #     "//:checked_shared_mutex",
+    #     "//:fair_mutex",
+    #     "//:fair_shared_mutex",
+    #     "//:alternate_mutex",
+    #     "//:alternate_shared_mutex",
+    # ],
+    "fairness_test": [
+        "//:fair_mutex",
+        "//:fair_shared_mutex",
+    ],
+    "latch_test": [
+        "//:yamc_latch",
+    ],
+    "lock_test": [
+        "//:yamc_shared_lock",
+        "//:yamc_scoped_lock",
+    ],
+    "perf_rwlock": [
+        "//:alternate_shared_mutex",
+        "//:fair_mutex",
+        "//:fair_shared_mutex",
+    ],
+    "rwlock_test": [
+        "//:checked_shared_mutex",
+        "//:fair_shared_mutex",
+        "//:alternate_shared_mutex",
+        "//:yamc_shared_lock",
+    ],
+    "semaphore_test": [
+        "//:yamc_semaphore",
+    ],
+    "spinlock_test": [
+        "//:naive_spin_mutex",
+        "//:ttas_spin_mutex",
+    ],
+}
+
+[cc_test(
+    name = test,
+    srcs = [
+        "%s.cpp" % test,
+        "yamc_testutil.hpp",
+    ],
+    deps = _tests[test] + [
+        "@com_google_googletest//:gtest",
+        "@com_google_googletest//:gtest_main",
+    ],
+) for test in _tests]
