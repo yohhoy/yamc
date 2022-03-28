@@ -1,0 +1,35 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+_libs = {
+    "alternate_mutex": [],
+    "alternate_shared_mutex": ["yamc_rwlock_sched"],
+    "apple_native_mutex": [],
+    "checked_mutex": ["yamc_lock_validator"],
+    "checked_shared_mutex": ["yamc_rwlock_sched", "yamc_lock_validator"],
+    "fair_mutex": [],
+    "fair_shared_mutex": [],
+    "gcd_semaphore": [],
+    "naive_spin_mutex": ["yamc_backoff_spin"],
+    "posix_native_mutex": [],
+    "posix_semaphore": [],
+    "ttas_spin_mutex": ["yamc_backoff_spin"],
+    "win_native_mutex": [],
+    "win_semaphore": [],
+    "yamc_backoff_spin": [],
+    "yamc_barrier": [],
+    "yamc_latch": [],
+    "yamc_lock_validator": [],
+    "yamc_rwlock_sched": [],
+    "yamc_scoped_lock": [],
+    "yamc_semaphore": [],
+    "yamc_shared_lock": [],
+}
+
+[cc_library(
+    name = lib,
+    visibility = ["//visibility:public"],
+    includes = ["include"],
+    hdrs = ["include/%s.hpp" % lib],
+    strip_include_prefix = "include",
+    deps = [":" + dep for dep in _libs[lib]],
+) for lib in _libs]
